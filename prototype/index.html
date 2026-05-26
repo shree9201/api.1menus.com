@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>1Menus Hotel Ops — Android Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app-shell">
+  <p class="prototype-banner">Interactive Android prototype · Tap <strong>☰ App Menu</strong> on any screen for full navigation · <a href="#flow-map" style="color:#60a5fa">Flow map</a></p>
+
+  <div class="phone-frame">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span class="status-icons">📶 📡 🔋</span>
+    </div>
+
+    <div class="screen-content" id="screen-scroll">
+      <!-- HOME / ROLE SELECTOR -->
+      <section class="page active" id="page-home" data-show-label="false">
+        <div class="role-select">
+          <h1>1Menus Hotel Ops</h1>
+          <p class="sub">Select a role to explore the prototype</p>
+          <button class="card role-card" data-nav="owner/dashboard">
+            <span class="emoji">👑</span>
+            <div><h3>Hotel Owner</h3><p>Overview, departments, insights</p></div>
+            <span class="arrow">›</span>
+          </button>
+          <button class="card role-card" data-nav="hod/dashboard">
+            <span class="emoji">🧹</span>
+            <div><h3>Housekeeping HOD</h3><p>Live tasks, staff, analytics</p></div>
+            <span class="arrow">›</span>
+          </button>
+          <button class="card role-card" data-nav="staff/home">
+            <span class="emoji">👤</span>
+            <div><h3>Staff (Ravi)</h3><p>My tasks, performance, profile</p></div>
+            <span class="arrow">›</span>
+          </button>
+          <button class="card role-card" data-nav="hr/dashboard">
+            <span class="emoji">📋</span>
+            <div><h3>HR Manager</h3><p>Workforce, performance, training</p></div>
+            <span class="arrow">›</span>
+          </button>
+          <button class="card role-card" data-nav="flow-map" style="margin-top:20px;background:#f0f9ff;border-color:#bae6fd">
+            <span class="emoji">🗺️</span>
+            <div><h3>Developer Flow Map</h3><p>All screens & navigation links</p></div>
+            <span class="arrow">›</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- FLOW MAP -->
+      <section class="page" id="page-flow-map" data-show-label="false" data-hide-nav="true">
+        <div class="back-header">
+          <button type="button" onclick="goBack()">←</button>
+          <h2>Navigation Flow Map</h2>
+        </div>
+        <div class="flow-map card" style="padding:16px;margin:0 0 12px;max-height:55vh;overflow-y:auto">
+          <p><strong>For Android developers:</strong> Hash route = screen ID. Example: <code>#hod/task-detail?id=room-305</code></p>
+          <h3>👑 Owner</h3>
+          <ul>
+            <li><a href="#owner/dashboard">owner/dashboard</a> — main</li>
+            <li><a href="#owner/notifications">owner/notifications</a></li>
+            <li><a href="#owner/metric-detail?metric=requests">owner/metric-detail</a> (×4 metrics)</li>
+            <li><a href="#owner/departments">owner/departments</a></li>
+            <li><a href="#owner/department-detail?id=maintenance">owner/department-detail</a></li>
+            <li><a href="#owner/insights">owner/insights</a> · <a href="#owner/insight-detail?id=insight-ac">insight-detail</a></li>
+            <li><a href="#owner/insights-tab">owner/insights-tab</a> · <a href="#owner/reports">reports</a> · <a href="#owner/more">more</a></li>
+          </ul>
+          <h3>🧹 HOD</h3>
+          <ul>
+            <li><a href="#hod/dashboard">hod/dashboard</a> — stat chips filter tasks</li>
+            <li><a href="#hod/tasks?filter=delayed">hod/tasks</a> · <a href="#hod/task-detail?id=room-305">task-detail</a></li>
+            <li><a href="#hod/staff">hod/staff</a> · <a href="#hod/performance">performance</a></li>
+            <li><a href="#hod/analytics">analytics</a> · <a href="#hod/attention">attention</a></li>
+            <li><a href="#hod/tasks-tab">tasks-tab</a> · <a href="#hod/reports">reports</a> · <a href="#hod/more">more</a></li>
+          </ul>
+          <h3>👤 Staff</h3>
+          <ul>
+            <li><a href="#staff/home">staff/home</a> — View Request flow</li>
+            <li><a href="#staff/task-request?id=room-204">task-request</a> (Accept/Pass/Pause/Reject)</li>
+            <li><a href="#staff/task-active?id=room-204&started=1">task-active</a> (timer + progress)</li>
+            <li><a href="#staff/performance">performance</a> · <a href="#staff/reviews">reviews</a> · <a href="#staff/insights">insights</a></li>
+            <li><a href="#staff/profile">profile</a> · <a href="#staff/history">history</a></li>
+          </ul>
+          <h3>📋 HR</h3>
+          <ul>
+            <li><a href="#hr/dashboard">hr/dashboard</a></li>
+            <li><a href="#hr/employees">employees</a> · <a href="#hr/employee-detail?id=emp-ravi">employee-detail</a></li>
+            <li><a href="#hr/training">training</a> · <a href="#hr/performance-tab">performance-tab</a></li>
+          </ul>
+          <p style="margin-top:12px"><strong>Reference PNGs:</strong> assets/owner_screen.png, hod_screen.png, staff_screen.png, hr_screen.png</p>
+        </div>
+        <button class="btn-primary" style="width:100%;padding:14px;border-radius:12px" data-nav="home">← Back to Role Select</button>
+      </section>
+
+      <!-- ========== OWNER SCREENS ========== -->
+      <section class="page" id="page-owner-dashboard" data-tab="dashboard">
+        <div class="page-header">
+          <div><h1>Good Morning 👑</h1><p class="subtitle">Hotel Owner</p></div>
+          <button class="icon-btn" data-nav="owner/notifications">🔔</button>
+        </div>
+        <p class="section-title" style="margin-top:0">Hotel Overview (Today)</p>
+        <div class="overview-grid">
+          <button class="card overview-card" data-nav="owner/metric-detail" data-param-metric="requests">
+            <div class="label">Total Requests</div><div class="val">356</div><div class="trend up">↑ 12%</div>
+          </button>
+          <button class="card overview-card" data-nav="owner/metric-detail" data-param-metric="response">
+            <div class="label">Avg. Response Time</div><div class="val">14m 25s</div><div class="trend down">↓ 8%</div>
+          </button>
+          <button class="card overview-card" data-nav="owner/metric-detail" data-param-metric="rating">
+            <div class="label">Guest Rating</div><div class="val">4.5 ⭐</div><div class="trend up">+ 0.3</div>
+          </button>
+          <button class="card overview-card" data-nav="owner/metric-detail" data-param-metric="delayed">
+            <div class="label">Delayed Requests</div><div class="val">28</div><div class="trend bad">↑ 5%</div>
+          </button>
+        </div>
+        <div class="section-title">
+          <span>Department Performance</span>
+          <button class="link-btn" data-nav="owner/departments">View All</button>
+        </div>
+        <button class="card dept-row" data-nav="owner/department-detail" data-param-id="housekeeping">
+          <div class="dept-icon" style="background:#dcfce7">🧹</div>
+          <div class="dept-bar-wrap"><div class="name">Housekeeping</div><div class="dept-bar"><span style="width:92%;background:#22c55e"></span></div></div>
+          <div class="dept-rating">4.6 ★</div>
+        </button>
+        <button class="card dept-row" data-nav="owner/department-detail" data-param-id="front-office">
+          <div class="dept-icon" style="background:#ede9fe">🏨</div>
+          <div class="dept-bar-wrap"><div class="name">Front Office</div><div class="dept-bar"><span style="width:88%;background:#22c55e"></span></div></div>
+          <div class="dept-rating">4.4 ★</div>
+        </button>
+        <button class="card dept-row" data-nav="owner/department-detail" data-param-id="maintenance">
+          <div class="dept-icon" style="background:#dbeafe">🔧</div>
+          <div class="dept-bar-wrap"><div class="name">Maintenance</div><div class="dept-bar"><span style="width:76%;background:#f59e0b"></span></div></div>
+          <div class="dept-rating">3.8 ★</div>
+        </button>
+        <button class="card dept-row" data-nav="owner/department-detail" data-param-id="fb-service">
+          <div class="dept-icon" style="background:#fce7f3">🍽️</div>
+          <div class="dept-bar-wrap"><div class="name">F&B Service</div><div class="dept-bar"><span style="width:86%;background:#22c55e"></span></div></div>
+          <div class="dept-rating">4.3 ★</div>
+        </button>
+        <button class="card dept-row" data-nav="owner/department-detail" data-param-id="security">
+          <div class="dept-icon" style="background:#ffe4e6">🛡️</div>
+          <div class="dept-bar-wrap"><div class="name">Security</div><div class="dept-bar"><span style="width:92%;background:#22c55e"></span></div></div>
+          <div class="dept-rating">4.6 ★</div>
+        </button>
+        <div class="section-title">
+          <span>Hotel Insights</span>
+          <button class="link-btn" data-nav="owner/insights">View All</button>
+        </div>
+        <button class="card insight-card" data-nav="owner/insight-detail" data-param-id="insight-ac">
+          <span class="ic">📊</span><p>AC complaints increased by 18% in last 3 days.</p><span class="arrow" style="color:#ef4444">📈</span>
+        </button>
+        <button class="card insight-card" data-nav="owner/insight-detail" data-param-id="insight-hk">
+          <span class="ic">📊</span><p>Housekeeping performance is 22% better than last month.</p><span class="arrow" style="color:#22c55e">📈</span>
+        </button>
+        <button class="card insight-card" data-nav="owner/insight-detail" data-param-id="insight-peak">
+          <span class="ic">🔍</span><p>Peak time delay between 6 PM – 9 PM.</p><span class="arrow">🕐</span>
+        </button>
+      </section>
+
+      <section class="page" id="page-owner-notifications" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Notifications</h2></div>
+        <div class="card notif-item unread"><span>🔴</span><div><strong>28 delayed requests</strong><p style="font-size:12px;color:#6b7280;margin-top:4px">Requires attention · 10 min ago</p></div></div>
+        <div class="card notif-item unread"><span>⭐</span><div><strong>Guest rating improved</strong><p style="font-size:12px;color:#6b7280;margin-top:4px">+0.3 this week</p></div></div>
+        <div class="card notif-item"><span>📊</span><div><strong>Weekly report ready</strong><p style="font-size:12px;color:#6b7280;margin-top:4px">Tap to download PDF</p></div></div>
+      </section>
+
+      <section class="page" id="page-owner-metric-detail" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2 data-metric-title>Metric Detail</h2></div>
+        <div class="card detail-hero"><div class="big" data-metric-value>—</div><div class="label" data-metric-trend>—</div></div>
+        <div class="card info-list">
+          <div class="info-row"><span>Today</span><span>Primary metric</span></div>
+          <div class="info-row"><span>Yesterday</span><span>Comparison data</span></div>
+          <div class="info-row"><span>7-day avg</span><span>Trend analysis</span></div>
+        </div>
+      </section>
+
+      <section class="page" id="page-owner-departments" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>All Departments</h2></div>
+        <button class="card list-item" data-nav="owner/department-detail" data-param-id="housekeeping"><div><h4>Housekeeping</h4><p>142 tasks · 4.6 ★</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="owner/department-detail" data-param-id="maintenance"><div><h4>Maintenance</h4><p>67 tasks · 3.8 ★</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="owner/department-detail" data-param-id="front-office"><div><h4>Front Office</h4><p>89 tasks · 4.4 ★</p></div><span>›</span></button>
+      </section>
+
+      <section class="page" id="page-owner-department-detail" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2 data-dynamic-name>Department</h2></div>
+        <div class="card detail-hero"><div class="big" data-dynamic-field="rating">4.6 ★</div><div class="label">Department Rating</div></div>
+        <div class="card info-list">
+          <div class="info-row"><span>Tasks (Today)</span><span data-dynamic-field="tasks">142</span></div>
+          <div class="info-row"><span>Delayed</span><span data-dynamic-field="delayed" style="color:#ef4444">3</span></div>
+          <div class="info-row"><span>HOD</span><span>Sunil Kumar</span></div>
+        </div>
+        <button class="btn-primary" style="width:100%;margin-top:16px;padding:14px;border-radius:12px" data-nav="hod/dashboard">View HOD Dashboard →</button>
+      </section>
+
+      <section class="page" id="page-owner-insights" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>All Insights</h2></div>
+        <button class="card insight-card" data-nav="owner/insight-detail" data-param-id="insight-ac"><span class="ic">📊</span><p>AC complaints increased by 18%</p><span>›</span></button>
+        <button class="card insight-card" data-nav="owner/insight-detail" data-param-id="insight-hk"><span class="ic">📊</span><p>Housekeeping +22% performance</p><span>›</span></button>
+        <button class="card insight-card" data-nav="owner/insight-detail" data-param-id="insight-peak"><span class="ic">🔍</span><p>Peak delays 6–9 PM</p><span>›</span></button>
+      </section>
+
+      <section class="page" id="page-owner-insight-detail" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2 data-dynamic-name>Insight</h2></div>
+        <div class="card" style="padding:20px;margin-bottom:12px">
+          <p style="line-height:1.6">AI-generated insight with detailed breakdown, charts, and recommended actions for the hotel owner.</p>
+        </div>
+        <div class="card info-list">
+          <div class="info-row"><span>Department</span><span data-dynamic-field="dept">—</span></div>
+          <div class="info-row"><span>Period</span><span>Last 7 days</span></div>
+          <div class="info-row"><span>Impact</span><span style="color:#ef4444">High</span></div>
+        </div>
+      </section>
+
+      <section class="page" id="page-owner-insights-tab" data-tab="insights">
+        <div class="page-header"><div><h1>Insights</h1><p class="subtitle">AI-powered trends</p></div></div>
+        <button class="card insight-card" data-nav="owner/insight-detail" data-param-id="insight-ac"><span class="ic">📊</span><p>AC complaints +18%</p><span>›</span></button>
+        <button class="card insight-card" data-nav="owner/insight-detail" data-param-id="insight-hk"><span class="ic">📊</span><p>HK performance +22%</p><span>›</span></button>
+      </section>
+
+      <section class="page" id="page-owner-reports" data-tab="reports">
+        <div class="page-header"><div><h1>Reports</h1><p class="subtitle">Export & analytics</p></div></div>
+        <button class="card list-item"><div><h4>📄 Daily Operations</h4><p>PDF · Excel</p></div><span>↓</span></button>
+        <button class="card list-item"><div><h4>📊 Department Scorecard</h4><p>Weekly summary</p></div><span>↓</span></button>
+        <button class="card list-item"><div><h4>⭐ Guest Satisfaction</h4><p>Monthly trend</p></div><span>↓</span></button>
+      </section>
+
+      <section class="page" id="page-owner-more" data-tab="more">
+        <div class="page-header"><div><h1>More</h1><p class="subtitle">Settings & account</p></div></div>
+        <button class="card list-item"><div><h4>Profile</h4><p>Hotel Owner account</p></div><span>›</span></button>
+        <button class="card list-item"><div><h4>Hotel Settings</h4><p>Property configuration</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="flow-map"><div><h4>Prototype Flow Map</h4><p>For developers</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="home"><div><h4>Switch Role</h4><p>Return to role selector</p></div><span>›</span></button>
+      </section>
+
+      <!-- ========== HOD SCREENS ========== -->
+      <section class="page" id="page-hod-dashboard" data-tab="dashboard">
+        <div class="page-header">
+          <div><h1>Hi Sunil 👋</h1><p class="subtitle">Housekeeping HOD</p></div>
+          <button class="icon-btn" data-nav="hod/notifications">🔔</button>
+        </div>
+        <p class="section-title" style="margin-top:0">Department Overview</p>
+        <div class="stat-row">
+          <button class="card stat-chip pending" data-nav="hod/tasks" data-param-filter="pending"><div class="num">18</div><div class="lbl">Pending</div></button>
+          <button class="card stat-chip progress" data-nav="hod/tasks" data-param-filter="progress"><div class="num">12</div><div class="lbl">In Progress</div></button>
+          <button class="card stat-chip done" data-nav="hod/tasks" data-param-filter="completed"><div class="num">56</div><div class="lbl">Completed</div></button>
+          <button class="card stat-chip delayed" data-nav="hod/tasks" data-param-filter="delayed"><div class="num">3</div><div class="lbl">Delayed</div></button>
+        </div>
+        <div class="section-title">
+          <span>Live Tasks</span>
+          <button class="link-btn" data-nav="hod/tasks">View All</button>
+        </div>
+        <button class="card task-card" data-nav="hod/task-detail" data-param-id="room-305">
+          <div class="task-icon">📈</div>
+          <div><h4>Room 305</h4><p>AC Issue</p><p>Assigned to: Ravi</p></div>
+          <div class="task-meta"><div class="time">12 min</div><span class="badge delayed">Delayed</span></div>
+        </button>
+        <button class="card task-card" data-nav="hod/task-detail" data-param-id="room-412">
+          <div class="task-icon">👤</div>
+          <div><h4>Room 412</h4><p>Extra Towels</p><p>Assigned to: Anita</p></div>
+          <div class="task-meta"><div>8 min</div><span class="badge progress">In Progress</span></div>
+        </button>
+        <button class="card task-card" data-nav="hod/task-detail" data-param-id="room-118">
+          <div class="task-icon">🧹</div>
+          <div><h4>Room 118</h4><p>Deep Cleaning</p><p>Assigned to: Suresh</p></div>
+          <div class="task-meta"><div>25 min</div><span class="badge progress">In Progress</span></div>
+        </button>
+        <button class="card task-card" data-nav="hod/task-detail" data-param-id="room-220">
+          <div class="task-icon">🛒</div>
+          <div><h4>Room 220</h4><p>Mini Bar</p><p>Assigned to: —</p></div>
+          <div class="task-meta"><div>5 min</div><span class="badge pending">Pending</span></div>
+        </button>
+        <div class="grid-2">
+          <button class="card metric-card" data-nav="hod/performance"><div class="icon">🏆</div><h5>Department Performance</h5><div class="value">4.3 ⭐ Avg. Rating</div></button>
+          <button class="card metric-card" data-nav="hod/staff"><div class="icon">👥</div><h5>Staff Availability</h5><div class="sub"><span class="green">8 Available</span> · <span class="orange">2 Busy</span></div></button>
+          <button class="card metric-card" data-nav="hod/analytics"><div class="icon">📊</div><h5>Task Analytics</h5><div class="value" style="font-size:13px">Avg. 14m 25s</div></button>
+          <button class="card metric-card" data-nav="hod/attention"><div class="icon">⚠️</div><h5>Attention Needed</h5><div class="sub"><span class="red">3 Delayed</span><br><span class="red">2 Not Accepted</span></div></button>
+        </div>
+      </section>
+
+      <section class="page" id="page-hod-notifications" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Notifications</h2></div>
+        <div class="card notif-item unread"><span>⚠️</span><div><strong>Room 305 delayed</strong><p style="font-size:12px;color:#6b7280;margin-top:4px">AC Issue · 12 min overdue</p></div></div>
+        <div class="card notif-item"><span>✅</span><div><strong>Room 118 cleaning started</strong><p style="font-size:12px;color:#6b7280;margin-top:4px">Suresh accepted task</p></div></div>
+      </section>
+
+      <section class="page" id="page-hod-tasks" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2 data-filter-title>All Tasks</h2></div>
+        <div class="filter-tabs">
+          <button class="filter-tab" data-filter="pending" data-nav="hod/tasks" data-param-filter="pending">Pending</button>
+          <button class="filter-tab" data-filter="progress" data-nav="hod/tasks" data-param-filter="progress">In Progress</button>
+          <button class="filter-tab" data-filter="completed" data-nav="hod/tasks" data-param-filter="completed">Completed</button>
+          <button class="filter-tab" data-filter="delayed" data-nav="hod/tasks" data-param-filter="delayed">Delayed</button>
+        </div>
+        <button class="card task-card" data-nav="hod/task-detail" data-param-id="room-305"><div class="task-icon">📈</div><div><h4>Room 305</h4><p>AC Issue</p></div><div class="task-meta"><span class="badge delayed">Delayed</span></div></button>
+        <button class="card task-card" data-nav="hod/task-detail" data-param-id="room-412"><div class="task-icon">👤</div><div><h4>Room 412</h4><p>Extra Towels</p></div><div class="task-meta"><span class="badge progress">In Progress</span></div></button>
+        <button class="card task-card" data-nav="hod/task-detail" data-param-id="room-220"><div class="task-icon">🛒</div><div><h4>Room 220</h4><p>Mini Bar</p></div><div class="task-meta"><span class="badge pending">Pending</span></div></button>
+      </section>
+
+      <section class="page" id="page-hod-tasks-tab" data-tab="tasks">
+        <div class="page-header"><div><h1>Tasks</h1><p class="subtitle">All department tasks</p></div></div>
+        <button class="card task-card" data-nav="hod/task-detail" data-param-id="room-305"><div class="task-icon">📈</div><div><h4>Room 305 — AC Issue</h4><p>Assigned: Ravi</p></div><span class="badge delayed">Delayed</span></button>
+        <button class="card task-card" data-nav="hod/task-detail" data-param-id="room-118"><div class="task-icon">🧹</div><div><h4>Room 118 — Deep Clean</h4><p>Assigned: Suresh</p></div><span class="badge progress">In Progress</span></button>
+      </section>
+
+      <section class="page" id="page-hod-task-detail" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2 data-dynamic-name>Task</h2></div>
+        <div class="card detail-hero"><div class="big">Room <span data-dynamic-room>—</span></div><div class="label" data-dynamic-field="status">Status</div></div>
+        <div class="card info-list">
+          <div class="info-row"><span>Assigned to</span><span data-dynamic-field="assignee">—</span></div>
+          <div class="info-row"><span>Elapsed</span><span data-dynamic-field="time">—</span></div>
+          <div class="info-row"><span>Department</span><span data-dynamic-field="dept">Housekeeping</span></div>
+        </div>
+        <div class="cta-bar">
+          <button class="btn-primary" data-nav="staff/task-active" data-param-id="room-305">View Staff View →</button>
+        </div>
+      </section>
+
+      <section class="page" id="page-hod-staff" data-tab="staff">
+        <div class="page-header"><div><h1>Staff</h1><p class="subtitle">Team availability</p></div></div>
+        <div class="card info-list" style="margin-bottom:12px">
+          <div class="info-row"><span style="color:#22c55e">● Available</span><span>8 staff</span></div>
+          <div class="info-row"><span style="color:#f59e0b">● Busy</span><span>2 staff</span></div>
+        </div>
+        <button class="card list-item" data-nav="hr/employee-detail" data-param-id="emp-ravi"><div><h4>Ravi Kumar</h4><p>Available · 3 active tasks</p></div><span class="badge low">On duty</span></button>
+        <button class="card list-item" data-nav="hr/employee-detail" data-param-id="emp-anita"><div><h4>Anita Singh</h4><p>Busy · Room 412</p></div><span class="badge medium">Busy</span></button>
+        <button class="card list-item" data-nav="hr/employee-detail" data-param-id="emp-suresh"><div><h4>Suresh Yadav</h4><p>Available · 1 task</p></div><span class="badge low">On duty</span></button>
+      </section>
+
+      <section class="page" id="page-hod-performance" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Department Performance</h2></div>
+        <div class="card detail-hero"><div class="big">4.3 ⭐</div><div class="label">Avg. Rating (This Month)</div></div>
+        <div class="card info-list">
+          <div class="info-row"><span>Tasks Completed</span><span>56 today</span></div>
+          <div class="info-row"><span>On-time Rate</span><span>94%</span></div>
+          <div class="info-row"><span>Guest Compliments</span><span>12</span></div>
+        </div>
+      </section>
+
+      <section class="page" id="page-hod-analytics" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Task Analytics</h2></div>
+        <div class="analytics-row" style="margin-bottom:16px">
+          <div class="card"><div class="lbl">Avg Response</div><div class="val">14m</div></div>
+          <div class="card"><div class="lbl">Completion</div><div class="val">92%</div></div>
+          <div class="card"><div class="lbl">Tasks/Day</div><div class="val">89</div></div>
+        </div>
+        <div class="card" style="padding:20px;text-align:center;color:#6b7280">📊 Chart placeholder — wire to analytics API</div>
+      </section>
+
+      <section class="page" id="page-hod-attention" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Attention Needed</h2></div>
+        <button class="card task-card" data-nav="hod/task-detail" data-param-id="room-305"><div class="task-icon">⚠️</div><div><h4>Room 305 — Delayed</h4><p>Not accepted · 12 min</p></div><span class="badge delayed">Action</span></button>
+        <button class="card task-card" data-nav="hod/task-detail" data-param-id="room-220"><div class="task-icon">⏳</div><div><h4>Room 220 — Pending</h4><p>Unassigned · 5 min</p></div><span class="badge pending">Assign</span></button>
+      </section>
+
+      <section class="page" id="page-hod-reports" data-tab="reports">
+        <div class="page-header"><div><h1>Reports</h1><p class="subtitle">Housekeeping</p></div></div>
+        <button class="card list-item"><div><h4>Shift Summary</h4><p>Today · PDF</p></div><span>↓</span></button>
+        <button class="card list-item"><div><h4>Staff Performance</h4><p>Weekly</p></div><span>↓</span></button>
+      </section>
+
+      <section class="page" id="page-hod-more" data-tab="more">
+        <div class="page-header"><div><h1>More</h1></div></div>
+        <button class="card list-item" data-nav="home"><div><h4>Switch Role</h4></div><span>›</span></button>
+        <button class="card list-item" data-nav="flow-map"><div><h4>Flow Map</h4></div><span>›</span></button>
+      </section>
+
+      <!-- ========== STAFF SCREENS ========== -->
+      <section class="page" id="page-staff-home" data-tab="home">
+        <div class="page-header">
+          <div>
+            <h1>Hi Ravi 👋</h1>
+            <p class="subtitle">Housekeeping | Employee ID: HK1287</p>
+            <button class="status-pill" data-nav="staff/profile"><span class="dot"></span> Available</button>
+          </div>
+          <button class="icon-btn" data-nav="staff/notifications">🔔<span class="dot"></span></button>
+        </div>
+        <div class="section-title">
+          <span>My Tasks</span>
+          <button class="link-btn" data-nav="staff/tasks">View All</button>
+        </div>
+        <div class="card staff-task-card">
+          <div class="top">
+            <div class="task-icon">🧴</div>
+            <div style="flex:1"><h4>Room 204</h4><p>Need Towels</p><span class="badge medium">Medium</span></div>
+            <div class="task-meta"><div class="time">🕐 2 min ago</div></div>
+          </div>
+          <div class="actions"><button class="btn-primary" data-nav="staff/task-request" data-param-id="room-204">View Request</button></div>
+        </div>
+        <div class="card staff-task-card">
+          <div class="top">
+            <div class="task-icon">📋</div>
+            <div style="flex:1"><h4>Room 512</h4><p>Room Cleaning</p><span class="badge high">High</span></div>
+            <div class="task-meta"><div class="time">🕐 15 min ago</div></div>
+          </div>
+          <div class="actions"><button class="btn-primary" data-nav="staff/task-request" data-param-id="room-512">View Request</button></div>
+        </div>
+        <div class="card staff-task-card">
+          <div class="top">
+            <div class="task-icon">🧊</div>
+            <div style="flex:1"><h4>Room 308</h4><p>Mini Bar Restock</p><span class="badge low">Low</span></div>
+            <div class="task-meta"><div class="time">🕐 30 min ago</div></div>
+          </div>
+          <div class="actions"><button class="btn-primary" data-nav="staff/task-request" data-param-id="room-308">View Request</button></div>
+        </div>
+        <div class="grid-2">
+          <button class="card metric-card" data-nav="staff/performance"><div class="icon">✅</div><h5>My Performance</h5><div class="value">4.6 ⭐</div><div class="sub">Avg. 12m 25s response</div></button>
+          <button class="card metric-card" data-nav="staff/reviews"><div class="icon">💬</div><h5>My Reviews</h5><p class="review-quote">"Very quick and helpful"</p><div class="sub">Room 204 · Today</div></button>
+          <button class="card metric-card" data-nav="staff/insights"><div class="icon">📊</div><h5>My Insights</h5><p style="font-size:12px;margin-top:6px">+18% tasks this week 🎉</p></button>
+          <button class="card metric-card" data-nav="staff/profile"><div class="icon">👤</div><h5>My Profile</h5><p style="font-size:13px;font-weight:600;margin-top:6px">Ravi Kumar</p><div class="sub">9 AM – 5 PM</div><span class="profile-chevron">›</span></button>
+        </div>
+      </section>
+
+      <section class="page" id="page-staff-notifications" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Notifications</h2></div>
+        <div class="card notif-item unread"><span>🧴</span><div><strong>New task: Room 204</strong><p style="font-size:12px;color:#6b7280;margin-top:4px">Need Towels · High priority</p></div></div>
+        <div class="card notif-item"><span>⭐</span><div><strong>New 5-star review</strong><p style="font-size:12px;color:#6b7280;margin-top:4px">"Very quick and helpful"</p></div></div>
+      </section>
+
+      <section class="page" id="page-staff-tasks" data-tab="tasks" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>All My Tasks</h2></div>
+        <button class="card staff-task-card" data-nav="staff/task-request" data-param-id="room-204"><div class="top"><div class="task-icon">🧴</div><div><h4>Room 204</h4><p>Need Towels</p></div></div></button>
+        <button class="card staff-task-card" data-nav="staff/task-request" data-param-id="room-512"><div class="top"><div class="task-icon">📋</div><div><h4>Room 512</h4><p>Room Cleaning</p></div></div></button>
+      </section>
+
+      <section class="page" id="page-staff-tasks-tab" data-tab="tasks">
+        <div class="page-header"><div><h1>Tasks</h1></div></div>
+        <button class="card staff-task-card" data-nav="staff/task-request" data-param-id="room-204"><div class="top"><div class="task-icon">🧴</div><div><h4>Room 204</h4><p>Need Towels</p></div><span class="btn-primary" style="padding:8px 12px;font-size:11px">View</span></div></button>
+      </section>
+
+      <!-- Incoming request: Accept / Pass / Pause / Reject -->
+      <section class="page" id="page-staff-task-request" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Service Request</h2></div>
+        <div class="card request-card">
+          <p class="room-title">Room <span data-dynamic-room>—</span></p>
+          <p style="font-size:15px;font-weight:600;margin-top:8px" data-dynamic-field="taskTitle">—</p>
+          <p class="meta">Guest: <span data-dynamic-field="guest">—</span> · <span data-dynamic-field="priority">—</span> priority</p>
+          <p class="meta">Requested <span data-dynamic-field="time">—</span> · SLA <span data-dynamic-field="sla">—</span></p>
+          <span class="badge pending" style="margin-top:10px">New Request</span>
+        </div>
+        <div class="card info-list">
+          <div class="info-row"><span>Department</span><span data-dynamic-field="dept">Housekeeping</span></div>
+          <div class="info-row"><span>Est. duration</span><span data-dynamic-field="sla">15 min</span></div>
+        </div>
+        <p style="font-size:13px;font-weight:600;margin:16px 0 8px">Choose action</p>
+        <div class="request-actions">
+          <button type="button" class="btn-action accept" id="staff-accept-btn" data-nav="staff/task-active" data-param-started="1" data-param-id="room-204">✓ Accept Request</button>
+          <button type="button" class="btn-action pass" data-nav="staff/pass-request" data-param-id="room-204">↪ Pass Request</button>
+          <button type="button" class="btn-action pause" data-nav="staff/request-paused" data-param-id="room-204">⏸ Pause Request</button>
+          <button type="button" class="btn-action reject" data-nav="staff/reject-request" data-param-id="room-204">✕ Reject Request</button>
+        </div>
+      </section>
+
+      <section class="page" id="page-staff-pass-request" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Pass Request</h2></div>
+        <div class="card" style="padding:16px;margin-bottom:12px">
+          <p style="font-size:14px;color:#6b7280">Transfer this request to another staff member</p>
+        </div>
+        <button class="card list-item" onclick="StaffActions.confirmPass('Anita Singh')"><div><h4>Anita Singh</h4><p>Available · Housekeeping</p></div><span>›</span></button>
+        <button class="card list-item" onclick="StaffActions.confirmPass('Suresh Yadav')"><div><h4>Suresh Yadav</h4><p>Available · Housekeeping</p></div><span>›</span></button>
+      </section>
+
+      <section class="page" id="page-staff-request-paused" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Request Paused</h2></div>
+        <div class="card detail-hero" style="background:#fff7ed">
+          <div style="font-size:48px">⏸️</div>
+          <div class="big" style="font-size:22px;margin-top:12px">Room <span data-dynamic-room>—</span></div>
+          <div class="label">Request on hold — not started</div>
+        </div>
+        <p style="font-size:13px;color:#6b7280;margin-bottom:12px;text-align:center">You can resume and accept when ready.</p>
+        <button class="btn-primary" style="width:100%;padding:14px;border-radius:12px;margin-bottom:10px" data-nav="staff/task-request" data-param-id="room-204">Resume Request</button>
+        <button class="btn-action reject" style="width:100%;display:block" data-nav="staff/reject-request" data-param-id="room-204">Reject Request</button>
+      </section>
+
+      <section class="page" id="page-staff-reject-request" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Reject Request</h2></div>
+        <div class="card" style="padding:16px;margin-bottom:12px">
+          <p style="font-weight:600;margin-bottom:8px">Reason for rejection</p>
+          <select id="reject-reason" style="width:100%;padding:12px;border-radius:8px;border:1px solid #e5e7eb;font-size:14px">
+            <option>Unable to reach room</option>
+            <option>Guest refused service</option>
+            <option>Wrong assignment</option>
+            <option>Equipment not available</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <button class="btn-action reject" style="width:100%;display:block;padding:14px" onclick="StaffActions.confirmReject()">Confirm Reject</button>
+      </section>
+
+      <!-- Active service: live timer + progress -->
+      <section class="page" id="page-staff-task-active" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Active Service</h2></div>
+        <div class="status-banner running" id="service-status-banner"><span class="pulse">●</span> <span data-timer-status>In Progress</span></div>
+        <div class="card timer-panel">
+          <p style="font-size:18px;font-weight:700">Room <span data-dynamic-room>—</span> — <span data-dynamic-field="taskTitle">Service</span></p>
+          <p style="font-size:12px;color:#6b7280;margin-top:4px">SLA: <span data-dynamic-field="sla">15 min</span></p>
+          <div class="timer-ring-wrap" data-timer-bar-wrap>
+            <svg viewBox="0 0 100 100">
+              <circle class="timer-ring-bg" cx="50" cy="50" r="45"/>
+              <circle class="timer-ring-progress" data-timer-ring cx="50" cy="50" r="45"/>
+            </svg>
+            <div class="timer-center">
+              <div class="elapsed" data-timer-elapsed>00:00</div>
+              <div class="lbl">Elapsed</div>
+            </div>
+          </div>
+          <div class="timer-stats">
+            <div class="timer-stat"><div class="val" data-timer-remaining>15:00</div><div class="lbl">Remaining</div></div>
+            <div class="timer-stat"><div class="val" data-timer-percent>0%</div><div class="lbl">Progress</div></div>
+            <div class="timer-stat"><div class="val" data-dynamic-field="priority">Med</div><div class="lbl">Priority</div></div>
+          </div>
+          <div class="progress-track" data-timer-bar-wrap>
+            <div class="fill" data-timer-bar></div>
+          </div>
+          <p style="font-size:11px;color:#6b7280">Progress toward SLA completion</p>
+        </div>
+        <div class="card info-list">
+          <div class="info-row"><span>Guest</span><span data-dynamic-field="guest">—</span></div>
+          <div class="info-row"><span>Accepted</span><span>Just now</span></div>
+        </div>
+        <div class="service-actions" style="margin-top:16px">
+          <button type="button" class="btn-pause-toggle" id="btn-pause-service" onclick="StaffActions.toggleServicePause()">⏸ Pause Service</button>
+          <button type="button" class="btn-pause-toggle" data-nav="staff/pass-request" data-param-id="room-204" style="background:#eff6ff;color:#2563eb">↪ Pass</button>
+          <button type="button" class="btn-complete" onclick="StaffActions.completeService()">✓ Complete Service</button>
+        </div>
+      </section>
+
+      <section class="page" id="page-staff-performance" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>My Performance</h2></div>
+        <div class="card detail-hero"><div class="big">4.6 ⭐</div><div class="label">Avg. Rating</div></div>
+        <div class="card info-list">
+          <div class="info-row"><span>Avg. Response Time</span><span>12m 25s</span></div>
+          <div class="info-row"><span>Tasks This Week</span><span>42</span></div>
+          <div class="info-row"><span>On-time Rate</span><span>96%</span></div>
+        </div>
+      </section>
+
+      <section class="page" id="page-staff-reviews" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>My Reviews</h2></div>
+        <div class="card" style="padding:16px;margin-bottom:8px"><p class="review-quote">"Very quick and helpful"</p><p style="font-size:12px;color:#6b7280">Room 204 · Today · 5★</p></div>
+        <div class="card" style="padding:16px"><p class="review-quote">"Room was spotless"</p><p style="font-size:12px;color:#6b7280">Room 118 · Yesterday · 5★</p></div>
+      </section>
+
+      <section class="page" id="page-staff-insights" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>My Insights</h2></div>
+        <div class="card" style="padding:20px"><p style="font-size:16px;font-weight:600">You completed 18% more tasks this week 🎉</p><p style="color:#6b7280;margin-top:8px">Keep it up! Your response time improved by 2 minutes.</p></div>
+      </section>
+
+      <section class="page" id="page-staff-profile" data-tab="profile">
+        <div class="page-header"><div><h1>My Profile</h1></div></div>
+        <div class="card" style="padding:20px;text-align:center;margin-bottom:12px">
+          <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#60a5fa,#2563eb);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:700">RK</div>
+          <h3>Ravi Kumar</h3>
+          <p style="color:#6b7280;font-size:13px">Housekeeping · HK1287</p>
+        </div>
+        <div class="card info-list">
+          <div class="info-row"><span>Shift</span><span>9 AM – 5 PM</span></div>
+          <div class="info-row"><span>Status</span><span style="color:#22c55e">Available</span></div>
+          <div class="info-row"><span>Department</span><span>Housekeeping</span></div>
+          <div class="info-row"><span>HOD</span><span>Sunil Kumar</span></div>
+        </div>
+        <button class="card list-item" data-nav="hod/dashboard" style="margin-top:12px"><div><h4>View as HOD</h4><p>Cross-role prototype link</p></div><span>›</span></button>
+      </section>
+
+      <section class="page" id="page-staff-history" data-tab="history">
+        <div class="page-header"><div><h1>History</h1><p class="subtitle">Completed tasks</p></div></div>
+        <div class="card list-item"><div><h4>Room 118 — Deep Clean</h4><p>Completed · Yesterday</p></div><span>✅</span></div>
+        <div class="card list-item"><div><h4>Room 401 — Towels</h4><p>Completed · Yesterday</p></div><span>✅</span></div>
+        <div class="card list-item"><div><h4>Room 205 — Mini Bar</h4><p>Completed · 2 days ago</p></div><span>✅</span></div>
+      </section>
+
+      <section class="page" id="page-staff-profile-tab" data-tab="profile">
+        <div class="page-header"><div><h1>Profile</h1></div></div>
+        <button class="card list-item" data-nav="staff/profile"><div><h4>View Full Profile</h4></div><span>›</span></button>
+        <button class="card list-item" data-nav="staff/performance"><div><h4>Performance</h4></div><span>›</span></button>
+        <button class="card list-item" data-nav="home"><div><h4>Switch Role</h4></div><span>›</span></button>
+      </section>
+
+      <!-- ========== HR SCREENS ========== -->
+      <section class="page" id="page-hr-dashboard" data-tab="dashboard">
+        <div class="page-header">
+          <div><h1>Hi Priya 👋</h1><p class="subtitle">HR Manager</p></div>
+          <button class="icon-btn" data-nav="hr/notifications">🔔</button>
+        </div>
+        <button class="purple-banner" data-nav="hr/employees" style="width:100%;text-align:left">
+          <div class="top"><span>Workforce Overview</span><span>👥</span></div>
+          <div class="stats">
+            <div><div class="num">124</div><div class="lbl">Total Employees</div></div>
+            <div><div class="num">98</div><div class="lbl">Present Today</div></div>
+          </div>
+        </button>
+        <div class="section-title">
+          <span>Employee Performance</span>
+          <button class="link-btn" data-nav="hr/employees">View All</button>
+        </div>
+        <button class="card emp-row" data-nav="hr/employee-detail" data-param-id="emp-ravi">
+          <div class="emp-avatar">RK</div>
+          <div><h4>Ravi Kumar</h4><div class="dept">Housekeeping</div><div class="emp-footer">On-time | 32 Tasks</div></div>
+          <div class="emp-rating">4.8 ★</div>
+          <div class="emp-pct">98%</div>
+        </button>
+        <button class="card emp-row" data-nav="hr/employee-detail" data-param-id="emp-anita">
+          <div class="emp-avatar">AS</div>
+          <div><h4>Anita Singh</h4><div class="dept">Housekeeping</div><div class="emp-footer">On-time | 28 Tasks</div></div>
+          <div class="emp-rating">4.6 ★</div>
+          <div class="emp-pct">95%</div>
+        </button>
+        <button class="card emp-row" data-nav="hr/employee-detail" data-param-id="emp-mohit">
+          <div class="emp-avatar">MS</div>
+          <div><h4>Mohit Sharma</h4><div class="dept">Maintenance</div><div class="emp-footer">On-time | 24 Tasks</div></div>
+          <div class="emp-rating">4.2 ★</div>
+          <div class="emp-pct">88%</div>
+        </button>
+        <button class="card emp-row" data-nav="hr/employee-detail" data-param-id="emp-suresh">
+          <div class="emp-avatar">SY</div>
+          <div><h4>Suresh Yadav</h4><div class="dept">Maintenance</div><div class="emp-footer">On-time | 19 Tasks</div></div>
+          <div class="emp-rating">4.0 ★</div>
+          <div class="emp-pct">85%</div>
+        </button>
+        <p class="section-title">HR Analytics (This Month)</p>
+        <div class="analytics-row">
+          <div class="card"><div class="lbl">Avg. Rating</div><div class="val">4.3 ⭐</div></div>
+          <div class="card"><div class="lbl">Response Time</div><div class="val" style="font-size:14px">15m 10s</div></div>
+          <div class="card"><div class="lbl">Completion</div><div class="val">92%</div></div>
+        </div>
+        <button class="training-card" data-nav="hr/training" style="width:100%;text-align:left;margin-top:16px">
+          <div><h5>Training & Development</h5><p>2 Programs Running</p><p>8 Employees Enrolled</p></div>
+          <span style="font-size:28px">🎓</span>
+        </button>
+      </section>
+
+      <section class="page" id="page-hr-notifications" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Notifications</h2></div>
+        <div class="card notif-item unread"><span>📋</span><div><strong>Training enrollment due</strong><p style="font-size:12px;color:#6b7280;margin-top:4px">8 employees pending</p></div></div>
+        <div class="card notif-item"><span>⚠️</span><div><strong>Performance alert: Maintenance</strong><p style="font-size:12px;color:#6b7280;margin-top:4px">Below threshold</p></div></div>
+      </section>
+
+      <section class="page" id="page-hr-employees" data-tab="employees">
+        <div class="page-header"><div><h1>Employees</h1><p class="subtitle">124 total · 98 present</p></div></div>
+        <button class="card list-item" data-nav="hr/employee-detail" data-param-id="emp-ravi"><div><h4>Ravi Kumar</h4><p>Housekeeping · 4.8 ★</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="hr/employee-detail" data-param-id="emp-anita"><div><h4>Anita Singh</h4><p>Housekeeping · 4.6 ★</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="hr/employee-detail" data-param-id="emp-mohit"><div><h4>Mohit Sharma</h4><p>Maintenance · 4.2 ★</p></div><span>›</span></button>
+      </section>
+
+      <section class="page" id="page-hr-employee-detail" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2 data-dynamic-name>Employee</h2></div>
+        <div class="card detail-hero">
+          <div class="emp-avatar" style="width:64px;height:64px;margin:0 auto 12px;font-size:24px">RK</div>
+          <div class="big" style="font-size:22px" data-dynamic-name>—</div>
+          <div class="label" data-dynamic-field="dept">—</div>
+        </div>
+        <div class="card info-list">
+          <div class="info-row"><span>Employee ID</span><span data-dynamic-field="room">—</span></div>
+          <div class="info-row"><span>Rating</span><span data-dynamic-field="rating">—</span></div>
+          <div class="info-row"><span>Tasks (Month)</span><span data-dynamic-field="tasks">—</span></div>
+        </div>
+        <button class="btn-primary" style="width:100%;margin-top:16px;padding:14px;border-radius:12px" data-nav="staff/home">View Staff App →</button>
+      </section>
+
+      <section class="page" id="page-hr-performance-tab" data-tab="performance">
+        <div class="page-header"><div><h1>Performance</h1><p class="subtitle">Hotel-wide metrics</p></div></div>
+        <div class="analytics-row">
+          <div class="card"><div class="lbl">Avg Rating</div><div class="val">4.3</div></div>
+          <div class="card"><div class="lbl">On-time</div><div class="val">91%</div></div>
+          <div class="card"><div class="lbl">Completion</div><div class="val">92%</div></div>
+        </div>
+        <div class="card" style="padding:20px;margin-top:12px;text-align:center;color:#6b7280">📈 Performance chart placeholder</div>
+      </section>
+
+      <section class="page" id="page-hr-reports" data-tab="reports">
+        <div class="page-header"><div><h1>Reports</h1></div></div>
+        <button class="card list-item"><div><h4>Workforce Attendance</h4><p>Monthly</p></div><span>↓</span></button>
+        <button class="card list-item"><div><h4>Performance Review</h4><p>Quarterly</p></div><span>↓</span></button>
+      </section>
+
+      <section class="page" id="page-hr-training" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Training & Development</h2></div>
+        <div class="card list-item"><div><h4>Guest Service Excellence</h4><p>Running · 5 enrolled</p></div><span>›</span></div>
+        <div class="card list-item"><div><h4>Safety & Hygiene Protocol</h4><p>Running · 3 enrolled</p></div><span>›</span></div>
+        <div class="card" style="padding:16px;margin-top:12px;background:#f3e8ff"><p><strong>8 employees</strong> enrolled across 2 active programs</p></div>
+      </section>
+
+      <section class="page" id="page-hr-more" data-tab="more">
+        <div class="page-header"><div><h1>More</h1></div></div>
+        <button class="card list-item" data-nav="home"><div><h4>Switch Role</h4></div><span>›</span></button>
+        <button class="card list-item" data-nav="flow-map"><div><h4>Developer Flow Map</h4></div><span>›</span></button>
+      </section>
+
+    </div><!-- screen-content -->
+
+    <!-- Screen labels -->
+    <div class="screen-label owner" id="label-owner" style="display:none">OWNER SCREEN</div>
+    <div class="screen-label hod" id="label-hod" style="display:none">HOD SCREEN</div>
+    <div class="screen-label" id="label-staff" style="display:none">STAFF SCREEN</div>
+    <div class="screen-label hr" id="label-hr" style="display:none">HR SCREEN</div>
+
+    <!-- Global app footer: drawer + role navigation -->
+    <div class="app-footer-stack" id="app-footer-drawer" style="display:none">
+      <button type="button" class="app-drawer-bar" id="app-drawer-open" aria-label="Open app menu">
+        <span class="grid-icon">☰</span>
+        <span>App Menu — All Features</span>
+      </button>
+      <nav class="bottom-nav" id="nav-owner" style="display:none">
+        <button class="nav-item active owner" data-nav="owner/dashboard" data-tab="dashboard"><span class="ic">🏠</span><span>Overview</span></button>
+        <button class="nav-item owner" data-nav="owner/insights-tab" data-tab="insights"><span class="ic">💡</span><span>Insights</span></button>
+        <button class="nav-item owner" data-nav="owner/reports" data-tab="reports"><span class="ic">📄</span><span>Reports</span></button>
+        <button class="nav-item owner" data-nav="owner/more" data-tab="more"><span class="ic">⋯</span><span>More</span></button>
+      </nav>
+      <nav class="bottom-nav" id="nav-hod" style="display:none">
+        <button class="nav-item active hod" data-nav="hod/dashboard" data-tab="dashboard"><span class="ic">▦</span><span>Dashboard</span></button>
+        <button class="nav-item hod" data-nav="hod/tasks-tab" data-tab="tasks"><span class="ic">📋</span><span>Tasks</span></button>
+        <button class="nav-item hod" data-nav="hod/staff" data-tab="staff"><span class="ic">👥</span><span>Staff</span></button>
+        <button class="nav-item hod" data-nav="hod/reports" data-tab="reports"><span class="ic">📄</span><span>Reports</span></button>
+        <button class="nav-item hod" data-nav="hod/more" data-tab="more"><span class="ic">⋯</span><span>More</span></button>
+      </nav>
+      <nav class="bottom-nav" id="nav-staff" style="display:none">
+        <button class="nav-item active staff" data-nav="staff/home" data-tab="home"><span class="ic">🏠</span><span>Home</span></button>
+        <button class="nav-item staff" data-nav="staff/tasks-tab" data-tab="tasks"><span class="ic">📋</span><span>Tasks</span></button>
+        <button class="nav-item staff" data-nav="staff/history" data-tab="history"><span class="ic">🕐</span><span>History</span></button>
+        <button class="nav-item staff" data-nav="staff/profile-tab" data-tab="profile"><span class="ic">👤</span><span>Profile</span></button>
+      </nav>
+      <nav class="bottom-nav" id="nav-hr" style="display:none">
+        <button class="nav-item active hr" data-nav="hr/dashboard" data-tab="dashboard"><span class="ic">▦</span><span>Dashboard</span></button>
+        <button class="nav-item hr" data-nav="hr/employees" data-tab="employees"><span class="ic">👥</span><span>Employees</span></button>
+        <button class="nav-item hr" data-nav="hr/performance-tab" data-tab="performance"><span class="ic">📈</span><span>Performance</span></button>
+        <button class="nav-item hr" data-nav="hr/reports" data-tab="reports"><span class="ic">📄</span><span>Reports</span></button>
+        <button class="nav-item hr" data-nav="hr/more" data-tab="more"><span class="ic">⋯</span><span>More</span></button>
+      </nav>
+    </div>
+
+    <!-- App drawer bottom sheet -->
+    <div class="app-drawer-overlay" id="app-drawer-overlay"></div>
+    <div class="app-drawer-sheet" id="app-drawer-sheet">
+      <div class="app-drawer-handle"></div>
+      <div class="app-drawer-head">
+        <div>
+          <h3 id="app-drawer-title">App Menu</h3>
+          <p id="app-drawer-subtitle">Navigate to any feature</p>
+        </div>
+        <button type="button" class="app-drawer-close" id="app-drawer-close" aria-label="Close">×</button>
+      </div>
+      <div class="app-drawer-grid" id="app-drawer-grid"></div>
+    </div>
+  </div>
+</div>
+
+<script src="js/router.js"></script>
+<script src="js/task-timer.js"></script>
+<script src="js/staff-actions.js"></script>
+<script src="js/app-drawer.js"></script>
+<script>
+  document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
+    item.addEventListener('click', function() {
+      const nav = this.closest('.bottom-nav');
+      nav.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+  if (window.AppDrawer) AppDrawer.setRole('home');
+</script>
+</body>
+</html>

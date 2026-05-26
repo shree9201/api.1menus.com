@@ -1,0 +1,46 @@
+1Menus Hotel Ops — Android Prototype Handoff
+============================================
+
+OPEN PROTOTYPE
+--------------
+URL (MAMP): http://localhost:8888/1menus-app-prototype/
+Or open index.html directly in Chrome (mobile emulation recommended: 390×844)
+
+STRUCTURE
+---------
+index.html          All screens (SPA)
+css/app.css         Android Material-inspired styles
+js/router.js        Hash navigation + dynamic page data
+assets/             Original UI reference PNGs (4 roles)
+
+SCREEN COUNT: 47+ navigable screens across 4 roles
+
+ROLE → MAIN ENTRY
+-----------------
+Hotel Owner      → #owner/dashboard
+Housekeeping HOD → #hod/dashboard
+Staff (Ravi)     → #staff/home
+HR Manager       → #hr/dashboard
+
+ANDROID MAPPING SUGGESTION
+--------------------------
+- Each hash route = Activity or NavController destination
+  Example: hod/task-detail?id=room-305 → TaskDetailFragment
+- Bottom nav = BottomNavigationView (4–5 items per role)
+- data-nav attributes = intent destinations in prototype
+
+CROSS-LINKS (intentional for flow demo)
+---------------------------------------
+- Owner dept detail → HOD dashboard
+- HOD task detail → Staff active task
+- HR employee detail → Staff home
+- Staff profile → HOD dashboard
+
+REFERENCE DESIGNS
+-----------------
+assets/hod_screen.png    (copy in assets/)
+assets/owner_screen.png
+assets/staff_screen.png
+assets/hr_screen.png
+
+Developer Flow Map: #flow-map (in-app)
