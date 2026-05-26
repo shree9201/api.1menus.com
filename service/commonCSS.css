@@ -1,0 +1,72 @@
+.foodType {
+	height: 15px;
+	width: 15px;
+	background-repeat: no-repeat;
+	float: left;
+	-o-background-size: 100% 100%;
+	-webkit-background-size: 100% 100%;
+	-khtml-background-size: 100% 100%;
+	-moz-background-size: 100% 100%;
+	background-size: 100% 100%;
+	margin-right: 10px;
+	position: relative;
+	top:8px;
+	margin-bottom: 18px;
+	left: 3px;
+}
+.foodType.Veg{
+	background-image: url("../b2b/assets/img/Veg.png");
+}
+.foodType.Non-Veg{
+	background-image: url("../b2b/assets/img/Non-Veg.png");
+}
+.foodType.Sea-Food{
+	background-image: url("../b2b/assets/img/Sea-Food.png");
+}
+.foodType.Egg{
+	background-image: url("../b2b/assets/img/egg.png");
+}
+.foodType.Drinks{
+	background-image: url("../b2b/assets/img/drinks.png");
+}
+.foodType.Jain{
+	background-image: url("../b2b/assets/img/jain.png");
+}
+
+.food-variant-icon {
+	height: 22px;
+	width: 22px;
+	background-repeat: no-repeat;
+	-o-background-size: 100% 100%;
+	-webkit-background-size: 100% 100%;
+	-khtml-background-size: 100% 100%;
+	-moz-background-size: 100% 100%;
+	background-size: 100% 100%;
+	display: inline-block;
+position: relative;
+	top:5px;
+}
+.food-variant-icon.chicken {
+	background-image: url("../b2b/assets/img/_chicken_.png");
+}
+.food-variant-icon.veg {
+	background-image: url("../b2b/assets/img/_veg_.png");
+}
+.food-variant-icon.non-veg {
+	background-image: url("../b2b/assets/img/_non_veg_.png");
+}
+.food-variant-icon.seafood {
+	background-image: url("../b2b/assets/img/_seafood_.png");
+}
+.food-variant-icon.prawns {
+	background-image: url("../b2b/assets/img/_prawns_.png");
+}
+.food-variant-icon.prawns {
+	background-image: url("../b2b/assets/img/_prawns_.png");
+}
+.food-variant-icon.egg {
+	background-image: url("../b2b/assets/img/_egg_.png");
+}
+.food-variant-icon.spicy {
+	background-image: url("../b2b/assets/img/_spicy_.png");
+}
