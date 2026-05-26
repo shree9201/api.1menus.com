@@ -1,5 +1,6 @@
 <?php 
 require_once 'service/constant.php';
+
 $action 	= isset($_REQUEST ['action'])?$_REQUEST ['action']:"";
 if($action!=""){
 	require_once 'api.php';	
