@@ -1,4 +1,7 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 header('Access-Control-Allow-Origin: *');
 header("Access-Control-Allow-Credentials: true");
 header('Access-Control-Allow-Methods: GET, PUT, POST, DELETE, OPTIONS');
@@ -14,10 +17,23 @@ header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token , Autho
 ///////////////////////////////////////////
 header( 'Content-Type: text/html; charset=utf-8' );
 session_start();
-include_once '../service/constant.php';
-include_once '../service/database_class.php';
-include_once '../service/emailDrop.php';
-include_once 'massages.php';
+// try multiple locations for includes to support different deployments
+function _safe_include_once_top(array $candidates, $name){
+	foreach($candidates as $file){
+		if(file_exists($file)){
+			include_once $file;
+			return true;
+		}
+	}
+	header('Content-Type: application/json; charset=utf-8');
+	echo json_encode(array('status'=>false,'value'=>'Missing required file: '.$name,'checked'=>$candidates));
+	exit;
+}
+
+_safe_include_once_top(array(__DIR__.'/constant.php', __DIR__.'/service/constant.php', __DIR__.'/../constant.php'), 'constant.php');
+_safe_include_once_top(array(__DIR__.'/service/database_class.php', __DIR__.'/database_class.php', __DIR__.'/../service/database_class.php'), 'database_class.php');
+_safe_include_once_top(array(__DIR__.'/emailDrop.php', __DIR__.'/service/emailDrop.php', __DIR__.'/../emailDrop.php'), 'emailDrop.php');
+_safe_include_once_top(array(__DIR__.'/massages.php', __DIR__.'/service/massages.php', __DIR__.'/../massages.php'), 'massages.php');
 class api_class {
 	
 	var $post;
@@ -34,20 +50,24 @@ class api_class {
 		$this->files = $_FILES;	
 		$this->email = new emailDrop();
 		$this->db = new database_class();
-		// object create		
+		// object create
 		$this->responseArray = array();
 		$this->response = "";
-		$this->sessionInfo 	= explode('_',isset($_SESSION['people'])?$_SESSION['people']:"");		
+		$this->sessionInfo = explode('_', isset($_SESSION['people']) ? $_SESSION['people'] : "");
 	}
+
 	public function getBodyJsonData(){
 		$json = file_get_contents('php://input'); 
-	$data = json_decode($json, true); 
+	$data = json_decode($json, true);
 	header('Content-Type: application/json');
-	// convert $data to request param array
-	foreach ($data as $key => $value) {
-		$_REQUEST[$key] = $value;
-	}
+	// convert $data to request param array (only if decoded to array)
+	if (is_array($data)) {
+		foreach ($data as $key => $value) {
+			$_REQUEST[$key] = $value;
+		}
 		return $data;
+	}
+	return array();
 	}	
 	// function for the validate Email address
 	public function emailValid($email=NULL){

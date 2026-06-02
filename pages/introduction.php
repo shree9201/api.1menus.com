@@ -19,7 +19,7 @@
 
       <tr>
       	<td>API  / Web Developer</td>
-      	<td>Vishwajeet M / Mangesh P</td>
+      	<td>Vishu / Mangesh P</td>
       </tr>
 
        <tr>

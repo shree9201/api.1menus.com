@@ -62,7 +62,9 @@ class PushNotification
                     'notification' => [
                         'title' => $title,
                         'body' => $body,
+                        'image' => 'https://1menus.com/app/b2c/assets/img/whatsapp-transparent-12.png',
                     ],
+
                     'android' => ['priority' => 'HIGH'],
                 ],
             ];

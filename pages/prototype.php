@@ -33,7 +33,7 @@
 }
 </style>
 <div class="row" style="margin: 50px;">
-<iframe src="<?php echo "https://www.1menus.com/menu/pune/cafe99/1"?>"></iframe>
+<iframe src="<?php echo "prototype/index.html"?>"></iframe>
 <div class="colors"><div class="color-box"><div class="box" style="background: #FFFFFF;"></div><div class="color">#FFFFF</div></div></div>
 <div class="colors"><div class="color-box"><div class="box" style="background: #FBFBD4;"></div><div class="color">#FBFBD4</div></div></div>
 <div class="colors"><div class="color-box"><div class="box" style="background: #E8BF8B;"></div><div class="color">#E8BF8B</div></div></div>
