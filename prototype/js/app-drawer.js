@@ -22,11 +22,11 @@
         { nav: 'owner/insights-tab', icon: '📈', label: 'Insights Feed' },
         { nav: 'owner/reports', icon: '📄', label: 'Reports' },
         { nav: 'owner/more', icon: '⚙️', label: 'Settings' },
-        { nav: 'home', icon: '🔄', label: 'Switch Role' },
+        { action: 'logout', icon: '⎋', label: 'Logout' },
       ],
     },
     hod: {
-      title: 'Housekeeping HOD',
+      title: 'Manager',
       subtitle: 'All features',
       items: [
         { nav: 'hod/dashboard', icon: '▦', label: 'Dashboard' },
@@ -37,25 +37,23 @@
         { nav: 'hod/analytics', icon: '📊', label: 'Analytics' },
         { nav: 'hod/attention', icon: '⚠️', label: 'Attention' },
         { nav: 'hod/reports', icon: '📄', label: 'Reports' },
+        { nav: 'hod/profile', icon: '👤', label: 'Profile' },
         { nav: 'hod/more', icon: '⚙️', label: 'More' },
-        { nav: 'home', icon: '🔄', label: 'Switch Role' },
+        { action: 'logout', icon: '⎋', label: 'Logout' },
       ],
     },
     staff: {
       title: 'Ravi Kumar',
-      subtitle: 'Housekeeping Staff',
+      subtitle: 'Staff',
       items: [
         { nav: 'staff/home', icon: '🏠', label: 'Home' },
-        { nav: 'staff/notifications', icon: '🔔', label: 'Notifications' },
-        { nav: 'staff/tasks-tab', icon: '📋', label: 'My Tasks' },
-        { nav: 'staff/task-request', icon: '📥', label: 'Incoming Request', paramId: 'room-204' },
-        { nav: 'staff/task-active', icon: '⏱️', label: 'Active Service', paramId: 'room-204' },
+        { nav: 'staff/tasks-tab', icon: '📥', label: 'Requests' },
         { nav: 'staff/performance', icon: '✅', label: 'Performance' },
-        { nav: 'staff/reviews', icon: '💬', label: 'Reviews' },
-        { nav: 'staff/insights', icon: '📊', label: 'Insights' },
+        { nav: 'staff/training', icon: '🎓', label: 'Training' },
         { nav: 'staff/profile', icon: '👤', label: 'Profile' },
-        { nav: 'staff/history', icon: '🕐', label: 'History' },
-        { nav: 'home', icon: '🔄', label: 'Switch Role' },
+        { nav: 'staff/change-password', icon: '🔐', label: 'Change Password' },
+        { nav: 'staff/support', icon: '🛟', label: 'Help & Support' },
+        { action: 'logout', icon: '⎋', label: 'Logout' },
       ],
     },
     hr: {
@@ -67,9 +65,10 @@
         { nav: 'hr/employees', icon: '👥', label: 'Employees' },
         { nav: 'hr/performance-tab', icon: '📈', label: 'Performance' },
         { nav: 'hr/training', icon: '🎓', label: 'Training' },
+        { nav: 'hr/profile', icon: '👤', label: 'Profile' },
         { nav: 'hr/reports', icon: '📄', label: 'Reports' },
         { nav: 'hr/more', icon: '⚙️', label: 'More' },
-        { nav: 'home', icon: '🔄', label: 'Switch Role' },
+        { action: 'logout', icon: '⎋', label: 'Logout' },
       ],
     },
   };
@@ -87,13 +86,22 @@
     titleEl.textContent = menu.title;
     subtitleEl.textContent = menu.subtitle;
     grid.innerHTML = menu.items
-      .map(
-        (item) => `
-      <button type="button" class="drawer-tile" data-nav="${item.nav}" ${item.paramId ? `data-param-id="${item.paramId}"` : ''}>
-        <span class="drawer-tile-icon">${item.icon}</span>
-        <span class="drawer-tile-label">${item.label}</span>
-      </button>`
-      )
+      .map((item) => {
+        if (item.action === 'logout') {
+          return `
+            <button type="button" class="drawer-tile" data-action="logout">
+              <span class="drawer-tile-icon">${item.icon}</span>
+              <span class="drawer-tile-label">${item.label}</span>
+            </button>
+          `;
+        }
+        return `
+          <button type="button" class="drawer-tile" data-nav="${item.nav}" ${item.paramId ? `data-param-id="${item.paramId}"` : ''}>
+            <span class="drawer-tile-icon">${item.icon}</span>
+            <span class="drawer-tile-label">${item.label}</span>
+          </button>
+        `;
+      })
       .join('');
     overlay.classList.add('open');
     sheet.classList.add('open');
@@ -111,10 +119,7 @@
     hide: closeDrawer,
     setRole: function (role) {
       const drawerRole = role && DRAWER_MENUS[role] ? role : 'home';
-      if (footerBar) {
-        footerBar.style.display = 'flex';
-        footerBar.dataset.role = drawerRole;
-      }
+      if (footerBar) footerBar.dataset.role = drawerRole;
     },
   };
 

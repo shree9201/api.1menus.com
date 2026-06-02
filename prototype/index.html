@@ -19,36 +19,168 @@
     </div>
 
     <div class="screen-content" id="screen-scroll">
-      <!-- HOME / ROLE SELECTOR -->
-      <section class="page active" id="page-home" data-show-label="false">
-        <div class="role-select">
-          <h1>1Menus Hotel Ops</h1>
-          <p class="sub">Select a role to explore the prototype</p>
-          <button class="card role-card" data-nav="owner/dashboard">
-            <span class="emoji">👑</span>
-            <div><h3>Hotel Owner</h3><p>Overview, departments, insights</p></div>
-            <span class="arrow">›</span>
-          </button>
-          <button class="card role-card" data-nav="hod/dashboard">
-            <span class="emoji">🧹</span>
-            <div><h3>Housekeeping HOD</h3><p>Live tasks, staff, analytics</p></div>
-            <span class="arrow">›</span>
-          </button>
-          <button class="card role-card" data-nav="staff/home">
-            <span class="emoji">👤</span>
-            <div><h3>Staff (Ravi)</h3><p>My tasks, performance, profile</p></div>
-            <span class="arrow">›</span>
-          </button>
-          <button class="card role-card" data-nav="hr/dashboard">
-            <span class="emoji">📋</span>
-            <div><h3>HR Manager</h3><p>Workforce, performance, training</p></div>
-            <span class="arrow">›</span>
-          </button>
-          <button class="card role-card" data-nav="flow-map" style="margin-top:20px;background:#f0f9ff;border-color:#bae6fd">
-            <span class="emoji">🗺️</span>
-            <div><h3>Developer Flow Map</h3><p>All screens & navigation links</p></div>
-            <span class="arrow">›</span>
-          </button>
+      <!-- APP LOADING -->
+      <section class="page active" id="page-loading" data-show-label="false" data-hide-nav="true">
+        <div class="loading-screen card">
+          <div class="loading-logo">1M</div>
+          <h1>1Menus Digital</h1>
+          <p>Hotel room service platform</p>
+          <div class="loading-bar"><span id="loading-fill"></span></div>
+          <small>Loading application...</small>
+        </div>
+      </section>
+
+      <!-- LANDING / HOME -->
+      <section class="page" id="page-home" data-show-label="false" data-hide-nav="true">
+        <div class="landing-hero">
+          <h1 class="landing-title">1Menus Digital</h1>
+          <p class="landing-tag">Smart hotel room service operations and guest request platform</p>
+
+          <div class="landing-context">
+            <p class="landing-q">What is 1Menus?</p>
+            <p class="landing-p">1Menus helps hotel teams manage room-service requests, assign tasks quickly, monitor performance, and improve guest satisfaction with a role-based mobile workflow.</p>
+            <ul class="landing-guidelines">
+              <li>Fast request assignment and real-time status updates.</li>
+              <li>Role-based dashboards for Staff, Manager, and HR.</li>
+              <li>Training, performance, and support workflows in one app.</li>
+              <li>Consistent operations with standardized service guidelines.</li>
+            </ul>
+
+            <div class="landing-links">
+              <button type="button" class="landing-link-btn" data-nav="login">Login</button>
+              <button type="button" class="landing-link-btn" data-nav="manual">Guide</button>
+              <button type="button" class="landing-link-btn" data-nav="partner">Become a Partner</button>
+            </div>
+
+            <p class="landing-copyright">2026 © Designed &amp; developed by Droptech Soft Pune</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- LOGIN -->
+      <section class="page" id="page-login" data-show-label="false" data-hide-nav="true">
+        <div class="login-card card">
+          <h2 class="login-title">Secure Login</h2>
+          <p class="login-subtitle">Sign in to continue to your role-specific dashboard.</p>
+          <form id="login-form">
+            <div class="form-group">
+              <label for="login-outlet-code">Outlet Code</label>
+              <input id="login-outlet-code" inputmode="numeric" type="number" placeholder="e.g. 101" value="101" />
+            </div>
+
+            <div class="form-group">
+              <label for="login-role">I am</label>
+              <select id="login-role" required>
+                <option value="staff">Staff</option>
+                <option value="hod">Manager</option>
+                <option value="hr">HR</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="login-username">Login Username</label>
+              <input id="login-username" type="text" placeholder="staff / manager / hr" required autocomplete="username" />
+            </div>
+
+            <div class="form-group">
+              <label for="login-password">Password</label>
+              <input id="login-password" type="password" placeholder="Enter password" required autocomplete="current-password" />
+            </div>
+
+            <label class="checkbox-row" for="login-autologin">
+              <input type="checkbox" id="login-autologin" />
+              <span>Save / Auto-login</span>
+            </label>
+
+            <button type="submit" class="btn-primary login-submit">Secure login</button>
+
+            <p id="login-error" class="login-error" role="alert" aria-live="polite"></p>
+            <div class="login-hints">
+              <p>
+                Examples:
+                Staff <code>staff</code>/<code>staff</code>,
+                Manager <code>manager</code>/<code>manager</code>,
+                HR <code>hr</code>/<code>hr</code>
+              </p>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- LANDING SUPPORT PAGES -->
+      <section class="page" id="page-tours" data-show-label="false">
+        <div class="back-header">
+          <button type="button" onclick="goBack()">←</button>
+          <h2>Tours</h2>
+        </div>
+        <div class="card" style="padding:16px;margin-bottom:12px">
+          <p style="font-size:14px;color:#6b7280;line-height:1.6">
+            Quick jump into role-based prototype screens. Login first for the full experience (sticky footer + greeting).
+          </p>
+        </div>
+        <button class="card list-item" type="button" data-nav="staff/home">
+          <div><h4>Staff Tour</h4><p>My tasks, requests & active service</p></div><span>›</span>
+        </button>
+        <button class="card list-item" type="button" data-nav="hod/dashboard">
+          <div><h4>Manager Tour</h4><p>Department dashboard, tasks & analytics</p></div><span>›</span>
+        </button>
+        <button class="card list-item" type="button" data-nav="hr/dashboard">
+          <div><h4>HR Tour</h4><p>Employees, performance & training</p></div><span>›</span>
+        </button>
+      </section>
+
+      <section class="page" id="page-feedback" data-show-label="false">
+        <div class="back-header">
+          <button type="button" onclick="goBack()">←</button>
+          <h2>Feedback</h2>
+        </div>
+        <div class="card" style="padding:16px;margin-bottom:12px">
+          <p style="font-size:14px;color:#6b7280;line-height:1.6">
+            Your suggestions help improve the 1Menus Digital hotel room services prototype.
+          </p>
+        </div>
+        <div class="card" style="padding:16px">
+          <label for="feedback-message" style="font-size:12px;font-weight:600;color:#1a1a2e">Message</label>
+          <textarea id="feedback-message" rows="5" style="width:100%;margin-top:8px;padding:12px;border-radius:8px;border:1px solid #e5e7eb;font-size:14px" placeholder="Type your feedback..."></textarea>
+          <button type="button" class="btn-primary" style="width:100%;margin-top:12px;padding:12px" onclick="alert('Thanks for your feedback! (Prototype)')">Submit</button>
+        </div>
+      </section>
+
+      <section class="page" id="page-manual" data-show-label="false">
+        <div class="back-header">
+          <button type="button" onclick="goBack()">←</button>
+          <h2>Application Guide Manual</h2>
+        </div>
+        <div class="card info-list" style="margin-bottom:12px">
+          <div class="info-row"><span>1. Choose Role</span><span>Staff / Manager / HR</span></div>
+          <div class="info-row"><span>2. Enter Outlet Code</span><span>Any number for prototype</span></div>
+          <div class="info-row"><span>3. Login</span><span>Use example credentials</span></div>
+          <div class="info-row"><span>4. Use Sticky Footer</span><span>Home, Menu, Feedback, Info</span></div>
+        </div>
+        <div class="card" style="padding:16px;margin-bottom:12px">
+          <p style="font-size:14px;line-height:1.6;color:#6b7280">
+            This prototype simulates the future Android app for the 1Menus Digital hotel room services platform.
+            Use the sticky footer icons to navigate quickly.
+          </p>
+        </div>
+        <button type="button" class="btn-action reject" data-action="logout" style="width:100%;display:block;padding:14px;border-radius:12px">Logout</button>
+      </section>
+
+      <section class="page" id="page-partner" data-show-label="false" data-hide-nav="true">
+        <div class="back-header">
+          <button type="button" onclick="goBack()">←</button>
+          <h2>Become a Partner</h2>
+        </div>
+        <div class="card" style="padding:16px;margin-bottom:12px">
+          <p style="font-size:14px;line-height:1.6;color:#6b7280">
+            Join 1Menus Digital partner network to streamline hotel room-service operations, improve service quality, and increase team productivity.
+          </p>
+        </div>
+        <div class="card" style="padding:16px">
+          <div class="form-group"><label for="partner-hotel">Hotel Name</label><input id="partner-hotel" type="text" placeholder="Enter hotel/property name"></div>
+          <div class="form-group"><label for="partner-city">City</label><input id="partner-city" type="text" placeholder="Enter city"></div>
+          <div class="form-group"><label for="partner-contact">Contact Number</label><input id="partner-contact" type="text" placeholder="Enter contact number"></div>
+          <button type="button" class="btn-primary" style="width:100%;padding:12px" onclick="alert('Thank you! Our team will connect with you shortly.')">Submit Partnership Request</button>
         </div>
       </section>
 
@@ -122,6 +254,7 @@
           <span>Department Performance</span>
           <button class="link-btn" data-nav="owner/departments">View All</button>
         </div>
+        <div class="dept-performance-list">
         <button class="card dept-row" data-nav="owner/department-detail" data-param-id="housekeeping">
           <div class="dept-icon" style="background:#dcfce7">🧹</div>
           <div class="dept-bar-wrap"><div class="name">Housekeeping</div><div class="dept-bar"><span style="width:92%;background:#22c55e"></span></div></div>
@@ -147,6 +280,7 @@
           <div class="dept-bar-wrap"><div class="name">Security</div><div class="dept-bar"><span style="width:92%;background:#22c55e"></span></div></div>
           <div class="dept-rating">4.6 ★</div>
         </button>
+        </div>
         <div class="section-title">
           <span>Hotel Insights</span>
           <button class="link-btn" data-nav="owner/insights">View All</button>
@@ -234,13 +368,13 @@
         <button class="card list-item"><div><h4>Profile</h4><p>Hotel Owner account</p></div><span>›</span></button>
         <button class="card list-item"><div><h4>Hotel Settings</h4><p>Property configuration</p></div><span>›</span></button>
         <button class="card list-item" data-nav="flow-map"><div><h4>Prototype Flow Map</h4><p>For developers</p></div><span>›</span></button>
-        <button class="card list-item" data-nav="home"><div><h4>Switch Role</h4><p>Return to role selector</p></div><span>›</span></button>
+        <button class="card list-item" type="button" data-action="logout"><div><h4>Logout</h4><p>Return to login</p></div><span>›</span></button>
       </section>
 
       <!-- ========== HOD SCREENS ========== -->
       <section class="page" id="page-hod-dashboard" data-tab="dashboard">
         <div class="page-header">
-          <div><h1>Hi Sunil 👋</h1><p class="subtitle">Housekeeping HOD</p></div>
+          <div><h1 class="greeting-title" data-greeting-title></h1><p class="subtitle" data-greeting-subtitle>Manager</p></div>
           <button class="icon-btn" data-nav="hod/notifications">🔔</button>
         </div>
         <p class="section-title" style="margin-top:0">Department Overview</p>
@@ -275,7 +409,7 @@
           <div class="task-meta"><div>5 min</div><span class="badge pending">Pending</span></div>
         </button>
         <div class="grid-2">
-          <button class="card metric-card" data-nav="hod/performance"><div class="icon">🏆</div><h5>Department Performance</h5><div class="value">4.3 ⭐ Avg. Rating</div></button>
+          <button class="card metric-card metric-card--full" data-nav="hod/performance"><div class="icon">🏆</div><h5>Department Performance</h5><div class="value">4.3 ⭐ Avg. Rating</div></button>
           <button class="card metric-card" data-nav="hod/staff"><div class="icon">👥</div><h5>Staff Availability</h5><div class="sub"><span class="green">8 Available</span> · <span class="orange">2 Busy</span></div></button>
           <button class="card metric-card" data-nav="hod/analytics"><div class="icon">📊</div><h5>Task Analytics</h5><div class="value" style="font-size:13px">Avg. 14m 25s</div></button>
           <button class="card metric-card" data-nav="hod/attention"><div class="icon">⚠️</div><h5>Attention Needed</h5><div class="sub"><span class="red">3 Delayed</span><br><span class="red">2 Not Accepted</span></div></button>
@@ -331,7 +465,7 @@
         <button class="card list-item" data-nav="hr/employee-detail" data-param-id="emp-suresh"><div><h4>Suresh Yadav</h4><p>Available · 1 task</p></div><span class="badge low">On duty</span></button>
       </section>
 
-      <section class="page" id="page-hod-performance" data-hide-nav="true">
+      <section class="page" id="page-hod-performance">
         <div class="back-header"><button onclick="goBack()">←</button><h2>Department Performance</h2></div>
         <div class="card detail-hero"><div class="big">4.3 ⭐</div><div class="label">Avg. Rating (This Month)</div></div>
         <div class="card info-list">
@@ -358,23 +492,52 @@
       </section>
 
       <section class="page" id="page-hod-reports" data-tab="reports">
-        <div class="page-header"><div><h1>Reports</h1><p class="subtitle">Housekeeping</p></div></div>
+        <div class="page-header"><div><h1>Reports</h1><p class="subtitle">Manager</p></div></div>
         <button class="card list-item"><div><h4>Shift Summary</h4><p>Today · PDF</p></div><span>↓</span></button>
         <button class="card list-item"><div><h4>Staff Performance</h4><p>Weekly</p></div><span>↓</span></button>
       </section>
 
       <section class="page" id="page-hod-more" data-tab="more">
         <div class="page-header"><div><h1>More</h1></div></div>
-        <button class="card list-item" data-nav="home"><div><h4>Switch Role</h4></div><span>›</span></button>
+        <button class="card list-item" data-nav="hod/profile"><div><h4>Profile</h4><p>Manager account settings</p></div><span>›</span></button>
+        <button class="card list-item" type="button" data-action="logout"><div><h4>Logout</h4></div><span>›</span></button>
         <button class="card list-item" data-nav="flow-map"><div><h4>Flow Map</h4></div><span>›</span></button>
+      </section>
+
+      <section class="page" id="page-hod-profile" data-tab="profile">
+        <div class="page-header"><div><h1>Manager Profile</h1><p class="subtitle">Department manager settings</p></div></div>
+        <div class="card info-list">
+          <div class="info-row"><span>Name</span><span>Sunil Kumar</span></div>
+          <div class="info-row"><span>Role</span><span>Manager</span></div>
+          <div class="info-row"><span>Department</span><span>Housekeeping</span></div>
+        </div>
+        <button class="card list-item" data-nav="hod/change-password" style="margin-top:12px"><div><h4>Change Password</h4><p>Keep your account secure</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="hod/support"><div><h4>Help & Support</h4><p>Raise issue to admin/support team</p></div><span>›</span></button>
+        <button class="card list-item" type="button" data-action="logout"><div><h4>Logout</h4><p>Sign out of manager account</p></div><span>›</span></button>
+      </section>
+
+      <section class="page" id="page-hod-change-password" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Change Password</h2></div>
+        <div class="card" style="padding:16px">
+          <div class="form-group"><label for="hod-current-pass">Current Password</label><input id="hod-current-pass" type="password" placeholder="Enter current password"></div>
+          <div class="form-group"><label for="hod-new-pass">New Password</label><input id="hod-new-pass" type="password" placeholder="Enter new password"></div>
+          <div class="form-group"><label for="hod-confirm-pass">Confirm New Password</label><input id="hod-confirm-pass" type="password" placeholder="Re-enter new password"></div>
+          <button class="btn-primary" style="width:100%;padding:12px" type="button" onclick="alert('Password updated successfully (prototype).')">Update Password</button>
+        </div>
+      </section>
+
+      <section class="page" id="page-hod-support" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Help & Support</h2></div>
+        <button class="card list-item"><div><h4>Report Operational Issue</h4><p>Notify admin on workflow/technical issue</p></div><span>›</span></button>
+        <button class="card list-item"><div><h4>Contact IT Support</h4><p>Email: manager.support@1menus.com</p></div><span>›</span></button>
       </section>
 
       <!-- ========== STAFF SCREENS ========== -->
       <section class="page" id="page-staff-home" data-tab="home">
         <div class="page-header">
           <div>
-            <h1>Hi Ravi 👋</h1>
-            <p class="subtitle">Housekeeping | Employee ID: HK1287</p>
+            <h1 class="greeting-title" data-greeting-title></h1>
+            <p class="subtitle" data-greeting-subtitle>1Menus Digital Staff</p>
             <button class="status-pill" data-nav="staff/profile"><span class="dot"></span> Available</button>
           </div>
           <button class="icon-btn" data-nav="staff/notifications">🔔<span class="dot"></span></button>
@@ -529,7 +692,7 @@
         </div>
       </section>
 
-      <section class="page" id="page-staff-performance" data-hide-nav="true">
+      <section class="page" id="page-staff-performance">
         <div class="back-header"><button onclick="goBack()">←</button><h2>My Performance</h2></div>
         <div class="card detail-hero"><div class="big">4.6 ⭐</div><div class="label">Avg. Rating</div></div>
         <div class="card info-list">
@@ -563,7 +726,33 @@
           <div class="info-row"><span>Department</span><span>Housekeeping</span></div>
           <div class="info-row"><span>HOD</span><span>Sunil Kumar</span></div>
         </div>
-        <button class="card list-item" data-nav="hod/dashboard" style="margin-top:12px"><div><h4>View as HOD</h4><p>Cross-role prototype link</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="staff/change-password" style="margin-top:12px"><div><h4>Change Password</h4><p>Update your login credentials</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="staff/support"><div><h4>Help & Support</h4><p>Raise issue with admin or contact support</p></div><span>›</span></button>
+        <button class="card list-item" type="button" data-action="logout"><div><h4>Logout</h4><p>Sign out of your profile</p></div><span>›</span></button>
+      </section>
+
+      <section class="page" id="page-staff-training" data-tab="training">
+        <div class="page-header"><div><h1>Training</h1><p class="subtitle">Staff learning & SOP updates</p></div></div>
+        <button class="card list-item"><div><h4>Guest Etiquette Basics</h4><p>Assigned · Due in 2 days</p></div><span>›</span></button>
+        <button class="card list-item"><div><h4>Room Service Excellence</h4><p>In progress · 60%</p></div><span>›</span></button>
+        <button class="card list-item"><div><h4>Escalation SOP</h4><p>Completed · Certificate available</p></div><span>›</span></button>
+      </section>
+
+      <section class="page" id="page-staff-change-password" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Change Password</h2></div>
+        <div class="card" style="padding:16px">
+          <div class="form-group"><label for="staff-current-pass">Current Password</label><input id="staff-current-pass" type="password" placeholder="Enter current password"></div>
+          <div class="form-group"><label for="staff-new-pass">New Password</label><input id="staff-new-pass" type="password" placeholder="Enter new password"></div>
+          <div class="form-group"><label for="staff-confirm-pass">Confirm New Password</label><input id="staff-confirm-pass" type="password" placeholder="Re-enter new password"></div>
+          <button class="btn-primary" style="width:100%;padding:12px" type="button" onclick="alert('Password updated successfully (prototype).')">Update Password</button>
+        </div>
+      </section>
+
+      <section class="page" id="page-staff-support" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Help & Support</h2></div>
+        <button class="card list-item"><div><h4>Raise Technical Issue</h4><p>Connect with admin team for app issues</p></div><span>›</span></button>
+        <button class="card list-item"><div><h4>Contact Support</h4><p>Email: support@1menus.com</p></div><span>›</span></button>
+        <button class="card list-item"><div><h4>Call Helpdesk</h4><p>+91 90000 11111</p></div><span>›</span></button>
       </section>
 
       <section class="page" id="page-staff-history" data-tab="history">
@@ -577,13 +766,13 @@
         <div class="page-header"><div><h1>Profile</h1></div></div>
         <button class="card list-item" data-nav="staff/profile"><div><h4>View Full Profile</h4></div><span>›</span></button>
         <button class="card list-item" data-nav="staff/performance"><div><h4>Performance</h4></div><span>›</span></button>
-        <button class="card list-item" data-nav="home"><div><h4>Switch Role</h4></div><span>›</span></button>
+        <button class="card list-item" type="button" data-action="logout"><div><h4>Logout</h4></div><span>›</span></button>
       </section>
 
       <!-- ========== HR SCREENS ========== -->
       <section class="page" id="page-hr-dashboard" data-tab="dashboard">
         <div class="page-header">
-          <div><h1>Hi Priya 👋</h1><p class="subtitle">HR Manager</p></div>
+          <div><h1 class="greeting-title" data-greeting-title></h1><p class="subtitle" data-greeting-subtitle>HR Manager</p></div>
           <button class="icon-btn" data-nav="hr/notifications">🔔</button>
         </div>
         <button class="purple-banner" data-nav="hr/employees" style="width:100%;text-align:left">
@@ -677,7 +866,7 @@
         <button class="card list-item"><div><h4>Performance Review</h4><p>Quarterly</p></div><span>↓</span></button>
       </section>
 
-      <section class="page" id="page-hr-training" data-hide-nav="true">
+      <section class="page" id="page-hr-training">
         <div class="back-header"><button onclick="goBack()">←</button><h2>Training & Development</h2></div>
         <div class="card list-item"><div><h4>Guest Service Excellence</h4><p>Running · 5 enrolled</p></div><span>›</span></div>
         <div class="card list-item"><div><h4>Safety & Hygiene Protocol</h4><p>Running · 3 enrolled</p></div><span>›</span></div>
@@ -686,11 +875,42 @@
 
       <section class="page" id="page-hr-more" data-tab="more">
         <div class="page-header"><div><h1>More</h1></div></div>
-        <button class="card list-item" data-nav="home"><div><h4>Switch Role</h4></div><span>›</span></button>
+        <button class="card list-item" data-nav="hr/profile"><div><h4>Profile</h4><p>HR account settings</p></div><span>›</span></button>
+        <button class="card list-item" type="button" data-action="logout"><div><h4>Logout</h4></div><span>›</span></button>
         <button class="card list-item" data-nav="flow-map"><div><h4>Developer Flow Map</h4></div><span>›</span></button>
       </section>
 
+      <section class="page" id="page-hr-profile" data-tab="profile">
+        <div class="page-header"><div><h1>HR Profile</h1><p class="subtitle">HR manager account</p></div></div>
+        <div class="card info-list">
+          <div class="info-row"><span>Name</span><span>Priya Sharma</span></div>
+          <div class="info-row"><span>Role</span><span>HR Manager</span></div>
+          <div class="info-row"><span>Region</span><span>Pune Cluster</span></div>
+        </div>
+        <button class="card list-item" data-nav="hr/change-password" style="margin-top:12px"><div><h4>Change Password</h4><p>Update HR account password</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="hr/support"><div><h4>Help & Support</h4><p>Raise technical issue or query</p></div><span>›</span></button>
+        <button class="card list-item" type="button" data-action="logout"><div><h4>Logout</h4><p>Sign out of HR account</p></div><span>›</span></button>
+      </section>
+
+      <section class="page" id="page-hr-change-password" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Change Password</h2></div>
+        <div class="card" style="padding:16px">
+          <div class="form-group"><label for="hr-current-pass">Current Password</label><input id="hr-current-pass" type="password" placeholder="Enter current password"></div>
+          <div class="form-group"><label for="hr-new-pass">New Password</label><input id="hr-new-pass" type="password" placeholder="Enter new password"></div>
+          <div class="form-group"><label for="hr-confirm-pass">Confirm New Password</label><input id="hr-confirm-pass" type="password" placeholder="Re-enter new password"></div>
+          <button class="btn-primary" style="width:100%;padding:12px" type="button" onclick="alert('Password updated successfully (prototype).')">Update Password</button>
+        </div>
+      </section>
+
+      <section class="page" id="page-hr-support" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Help & Support</h2></div>
+        <button class="card list-item"><div><h4>Raise Technical Ticket</h4><p>Create support ticket for admin follow-up</p></div><span>›</span></button>
+        <button class="card list-item"><div><h4>Contact HR System Support</h4><p>Email: hr.support@1menus.com</p></div><span>›</span></button>
+      </section>
+
     </div><!-- screen-content -->
+
+    <button id="scroll-to-top" type="button" class="scroll-to-top" aria-label="Scroll to top">↑</button>
 
     <!-- Screen labels -->
     <div class="screen-label owner" id="label-owner" style="display:none">OWNER SCREEN</div>
@@ -698,37 +918,29 @@
     <div class="screen-label" id="label-staff" style="display:none">STAFF SCREEN</div>
     <div class="screen-label hr" id="label-hr" style="display:none">HR SCREEN</div>
 
-    <!-- Global app footer: drawer + role navigation -->
+    <!-- Global app footer: role-based sticky navigation -->
     <div class="app-footer-stack" id="app-footer-drawer" style="display:none">
-      <button type="button" class="app-drawer-bar" id="app-drawer-open" aria-label="Open app menu">
-        <span class="grid-icon">☰</span>
-        <span>App Menu — All Features</span>
-      </button>
-      <nav class="bottom-nav" id="nav-owner" style="display:none">
-        <button class="nav-item active owner" data-nav="owner/dashboard" data-tab="dashboard"><span class="ic">🏠</span><span>Overview</span></button>
-        <button class="nav-item owner" data-nav="owner/insights-tab" data-tab="insights"><span class="ic">💡</span><span>Insights</span></button>
-        <button class="nav-item owner" data-nav="owner/reports" data-tab="reports"><span class="ic">📄</span><span>Reports</span></button>
-        <button class="nav-item owner" data-nav="owner/more" data-tab="more"><span class="ic">⋯</span><span>More</span></button>
-      </nav>
-      <nav class="bottom-nav" id="nav-hod" style="display:none">
-        <button class="nav-item active hod" data-nav="hod/dashboard" data-tab="dashboard"><span class="ic">▦</span><span>Dashboard</span></button>
-        <button class="nav-item hod" data-nav="hod/tasks-tab" data-tab="tasks"><span class="ic">📋</span><span>Tasks</span></button>
-        <button class="nav-item hod" data-nav="hod/staff" data-tab="staff"><span class="ic">👥</span><span>Staff</span></button>
-        <button class="nav-item hod" data-nav="hod/reports" data-tab="reports"><span class="ic">📄</span><span>Reports</span></button>
-        <button class="nav-item hod" data-nav="hod/more" data-tab="more"><span class="ic">⋯</span><span>More</span></button>
-      </nav>
-      <nav class="bottom-nav" id="nav-staff" style="display:none">
-        <button class="nav-item active staff" data-nav="staff/home" data-tab="home"><span class="ic">🏠</span><span>Home</span></button>
-        <button class="nav-item staff" data-nav="staff/tasks-tab" data-tab="tasks"><span class="ic">📋</span><span>Tasks</span></button>
-        <button class="nav-item staff" data-nav="staff/history" data-tab="history"><span class="ic">🕐</span><span>History</span></button>
-        <button class="nav-item staff" data-nav="staff/profile-tab" data-tab="profile"><span class="ic">👤</span><span>Profile</span></button>
-      </nav>
-      <nav class="bottom-nav" id="nav-hr" style="display:none">
-        <button class="nav-item active hr" data-nav="hr/dashboard" data-tab="dashboard"><span class="ic">▦</span><span>Dashboard</span></button>
-        <button class="nav-item hr" data-nav="hr/employees" data-tab="employees"><span class="ic">👥</span><span>Employees</span></button>
-        <button class="nav-item hr" data-nav="hr/performance-tab" data-tab="performance"><span class="ic">📈</span><span>Performance</span></button>
-        <button class="nav-item hr" data-nav="hr/reports" data-tab="reports"><span class="ic">📄</span><span>Reports</span></button>
-        <button class="nav-item hr" data-nav="hr/more" data-tab="more"><span class="ic">⋯</span><span>More</span></button>
+      <nav class="footer-nav" aria-label="Bottom navigation">
+        <button type="button" class="footer-item" id="footer-item-1" data-nav="staff/home">
+          <span class="footer-ic">🏠</span>
+          <span class="footer-label">Home</span>
+        </button>
+        <button type="button" class="footer-item" id="footer-item-2" data-nav="staff/tasks-tab">
+          <span class="footer-ic">📥</span>
+          <span class="footer-label">Requests</span>
+        </button>
+        <button type="button" class="footer-item" id="footer-item-3" data-nav="staff/performance">
+          <span class="footer-ic">📈</span>
+          <span class="footer-label">Performance</span>
+        </button>
+        <button type="button" class="footer-item" id="footer-item-4" data-nav="staff/training">
+          <span class="footer-ic">🎓</span>
+          <span class="footer-label">Training</span>
+        </button>
+        <button type="button" class="footer-item" id="footer-item-5" data-nav="staff/profile">
+          <span class="footer-ic">👤</span>
+          <span class="footer-label">Profile</span>
+        </button>
       </nav>
     </div>
 
@@ -752,15 +964,6 @@
 <script src="js/task-timer.js"></script>
 <script src="js/staff-actions.js"></script>
 <script src="js/app-drawer.js"></script>
-<script>
-  document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
-    item.addEventListener('click', function() {
-      const nav = this.closest('.bottom-nav');
-      nav.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      this.classList.add('active');
-    });
-  });
-  if (window.AppDrawer) AppDrawer.setRole('home');
-</script>
+<script src="js/login.js"></script>
 </body>
 </html>

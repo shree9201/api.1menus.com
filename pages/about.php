@@ -2,8 +2,8 @@
 /****************************************************************************
 * Project Name: Application Web service  API documentation 				    *
 * Version: 5.6 																*
-* Author: Vishwajeet Mahadik												*
-* Email: vishwajeet9201@gmail.com                                           *	
+* Author: Vishu												*
+* Email: info@1menus.com                                           *	
 * Mobile: +91 7709034176 													*
 * Website: https://www.droptech.in 											*
 *****************************************************************************/

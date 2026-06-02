@@ -29,29 +29,32 @@ if (!empty($_REQUEST['action'])) {
 } else {
 	header('Content-Type: ' . $defaultContentType);
 }
-$action 	= isset($_REQUEST['action'])?$_REQUEST['action']:"";
-	$responseArray= array();
-	// swich case for action 
-	$action 	= isset($_REQUEST ['action'])?$_REQUEST ['action']:"";	
-	// object create	
-	require_once 'api_class.php';
-	$item = new api_class();		
-	//echo $action;				// for config validate fields
-switch ($action)
-{
-	
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// ANDRIOD AND IOS SECTION API
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+$action = isset($_REQUEST['action'])?$_REQUEST['action']:"";
+$responseArray = array();
+// object create
+require_once 'api_class.php';
+$item = new api_class();
 
-	case 'staffLogin':						$item->staffLogin();					break;
-	case 'getDeviceIds':					$item->getDeviceIds();					break;
-	case 'sendPushNotification':			$item->sendPushNotification();			break;
-	case 'getStaffList':					$item->getStaffList();					break;
-	default: 								require_once 'info/index.php';			break;
-	
-	
-	
-	break;
-		
+$allowedAction = false;
+if ($action !== '' && preg_match('/^[a-zA-Z0-9_]+$/', $action) && method_exists($item, $action) && is_callable([$item, $action])) {
+	$internalMethods = array(
+		'__construct', 'getBodyJsonData', 'emailValid', 'mobileValid', 'optionalParametterValidate',
+		'checkIsNull', 'getTranslatedMessage', 'numberValid', 'urlValid', 'usernameValid',
+		'passwordConfirmValid', 'jsonDisplay', 'displayOutputJson', 'getCurldata', 'applicationAPI',
+		'checkIsIdExist', 'updateTableRecordValue', 'apiDefault', 'isImageAvaibaleOrNot',
+		'generateRandomString', 'generateRandomToken', 'jsonReturnToDisplay', 'get_time_passed',
+		'imgSourceReturn', 'APIIsValidToken', 'APIIsItemPresents', 'APIReturnListData',
+		'getImagesArray', 'takeAwayEmailTrigger', 'unwantedInfoRemove'
+	);
+	if (!in_array($action, $internalMethods, true)) {
+		$allowedAction = true;
+	}
 }
+
+header('Content-Type: application/json; charset=utf-8');
+if ($allowedAction) {
+	$item->$action();
+	return;
+}
+
+echo json_encode(array('status' => false, 'value' => 'INVALID API ACTION', 'action' => $action));

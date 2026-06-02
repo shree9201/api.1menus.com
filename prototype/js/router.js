@@ -1,9 +1,72 @@
 (function () {
   const history = [];
-  let currentRole = null;
+  const AUTH_STORAGE_KEY = 'oneMenusSession';
+  let currentRole = loadSavedRole();
+
+  function loadSavedRole() {
+    try {
+      const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (!raw) return null;
+      const session = JSON.parse(raw);
+      return session && typeof session.role === 'string' ? session.role : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function roleToHomeRoute(role) {
+    // Internal routing role mapping:
+    // - staff -> staff/home
+    // - hod   -> hod/dashboard (Manager screens)
+    // - hr    -> hr/dashboard
+    if (role === 'staff') return 'staff/home';
+    if (role === 'hod') return 'hod/dashboard';
+    if (role === 'hr') return 'hr/dashboard';
+    return null;
+  }
+
+  const FOOTER_CONFIGS = {
+    staff: [
+      { nav: 'staff/home', label: 'Home', icon: '🏠' },
+      { nav: 'staff/tasks-tab', label: 'Requests', icon: '📥' },
+      { nav: 'staff/performance', label: 'Performance', icon: '📈' },
+      { nav: 'staff/training', label: 'Training', icon: '🎓' },
+      { nav: 'staff/profile', label: 'Profile', icon: '👤' },
+    ],
+    hod: [
+      { nav: 'hod/dashboard', label: 'Home', icon: '🏠' },
+      { nav: 'hod/tasks-tab', label: 'Tasks', icon: '📋' },
+      { nav: 'hod/performance', label: 'Performance', icon: '📈' },
+      { nav: 'hod/staff', label: 'Staff', icon: '👥' },
+      { nav: 'hod/profile', label: 'Profile', icon: '👤' },
+    ],
+    hr: [
+      { nav: 'hr/dashboard', label: 'Home', icon: '🏠' },
+      { nav: 'hr/employees', label: 'Employees', icon: '👥' },
+      { nav: 'hr/performance-tab', label: 'Performance', icon: '📈' },
+      { nav: 'hr/training', label: 'Training', icon: '🎓' },
+      { nav: 'hr/profile', label: 'Profile', icon: '👤' },
+    ],
+  };
+
+  function applyFooter(role, pageId) {
+    const config = FOOTER_CONFIGS[role];
+    if (!config) return;
+    config.forEach((item, idx) => {
+      const btn = document.getElementById('footer-item-' + (idx + 1));
+      if (!btn) return;
+      btn.dataset.nav = item.nav;
+      const iconEl = btn.querySelector('.footer-ic');
+      const labelEl = btn.querySelector('.footer-label');
+      if (iconEl) iconEl.textContent = item.icon;
+      if (labelEl) labelEl.textContent = item.label;
+      const targetPageId = item.nav.replace(/\//g, '-');
+      btn.classList.toggle('active', targetPageId === pageId);
+    });
+  }
 
   function parseHash() {
-    const raw = location.hash.slice(1) || 'home';
+    const raw = location.hash.slice(1) || 'loading';
     const [path, query] = raw.split('?');
     const params = {};
     if (query) {
@@ -24,37 +87,41 @@
     }
     page.classList.add('active');
 
-    const role = pageId.split('/')[0];
-    if (['owner', 'hod', 'staff', 'hr'].includes(role)) currentRole = role;
+    if (pageId === 'loading') {
+      setTimeout(() => {
+        if ((location.hash.slice(1) || 'loading') === 'loading') navigate('home', null, false);
+      }, 1400);
+    }
 
-    document.querySelectorAll('.bottom-nav').forEach((nav) => {
-      nav.style.display = 'none';
-    });
-    const nav = document.getElementById('nav-' + role);
+    // Refresh role from saved session.
+    // This ensures Logout reliably hides the footer even when URL pages are still accessible.
+    currentRole = loadSavedRole();
+    const activeRole = currentRole;
+
     const footerStack = document.getElementById('app-footer-drawer');
-    if (footerStack) footerStack.style.display = 'flex';
-    if (nav && !page.dataset.hideNav) {
-      nav.style.display = 'flex';
-      const tab = page.dataset.tab;
-      nav.querySelectorAll('.nav-item').forEach((item) => {
-        item.classList.toggle('active', item.dataset.tab === tab);
-      });
+    const isAuthedRole = ['staff', 'hod', 'hr'].includes(activeRole);
+    const shouldShowFooter = isAuthedRole && pageId !== 'home';
+    if (footerStack) {
+      footerStack.style.display = shouldShowFooter ? 'block' : 'none';
+
+      if (shouldShowFooter) {
+        applyFooter(activeRole, pageId);
+        if (window.AppDrawer) window.AppDrawer.setRole(activeRole);
+      }
     }
 
     document.querySelectorAll('.screen-label').forEach((l) => (l.style.display = 'none'));
-    const label = document.getElementById('label-' + role);
+    const label = activeRole ? document.getElementById('label-' + activeRole) : null;
     if (label && page.dataset.showLabel !== 'false') label.style.display = 'block';
 
     applyPageParams(page, params);
     initStaffPages(pageId, params);
-    if (window.AppDrawer) {
-      AppDrawer.setRole(['owner', 'hod', 'staff', 'hr'].includes(role) ? role : pageId === 'home' || pageId === 'flow-map' ? 'home' : null);
-    }
     window.scrollTo(0, 0);
     const scroller = document.querySelector('.screen-content');
     if (scroller) {
       scroller.scrollTop = 0;
-      scroller.classList.toggle('nav-hidden-only', !!page.dataset.hideNav);
+      // When footer is hidden, use the smaller padding variant.
+      scroller.classList.toggle('nav-hidden-only', !shouldShowFooter);
     }
   }
 
