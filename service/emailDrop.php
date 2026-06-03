@@ -9,8 +9,20 @@
 ///////////////////////////////////////////
 
 class emailDrop {
-	//TODO - Insert your code here
-	
+	// Declared properties to avoid dynamic property deprecation warnings (PHP 8.2+)
+	public $request;
+	public $files;
+	public $responseArray;
+	public $urlBase;
+	public $url;
+	public $to;
+	public $from;
+	public $subject;
+	public $body;
+	public $type;
+	public $debug;
+	public $content;
+	public $emailSent;
 
 	function __construct() {
 	

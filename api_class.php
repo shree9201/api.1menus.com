@@ -1,12 +1,17 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Set headers and start session BEFORE any includes or error output
 header('Access-Control-Allow-Origin: *');
 header("Access-Control-Allow-Credentials: true");
 header('Access-Control-Allow-Methods: GET, PUT, POST, DELETE, OPTIONS');
 header('Access-Control-Max-Age: 1000');
 header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token , Authorization');
+header('Content-Type: application/json; charset=utf-8');
+session_start();
+
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 ///////////////////////////////////////////
 // File Name        : api_class.php
 // Craeted By       : Vishwajeet Mahadik
@@ -15,8 +20,6 @@ header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token , Autho
 // Modify  Date     : 04-July-2020
 // Description      : This is file API process functions. API methods for the Android  and IOS application.
 ///////////////////////////////////////////
-header( 'Content-Type: text/html; charset=utf-8' );
-session_start();
 // try multiple locations for includes to support different deployments
 function _safe_include_once_top(array $candidates, $name){
 	foreach($candidates as $file){
@@ -39,9 +42,20 @@ class api_class {
 	var $post;
 	var $get;
 	var $request;
-	var $dbclass;
 	var $files;
-	
+	var $email;
+	var $db;
+	var $responseArray;
+	var $response;
+	var $sessionInfo;
+	var $loginUserId;
+	var $action;
+	var $ip;
+	var $config;
+	var $statusList;
+	var $hotelWebsiteThemes;
+	var $staffTypes;
+	var $departments;
 
 	public function __construct(){
 		$this->post = $_POST;
@@ -54,12 +68,22 @@ class api_class {
 		$this->responseArray = array();
 		$this->response = "";
 		$this->sessionInfo = explode('_', isset($_SESSION['people']) ? $_SESSION['people'] : "");
+		$this->responseArray = array();
+		$this->sessionInfo 	= isset($_SESSION['userInfo'])?$_SESSION['userInfo']:"";
+		$this->loginUserId = isset($this->sessionInfo['id'])?$this->sessionInfo['id']:'';
+		$this->action = isset($_REQUEST['action'])?$_REQUEST['action']:"";
+		$this->ip = isset($_SERVER['REMOTE_ADDR'])?$_SERVER['REMOTE_ADDR']:'';
+		$this->config = $this->db->selectSingleRowData('config', 1);
+		$this->statusList = array('NEW'=>'NEW' , 'ACCEPT'=>'ACCEPT','ASSIGN' => 'ASSIGN' , 'START'=>'START','HOLD'=>'HOLD','END'=>'END','DONE'=>'DONE','CLOSE'=>'CLOSE','REJECT'=>'REJECT','REOPEN'=>'REOPEN');
+		$this->hotelWebsiteThemes = array("HotWebTheme-1"=>'HotWebTheme-1');
+		$this->staffTypes = [['key' => 'FOMGR','value' => 'Front Office Manager'],['key' => 'FOSU','value' => 'Front Office Supervisor'],['key' => 'FO','value' => 'Front Office Executive'],['key' => 'HKMGR','value' => 'House Keeping Manager'],['key' => 'HKSU','value' => 'House Keeping Supervisor'],['key' => 'HK','value' => 'House Keeping Executive'],['key' => 'MTNS','value' => 'Maintenance'],['key' => 'SPA','value' => 'Spa'],['key' => 'WAITER-STAFF','value' => 'Waiter/Staff'],['key' => 'KITCHEN','value' => 'Kitchen']];
+		$this->departments = [['key' => 'STAFF','value' => 'Staff'],['key'=>'MANAGER','value'=>'Manager'],['key'=>'HR','value'=>'HR']];
+		
 	}
 
 	public function getBodyJsonData(){
 		$json = file_get_contents('php://input'); 
 	$data = json_decode($json, true);
-	header('Content-Type: application/json');
 	// convert $data to request param array (only if decoded to array)
 	if (is_array($data)) {
 		foreach ($data as $key => $value) {
@@ -182,7 +206,6 @@ class api_class {
 	// function for throw error message
 	public	function displayOutputJson($arrayName)
 	{
-		header('Content-type: application/json');
 		$arrayName=array($arrayName);
 		echo json_encode($arrayName);
 		exit;
@@ -1191,11 +1214,6 @@ public function signup(){
 	}
 	$this->displayOutputJson($responseArray);
 }
-
-public function login(){
-	
-}
-public function socialLogin(){}
 public function test2(){
 	header('Access-Control-Allow-Origin: *');
 	header("Access-Control-Allow-Credentials: true");
@@ -1448,9 +1466,6 @@ public function products(){
     $responseArray =  array('status' => 'true','category'=>$categoryList,'value' =>$info);
     $this->displayOutputJson($responseArray);
 }
-public function getSession(){
-	echo "Hello";	
-}
 public function takeAwayEmailTrigger($userInfo,$orderInfo){
 	$to = $userInfo->email?$userInfo->email:'';
 	if($to!=""){
@@ -1513,6 +1528,7 @@ print_r($em);
 	public function staffLogin(){
 		$this->getBodyJsonData();
 		$outletId = $this->optionalParametterValidate($_REQUEST['outletId'], 'outletId');
+		$userType = $this->optionalParametterValidate($_REQUEST['userType'], 'userType');
 		$username = $this->optionalParametterValidate($_REQUEST['username'], 'username');
 		$password = $this->optionalParametterValidate($_REQUEST['password'], 'password');
 		$deviceType = $this->optionalParametterValidate($_REQUEST['deviceType'], 'deviceType');
@@ -1521,8 +1537,13 @@ print_r($em);
 			$responseArray =  array('status' => 'false','value' =>'Invalid username or password');
 			$this->displayOutputJson($responseArray);
 		}else{
-			$staffInfo = $this->db->select("select * from staff where userId='".$outletId."' and username='".$username."' and password='".$password."'");
+			$staffInfo = $this->db->select("select * from staff where department='".$userType."' and userId='".$outletId."' and username='".$username."' and password='".$password."'");
+			if(count($staffInfo)==0){
+				$responseArray =  array('status' => 'false','value' =>'Invalid username or password');
+				$this->displayOutputJson($responseArray);
+			}else{
 			$staffInfo = $staffInfo[0];
+			
 			if($staffInfo->status == 'NO'){
 				$responseArray =  array('status' => 'false','value' =>'Your account has been disabled, please contact to outlet admin');
 				$this->displayOutputJson($responseArray);
@@ -1546,9 +1567,13 @@ print_r($em);
 					}
 					$responseArray =  array('status' => 'true','value' =>$staffInfo,'devices'=>$deviceIdList);
 				}
+		
+		}
 			$this->displayOutputJson($responseArray);
 		}
 }
+
+/* Application Level API Methods */
 public function getDeviceIds(){
 	
 	$this->getBodyJsonData();
@@ -1668,6 +1693,10 @@ public function getStaffList(){
 		$responseArray =  array('status' => 'true','value' =>$staffList);
 		$this->displayOutputJson($responseArray);
 	}
+}
+public function masterData(){
+	$responseArray =  array('status' => 'true', 'value' => 'Master data retrieved successfully', 'staffTypes' =>$this->staffTypes,'departments'=>$this->departments,'statusList'=>$this->statusList);
+	$this->displayOutputJson($responseArray);
 }
 }
 ?>
