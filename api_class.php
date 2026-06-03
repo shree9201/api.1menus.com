@@ -57,7 +57,7 @@ class api_class {
 	var $hotelWebsiteThemes;
 	var $staffTypes;
 	var $departments;
-
+	var $message;
 	public function __construct(){
 		$this->post = $_POST;
 		$this->get = $_GET;
@@ -461,7 +461,18 @@ public function generateJwtToken($userId){
 		'userId' => $userId
 	);
 	$jwt = JWTHandler::encode($payload, JWT_SECRET_KEY, JWT_ALGORITHM);
-	$this->db->update("update users set jwt_token='".addslashes($jwt)."', jwt_expires_at='".date('Y-m-d H:i:s', $expiresAt)."' where id=".$userId);
+	$expiresAtSql = date('Y-m-d H:i:s', $expiresAt);
+	
+	// Store JWT in the dedicated jwt_tokens_user table to match validation logic.
+	if($this->db->selectCount("select count(*) as count from jwt_tokens_user where id=".$userId) == 0){
+		$this->db->insert(array(
+			'id' => $userId,
+			'jwt_token' => $jwt,
+			'jwt_expires_at' => $expiresAtSql
+		), 'jwt_tokens_user');
+	} else {
+		$this->db->update("update jwt_tokens_user set jwt_token='".addslashes($jwt)."', jwt_expires_at='".$expiresAtSql."' where id=".$userId);
+	}
 	return $jwt;
 }
 

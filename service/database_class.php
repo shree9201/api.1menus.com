@@ -348,7 +348,8 @@ class database_class {
                                     $msg=$text;
                                     $today = date("D M j G:i:s T Y");
     
-                                     $message.="Mysql error occurs as per following reference<br><br>";
+                                    $message = "";
+                                    $message .= "Mysql error occurs as per following reference<br><br>";
                                     /* $message.= "<hr><font face=verdana size=2>";
     $message.= "<b>Error Date-Time :</b> $today<br><br>";
     $message.= "<b>Custom Message :</b> $text<br><br>";
@@ -358,7 +359,7 @@ class database_class {
     $message.= "<b>File\t:</b> ".$_REQUEST['file']."<br><br>";
     $message.= "<b>IP\t:</b> ".$_SERVER[REMOTE_ADDR]."<br><br>";
     echo 	$message.= "<hr></font>"; */
-    echo 				$message.="<div class='alert alert-danger'><b>ERROR: </b>$text.'<br>'. $msg</div>";
+    echo $message . "<div class='alert alert-danger'><b>ERROR: </b>" . $text . "<br>" . $msg . "</div>";
     }
     
     

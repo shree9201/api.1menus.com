@@ -30,7 +30,7 @@ if($_SERVER['HTTP_HOST']=="localhost" || $_SERVER['HTTP_HOST']=="127.0.0.1" || $
 	$isLive = false;
 	$Directory_Name = "1menus";
 }else{
-	define("DB_NAME", "1menus_database_2026");
+	define("DB_NAME", "1menus_application_database_core_2026");
 	define("DB_USER", "1menus_droptech_vishu");
 	define("DB_PASS", "Vishu9201@9201");
 }
