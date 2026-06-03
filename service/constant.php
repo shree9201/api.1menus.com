@@ -62,6 +62,9 @@ define("SITE_TITLE", "1Menus");
 define("SITE_URL", $siteUrl);
 define("CMS_URL", $siteUrl."cms/");
 define("API_URL", $siteUrl."service/api.php");
+define("JWT_SECRET_KEY", "8b9f3d23a5c74e1f923a4b6c7d8e9f01a2b3c4d5e6f7a");
+define("JWT_ALGORITHM", "HS256");
+define("JWT_EXPIRE_SECONDS", 3600);
 define("CMS_NAVIGATION_PROCESS_URL", $siteUrl);
 
 

@@ -37,6 +37,7 @@ _safe_include_once_top(array(__DIR__.'/constant.php', __DIR__.'/service/constant
 _safe_include_once_top(array(__DIR__.'/service/database_class.php', __DIR__.'/database_class.php', __DIR__.'/../service/database_class.php'), 'database_class.php');
 _safe_include_once_top(array(__DIR__.'/emailDrop.php', __DIR__.'/service/emailDrop.php', __DIR__.'/../emailDrop.php'), 'emailDrop.php');
 _safe_include_once_top(array(__DIR__.'/massages.php', __DIR__.'/service/massages.php', __DIR__.'/../massages.php'), 'massages.php');
+_safe_include_once_top(array(__DIR__.'/jwt.php', __DIR__.'/service/jwt.php', __DIR__.'/../jwt.php'), 'jwt.php');
 class api_class {
 	
 	var $post;
@@ -78,7 +79,10 @@ class api_class {
 		$this->hotelWebsiteThemes = array("HotWebTheme-1"=>'HotWebTheme-1');
 		$this->staffTypes = [['key' => 'FOMGR','value' => 'Front Office Manager'],['key' => 'FOSU','value' => 'Front Office Supervisor'],['key' => 'FO','value' => 'Front Office Executive'],['key' => 'HKMGR','value' => 'House Keeping Manager'],['key' => 'HKSU','value' => 'House Keeping Supervisor'],['key' => 'HK','value' => 'House Keeping Executive'],['key' => 'MTNS','value' => 'Maintenance'],['key' => 'SPA','value' => 'Spa'],['key' => 'WAITER-STAFF','value' => 'Waiter/Staff'],['key' => 'KITCHEN','value' => 'Kitchen']];
 		$this->departments = [['key' => 'STAFF','value' => 'Staff'],['key'=>'MANAGER','value'=>'Manager'],['key'=>'HR','value'=>'HR']];
-		
+		// jwt_token authentication for API access validation can be implemented here if needed for all API calls
+		if($_REQUEST['action'] !== 'getJwtToken'){ // skip token validation for getJwtToken API to allow clients to obtain token
+			 $this->getAndValidateHeaderTokenForJWT();
+		}
 	}
 
 	public function getBodyJsonData(){
@@ -222,7 +226,34 @@ class api_class {
 	
 		return $data;
 	}
-	public function applicationAPI($url) {
+	public function getAuthorizationHeader(){
+	// Read the Authorization header from common server variables.
+	$headers = null;
+	if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+		$headers = trim($_SERVER['HTTP_AUTHORIZATION']);
+	} elseif (isset($_SERVER['Authorization'])) {
+		$headers = trim($_SERVER['Authorization']);
+	} elseif (function_exists('apache_request_headers')) {
+		$requestHeaders = apache_request_headers();
+		if (isset($requestHeaders['Authorization'])) {
+			$headers = trim($requestHeaders['Authorization']);
+		} elseif (isset($requestHeaders['authorization'])) {
+			$headers = trim($requestHeaders['authorization']);
+		}
+	}
+	return $headers;
+}
+
+public function getBearerToken(){
+	$header = $this->getAuthorizationHeader();
+	// Extract Bearer token from header value like: Authorization: Bearer TOKEN
+	if (!empty($header) && preg_match('/Bearer\s+(.*)$/i', $header, $matches)) {
+		return trim($matches[1]);
+	}
+	return "";
+}
+
+public function applicationAPI($url) {
 		$ch = curl_init();	
 		curl_setopt($ch, CURLOPT_HEADER, 0);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); //Set curl to return the data instead of printing it to the browser.
@@ -352,18 +383,102 @@ public function imgSourceReturn($src){
 	return  CMS_MEDIA_PATH.$url;
 
 }
-public function APIIsValidToken($token,$id){
-	if($token!="" && $id!=""){
-		$count = $this->db->selectCount("select count(*) as count from users where id=".$id." and token='".$token."'");
-		if($count == 0){
-			$responseArray =  array('status' => false,'value'=>'Invalid Account Id or Token');
-			$this->displayOutputJson($responseArray);
-		}else{ return true;
-		}
-	}else{
-		$responseArray =  array('status' => false,'value'=>'Missing Data for Token or Account id');
-		$this->displayOutputJson($responseArray);
+public function APIIsValidToken($token,&$id = null){
+	if($token == ""){
+		$token = isset($_REQUEST['jwt_token']) ? $_REQUEST['jwt_token'] : $this->getBearerToken();
 	}
+	if($token != ""){
+		if(strpos($token, '.') !== false){
+			$payload = null;
+			if(!$this->validateJwtToken($token, $payload)){
+				$responseArray =  array('status' => false,'value'=>'Invalid or expired JWT token');
+				$this->displayOutputJson($responseArray);
+			}
+			if(isset($payload['sub'])){
+				$tokenUserId = intval($payload['sub']);
+				if($tokenUserId <= 0){
+					$responseArray =  array('status' => false,'value'=>'Invalid JWT subject value');
+					$this->displayOutputJson($responseArray);
+				}
+				if(empty($id)){
+					$id = $tokenUserId;
+				} elseif(intval($id) !== $tokenUserId){
+					$responseArray =  array('status' => false,'value'=>'JWT token subject does not match requested user id');
+					$this->displayOutputJson($responseArray);
+				}
+			}
+			return true;
+		}
+		if(empty($id)){
+			$responseArray =  array('status' => false,'value'=>'Missing Account id for legacy token validation');
+			$this->displayOutputJson($responseArray);
+		}
+		$count = $this->db->selectCount("select count(*) as count from jwt_tokens_user where id=".$id." and token='".addslashes($token)."'");
+		if($count == 0){
+			$responseArray =  array('status' => false,'value'=>'Invalid legacy token or account id, Please contact to support team');
+			// return API response code is 500
+			 http_response_code(500);
+			$this->displayOutputJson($responseArray);
+		}else{
+			return true;
+		}
+	}
+	$responseArray =  array('status' => false,'value'=>'Missing Data for Token or Account id');
+	$this->displayOutputJson($responseArray);
+}
+
+public function validateJwtToken($token, &$payload = null){
+	$payload = JWTHandler::decode($token, JWT_SECRET_KEY);
+	if(!$payload || !is_array($payload)){
+		return false;
+	}
+	if(!isset($payload['exp']) || time() > intval($payload['exp'])){
+		return false;
+	}
+	if(!isset($payload['sub'])){
+		return false;
+	}
+	$userId = intval($payload['sub']);
+	if($userId <= 0){
+		return false;
+	}
+	$count = $this->db->selectCount("select count(*) as count from jwt_tokens_user where id=".$userId." and jwt_token='".addslashes($token)."' and jwt_expires_at >= NOW()");
+	if($count == 0){
+		return false;
+	}
+	return true;
+}
+
+public function generateJwtToken($userId){
+	$issuedAt = time();
+	$expiresAt = $issuedAt + JWT_EXPIRE_SECONDS;
+	$payload = array(
+		'iss' => SITE_URL,
+		'aud' => API_URL,
+		'iat' => $issuedAt,
+		'exp' => $expiresAt,
+		'sub' => $userId,
+		'userId' => $userId
+	);
+	$jwt = JWTHandler::encode($payload, JWT_SECRET_KEY, JWT_ALGORITHM);
+	$this->db->update("update users set jwt_token='".addslashes($jwt)."', jwt_expires_at='".date('Y-m-d H:i:s', $expiresAt)."' where id=".$userId);
+	return $jwt;
+}
+
+public function getJwtToken(){
+	$this->getBodyJsonData();
+	$id = $this->optionalParametterValidate($_REQUEST['id'], 'id');
+	$token = $this->optionalParametterValidate($_REQUEST['token'], 'token');
+	//$this->APIIsValidToken($token, $id);
+	$jwt = $this->generateJwtToken($id);
+	$responseArray = array(
+		'status' => true,
+		'value' => 'JWT token created successfully',
+		'jwtToken' => $jwt,
+		'expiresAt' => date('Y-m-d H:i:s', time() + JWT_EXPIRE_SECONDS),
+		'tokenType' => 'Bearer'
+	);
+	$this->displayOutputJson($responseArray);
 }
 public function APIIsItemPresents($table,$id){
 	if($table!="" && $id!=""){
@@ -1693,6 +1808,21 @@ public function getStaffList(){
 		$responseArray =  array('status' => 'true','value' =>$staffList);
 		$this->displayOutputJson($responseArray);
 	}
+}
+public function getAndValidateHeaderTokenForJWT(){
+	// Fetch all headers into an associative array
+$headers = getallheaders(); 
+// Target key (Note: header names are case-insensitive, but arrays are case-sensitive)
+$token = isset($headers['Token']) ? $headers['Token'] : null;
+$id = isset($headers['Id']) ? $headers['Id'] : null;
+
+if($token == null || $id == null){
+	$responseArray =  array('status' => 'false', 'value' => "Token and Id headers are required");
+	$this->displayOutputJson($responseArray);
+}else{
+	$p = $this->APIIsValidToken($token, $id);	
+}
+
 }
 public function masterData(){
 	$responseArray =  array('status' => 'true', 'value' => 'Master data retrieved successfully', 'staffTypes' =>$this->staffTypes,'departments'=>$this->departments,'statusList'=>$this->statusList);
