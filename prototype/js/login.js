@@ -58,6 +58,9 @@
     document.querySelectorAll('[data-greeting-title]').forEach((el) => {
       el.textContent = title;
     });
+    document.querySelectorAll('[data-staff-home-greeting]').forEach((el) => {
+      el.textContent = `Hi ${cfg.name} 👋`;
+    });
     document.querySelectorAll('[data-greeting-subtitle]').forEach((el) => {
       el.textContent = SUBTITLES[role] || el.textContent;
     });

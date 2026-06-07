@@ -12,7 +12,7 @@
 <div class="app-shell">
   <p class="prototype-banner">Interactive Android prototype · Tap <strong>☰ App Menu</strong> on any screen for full navigation · <a href="#flow-map" style="color:#60a5fa">Flow map</a></p>
 
-  <div class="phone-frame">
+  <div class="phone-frame theme-light">
     <div class="status-bar">
       <span>9:41</span>
       <span class="status-icons">📶 📡 🔋</span>
@@ -261,7 +261,7 @@
           <div class="dept-rating">4.6 ★</div>
         </button>
         <button class="card dept-row" data-nav="owner/department-detail" data-param-id="front-office">
-          <div class="dept-icon" style="background:#ede9fe">🏨</div>
+          <div class="dept-icon" style="background:#ccfbf1">🏨</div>
           <div class="dept-bar-wrap"><div class="name">Front Office</div><div class="dept-bar"><span style="width:88%;background:#22c55e"></span></div></div>
           <div class="dept-rating">4.4 ★</div>
         </button>
@@ -499,21 +499,90 @@
 
       <section class="page" id="page-hod-more" data-tab="more">
         <div class="page-header"><div><h1>More</h1></div></div>
+        <button class="card list-item" data-nav="hod/settings"><div><h4>Profile Settings</h4><p>Theme & notification preferences</p></div><span>›</span></button>
         <button class="card list-item" data-nav="hod/profile"><div><h4>Profile</h4><p>Manager account settings</p></div><span>›</span></button>
         <button class="card list-item" type="button" data-action="logout"><div><h4>Logout</h4></div><span>›</span></button>
         <button class="card list-item" data-nav="flow-map"><div><h4>Flow Map</h4></div><span>›</span></button>
       </section>
 
       <section class="page" id="page-hod-profile" data-tab="profile">
-        <div class="page-header"><div><h1>Manager Profile</h1><p class="subtitle">Department manager settings</p></div></div>
-        <div class="card info-list">
-          <div class="info-row"><span>Name</span><span>Sunil Kumar</span></div>
-          <div class="info-row"><span>Role</span><span>Manager</span></div>
-          <div class="info-row"><span>Department</span><span>Housekeeping</span></div>
+        <div class="page-header">
+          <div><h1>Manager Profile</h1><p class="subtitle">Team overview & account</p></div>
+          <button class="icon-btn" data-nav="hod/settings" aria-label="Settings">⚙️</button>
         </div>
-        <button class="card list-item" data-nav="hod/change-password" style="margin-top:12px"><div><h4>Change Password</h4><p>Keep your account secure</p></div><span>›</span></button>
+        <div class="card portfolio-hero" style="margin-bottom:12px">
+          <div class="portfolio-hero__main">
+            <div class="staff-avatar large" style="background:linear-gradient(135deg,#22c55e,#16a34a)">SK</div>
+            <div>
+              <h1>Sunil Kumar</h1>
+              <p>Housekeeping Manager</p>
+              <span class="platinum-badge" style="background:#dcfce7;color:#15803d">🏆 Top Manager Q1</span>
+            </div>
+            <div class="nutcracker-shield">
+              <span class="shield-icon">📊</span>
+              <span class="shield-lbl">Team Score</span>
+              <span class="shield-xp">94%</span>
+            </div>
+          </div>
+        </div>
+        <div class="grid-2 portfolio-stats">
+          <div class="card portfolio-stat-card"><span class="stat-lbl">Team Rating</span><div class="stat-val">4.7</div><div class="stat-stars">★★★★★</div></div>
+          <div class="card portfolio-stat-card"><span class="stat-lbl">Dept Performance</span><div class="stat-val green">92%</div></div>
+          <div class="card portfolio-stat-card"><span class="stat-lbl">Active Staff</span><div class="stat-val">18 👥</div></div>
+          <div class="card portfolio-stat-card"><span class="stat-lbl">Tasks Today</span><div class="stat-val gold">47 📋</div></div>
+        </div>
+        <div class="card info-list">
+          <div class="info-row"><span>Mobile</span><span data-settings-mobile>+91 98220 11880</span></div>
+          <div class="info-row"><span>Email</span><span data-settings-email>sunil.kumar@hotel.com</span></div>
+          <div class="info-row"><span>Department</span><span data-settings-dept>Housekeeping</span></div>
+        </div>
+        <button class="card list-item" data-nav="hod/settings" style="margin-top:12px"><div><h4>Profile Settings</h4><p>Theme, alerts & team notifications</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="hod/change-password"><div><h4>Change Password</h4><p>Keep your account secure</p></div><span>›</span></button>
         <button class="card list-item" data-nav="hod/support"><div><h4>Help & Support</h4><p>Raise issue to admin/support team</p></div><span>›</span></button>
         <button class="card list-item" type="button" data-action="logout"><div><h4>Logout</h4><p>Sign out of manager account</p></div><span>›</span></button>
+      </section>
+
+      <section class="page" id="page-hod-settings" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Manager Settings</h2></div>
+
+        <p class="settings-section-title">Appearance</p>
+        <div class="card settings-group">
+          <div class="settings-row">
+            <div><h4>Theme</h4><p>Light (default) or Dark mode</p></div>
+            <div class="theme-toggle" data-theme-toggle>
+              <button type="button" data-theme="light" class="active">Light</button>
+              <button type="button" data-theme="dark">Dark</button>
+            </div>
+          </div>
+        </div>
+
+        <p class="settings-section-title">Profile</p>
+        <div class="card settings-group">
+          <div class="settings-row stack"><div><h4>Mobile Number</h4></div><input type="tel" data-settings-mobile></div>
+          <div class="settings-row stack"><div><h4>Email Address</h4></div><input type="email" data-settings-email></div>
+          <div class="settings-row"><div><h4>Manager ID</h4></div><span data-settings-emp-id>MGR1042</span></div>
+          <div class="settings-row"><div><h4>Department</h4></div><span data-settings-dept>Housekeeping</span></div>
+        </div>
+
+        <p class="settings-section-title">Notifications</p>
+        <div class="card settings-group">
+          <div class="settings-row"><div><h4>Team Task Alerts</h4><p>Delayed & unassigned tasks</p></div><label class="toggle-switch"><input type="checkbox" id="hod-notif-push" data-settings-toggle="notifPush" checked><span class="slider"></span></label></div>
+          <div class="settings-row"><div><h4>Escalation Alerts</h4><p>Critical guest complaints</p></div><label class="toggle-switch"><input type="checkbox" id="hod-notif-sound" data-settings-toggle="notifSound" checked><span class="slider"></span></label></div>
+          <div class="settings-row stack"><div><h4>Alert Tone</h4></div><select id="hod-notif-tone" data-settings-select="notifTone"><option value="default">Default</option><option value="alert">Urgent Alert</option><option value="silent">Silent</option></select></div>
+          <div class="settings-row"><div><h4>Vibration</h4></div><label class="toggle-switch"><input type="checkbox" id="hod-notif-vibration" data-settings-toggle="notifVibration" checked><span class="slider"></span></label></div>
+          <div class="settings-row stack"><div><h4>Ringtone</h4></div><select id="hod-ringtone" data-settings-select="ringtone"><option value="classic">Classic Ring</option><option value="hotel">Hotel Standard</option></select></div>
+        </div>
+
+        <p class="settings-section-title">AI & Smart Features</p>
+        <div class="card settings-group">
+          <div class="settings-row"><div><h4>Staff Workload Insights</h4><p>AI balance recommendations</p></div><label class="toggle-switch"><input type="checkbox" id="hod-ai-tasks" data-settings-toggle="aiTaskSuggestions" checked><span class="slider"></span></label></div>
+          <div class="settings-row"><div><h4>Department Performance AI</h4><p>Weekly trend summaries</p></div><label class="toggle-switch"><input type="checkbox" id="hod-ai-shift" data-settings-toggle="aiShiftInsights" checked><span class="slider"></span></label></div>
+          <div class="settings-row"><div><h4>Delay Prediction Alerts</h4><p>Flag at-risk tasks early</p></div><label class="toggle-switch"><input type="checkbox" id="hod-ai-break" data-settings-toggle="aiBreakReminders" checked><span class="slider"></span></label></div>
+          <div class="settings-row"><div><h4>Training Gap Detection</h4><p>Recommend upskilling per staff</p></div><label class="toggle-switch"><input type="checkbox" id="hod-ai-skill" data-settings-toggle="aiSkillRecommendations" checked><span class="slider"></span></label></div>
+          <p class="ai-settings-note">Manager AI features analyze team performance to suggest assignments and identify bottlenecks.</p>
+        </div>
+
+        <button type="button" class="settings-save-btn" data-settings-save>Save Settings</button>
       </section>
 
       <section class="page" id="page-hod-change-password" data-hide-nav="true">
@@ -534,48 +603,114 @@
 
       <!-- ========== STAFF SCREENS ========== -->
       <section class="page" id="page-staff-home" data-tab="home">
-        <div class="page-header">
-          <div>
-            <h1 class="greeting-title" data-greeting-title></h1>
-            <p class="subtitle" data-greeting-subtitle>1Menus Digital Staff</p>
-            <button class="status-pill" data-nav="staff/profile"><span class="dot"></span> Available</button>
+        <div class="staff-home-header">
+          <div class="staff-home-profile">
+            <div class="staff-avatar">RK</div>
+            <div>
+              <h1 class="staff-home-greeting" data-staff-home-greeting>Hi Ravi 👋</h1>
+              <p class="staff-home-role">Housekeeping <span class="sep">|</span> <span class="staff-status"><span class="dot"></span> Available</span></p>
+            </div>
           </div>
-          <button class="icon-btn" data-nav="staff/notifications">🔔<span class="dot"></span></button>
+          <button class="icon-btn" data-nav="staff/notifications" aria-label="Notifications">🔔<span class="dot"></span></button>
         </div>
+
+        <div class="section-title" style="margin-top:0">
+          <span>Active Tasks (2)</span>
+          <button class="link-btn" data-nav="staff/tasks-tab">View All</button>
+        </div>
+
+        <div class="card staff-active-task">
+          <div class="staff-active-task__left">
+            <span class="staff-active-task__icon">🧴</span>
+            <span class="staff-active-task__room">204</span>
+          </div>
+          <div class="staff-active-task__body">
+            <h4>Towels Request</h4>
+            <p class="staff-active-task__meta">2 min ago</p>
+          </div>
+          <div class="staff-active-task__actions">
+            <span class="priority-pill high">HIGH</span>
+            <button type="button" class="btn-task-accept" onclick="StaffActions.acceptRequest('room-204')">ACCEPT</button>
+          </div>
+        </div>
+
+        <div class="card staff-active-task">
+          <div class="staff-active-task__left">
+            <span class="staff-active-task__icon">🧹</span>
+            <span class="staff-active-task__room">305</span>
+          </div>
+          <div class="staff-active-task__body">
+            <h4>Room Cleaning</h4>
+            <p class="staff-active-task__meta">In Progress</p>
+          </div>
+          <div class="staff-active-task__actions">
+            <span class="priority-pill medium">MEDIUM</span>
+            <button type="button" class="btn-task-start" data-nav="staff/task-active" data-param-id="room-305-hk" data-param-started="1">START</button>
+          </div>
+        </div>
+
         <div class="section-title">
-          <span>My Tasks</span>
-          <button class="link-btn" data-nav="staff/tasks">View All</button>
+          <span>My Performance Today</span>
+          <button class="link-btn" data-nav="staff/performance">View All</button>
         </div>
-        <div class="card staff-task-card">
-          <div class="top">
-            <div class="task-icon">🧴</div>
-            <div style="flex:1"><h4>Room 204</h4><p>Need Towels</p><span class="badge medium">Medium</span></div>
-            <div class="task-meta"><div class="time">🕐 2 min ago</div></div>
+
+        <div class="grid-2 staff-perf-grid">
+          <button type="button" class="card staff-perf-card" data-nav="staff/performance">
+            <p class="lbl">1Menus Score</p>
+            <div class="staff-perf-value-row">
+              <span class="value">92/100</span>
+              <span class="trend up">↑ +12</span>
+            </div>
+            <div class="staff-perf-bar"><div class="staff-perf-bar-fill" style="width:92%"></div></div>
+          </button>
+          <button type="button" class="card staff-perf-card" data-nav="staff/reviews">
+            <p class="lbl">Guest Rating</p>
+            <div class="value">4.8</div>
+            <div class="staff-stars" aria-label="4.8 out of 5 stars">★★★★★</div>
+          </button>
+        </div>
+
+        <div class="section-title">
+          <span>My Badges</span>
+          <button class="link-btn" data-nav="staff/profile-tab">View All</button>
+        </div>
+        <div class="staff-badges-row">
+          <div class="staff-badge-item"><span class="badge-icon">🏅</span><small>Responder</small></div>
+          <div class="staff-badge-item"><span class="badge-icon">⭐</span><small>Guest Favorite</small></div>
+          <div class="staff-badge-item"><span class="badge-icon">🤝</span><small>Team Player</small></div>
+          <div class="staff-badge-item"><span class="badge-icon">📅</span><small>Attendance</small></div>
+        </div>
+
+        <div class="section-title">
+          <span>AI Recommendations</span>
+        </div>
+
+        <button type="button" class="card staff-ai-card" data-nav="staff/insights">
+          <span class="staff-ai-card__icon">☕</span>
+          <div class="staff-ai-card__body">
+            <h4>Suggested Break Time</h4>
+            <p>Take a 10-min break after Room 305 — you've been active 2h 15m.</p>
           </div>
-          <div class="actions"><button class="btn-primary" data-nav="staff/task-request" data-param-id="room-204">View Request</button></div>
-        </div>
-        <div class="card staff-task-card">
-          <div class="top">
-            <div class="task-icon">📋</div>
-            <div style="flex:1"><h4>Room 512</h4><p>Room Cleaning</p><span class="badge high">High</span></div>
-            <div class="task-meta"><div class="time">🕐 15 min ago</div></div>
+          <span class="staff-ai-card__arrow">›</span>
+        </button>
+
+        <button type="button" class="card staff-ai-card" data-nav="staff/tasks-tab">
+          <span class="staff-ai-card__icon">🗺️</span>
+          <div class="staff-ai-card__body">
+            <h4>Quick Restock Route</h4>
+            <p>Rooms 204 → 208 → 212 — save 8 min on linen restock today.</p>
           </div>
-          <div class="actions"><button class="btn-primary" data-nav="staff/task-request" data-param-id="room-512">View Request</button></div>
-        </div>
-        <div class="card staff-task-card">
-          <div class="top">
-            <div class="task-icon">🧊</div>
-            <div style="flex:1"><h4>Room 308</h4><p>Mini Bar Restock</p><span class="badge low">Low</span></div>
-            <div class="task-meta"><div class="time">🕐 30 min ago</div></div>
+          <span class="staff-ai-card__arrow">›</span>
+        </button>
+
+        <button type="button" class="card staff-ai-card" data-nav="staff/training">
+          <span class="staff-ai-card__icon">💡</span>
+          <div class="staff-ai-card__body">
+            <h4>Training Tip of the Day</h4>
+            <p>Fold towels triangle-style for faster room turnover — 2 min saved per room.</p>
           </div>
-          <div class="actions"><button class="btn-primary" data-nav="staff/task-request" data-param-id="room-308">View Request</button></div>
-        </div>
-        <div class="grid-2">
-          <button class="card metric-card" data-nav="staff/performance"><div class="icon">✅</div><h5>My Performance</h5><div class="value">4.6 ⭐</div><div class="sub">Avg. 12m 25s response</div></button>
-          <button class="card metric-card" data-nav="staff/reviews"><div class="icon">💬</div><h5>My Reviews</h5><p class="review-quote">"Very quick and helpful"</p><div class="sub">Room 204 · Today</div></button>
-          <button class="card metric-card" data-nav="staff/insights"><div class="icon">📊</div><h5>My Insights</h5><p style="font-size:12px;margin-top:6px">+18% tasks this week 🎉</p></button>
-          <button class="card metric-card" data-nav="staff/profile"><div class="icon">👤</div><h5>My Profile</h5><p style="font-size:13px;font-weight:600;margin-top:6px">Ravi Kumar</p><div class="sub">9 AM – 5 PM</div><span class="profile-chevron">›</span></button>
-        </div>
+          <span class="staff-ai-card__arrow">›</span>
+        </button>
       </section>
 
       <section class="page" id="page-staff-notifications" data-hide-nav="true">
@@ -591,8 +726,48 @@
       </section>
 
       <section class="page" id="page-staff-tasks-tab" data-tab="tasks">
-        <div class="page-header"><div><h1>Tasks</h1></div></div>
-        <button class="card staff-task-card" data-nav="staff/task-request" data-param-id="room-204"><div class="top"><div class="task-icon">🧴</div><div><h4>Room 204</h4><p>Need Towels</p></div><span class="btn-primary" style="padding:8px 12px;font-size:11px">View</span></div></button>
+        <div class="page-header"><div><h1>Tasks</h1><p class="subtitle">Active & pending requests</p></div></div>
+
+        <div class="card staff-active-task">
+          <div class="staff-active-task__left">
+            <span class="staff-active-task__icon">🧴</span>
+            <span class="staff-active-task__room">204</span>
+          </div>
+          <div class="staff-active-task__body">
+            <h4>Towels Request</h4>
+            <p class="staff-active-task__meta">2 min ago</p>
+          </div>
+          <div class="staff-active-task__actions">
+            <span class="priority-pill high">HIGH</span>
+            <button type="button" class="btn-task-accept" onclick="StaffActions.acceptRequest('room-204')">ACCEPT</button>
+          </div>
+        </div>
+
+        <div class="card staff-active-task">
+          <div class="staff-active-task__left">
+            <span class="staff-active-task__icon">🧹</span>
+            <span class="staff-active-task__room">305</span>
+          </div>
+          <div class="staff-active-task__body">
+            <h4>Room Cleaning</h4>
+            <p class="staff-active-task__meta">In Progress</p>
+          </div>
+          <div class="staff-active-task__actions">
+            <span class="priority-pill medium">MEDIUM</span>
+            <button type="button" class="btn-task-start" data-nav="staff/task-active" data-param-id="room-305-hk" data-param-started="1">START</button>
+          </div>
+        </div>
+
+        <div class="section-title"><span>Other Tasks</span></div>
+        <div class="card staff-live-task">
+          <div class="task-icon">🧊</div>
+          <div class="task-body"><h4>Room 308</h4><p>Mini Bar Restock</p><span class="badge low">Low Priority</span></div>
+          <div class="task-meta"><div class="time">30 min ago</div><span class="badge pending">Pending</span></div>
+          <div class="staff-live-actions">
+            <button type="button" class="btn-outline" data-nav="staff/task-request" data-param-id="room-308">View Details</button>
+            <button type="button" class="btn-accept" onclick="StaffActions.acceptRequest('room-308')">Accept</button>
+          </div>
+        </div>
       </section>
 
       <!-- Incoming request: Accept / Pass / Pause / Reject -->
@@ -692,9 +867,54 @@
         </div>
       </section>
 
+      <section class="page" id="page-staff-rewards" data-tab="rewards">
+        <div class="page-header"><div><h1>Department Leaderboard</h1><p class="subtitle">This week</p></div></div>
+
+        <div class="leaderboard-podium">
+          <div class="podium-place second">
+            <div class="podium-avatar">AS</div>
+            <div class="podium-name">Anjali Singh</div>
+            <div class="podium-xp">1180 XP</div>
+            <div class="podium-block"></div>
+          </div>
+          <div class="podium-place first">
+            <div class="podium-avatar">RK</div>
+            <div class="podium-name">Ravi Kumar</div>
+            <div class="podium-xp">1250 XP</div>
+            <div class="podium-block"></div>
+          </div>
+          <div class="podium-place third">
+            <div class="podium-avatar">SY</div>
+            <div class="podium-name">Suresh Yadav</div>
+            <div class="podium-xp">1120 XP</div>
+            <div class="podium-block"></div>
+          </div>
+        </div>
+
+        <button type="button" class="leaderboard-row"><span class="rank">4</span><div class="lb-body"><h4>Priya Sharma</h4><p>Front Office</p></div><span class="lb-xp">980 XP</span></button>
+        <button type="button" class="leaderboard-row"><span class="rank">5</span><div class="lb-body"><h4>Mohan Das</h4><p>Maintenance</p></div><span class="lb-xp">920 XP</span></button>
+        <button type="button" class="leaderboard-row"><span class="rank">6</span><div class="lb-body"><h4>Neha Patel</h4><p>Housekeeping</p></div><span class="lb-xp">880 XP</span></button>
+
+        <p class="section-title">Department Competition</p>
+        <div class="dept-competition">
+          <div class="dept-side">
+            <div class="dept-name">Housekeeping</div>
+            <div class="dept-xp">2,850 XP</div>
+            <span class="dept-badge">Leading</span>
+          </div>
+          <div class="dept-trophy">🏆</div>
+          <div class="dept-side">
+            <div class="dept-name">Front Office</div>
+            <div class="dept-xp">2,320 XP</div>
+            <span class="dept-badge" style="background:#eff6ff;color:#2563eb">2nd Position</span>
+          </div>
+        </div>
+      </section>
+
       <section class="page" id="page-staff-performance">
-        <div class="back-header"><button onclick="goBack()">←</button><h2>My Performance</h2></div>
-        <div class="card detail-hero"><div class="big">4.6 ⭐</div><div class="label">Avg. Rating</div></div>
+        <div class="page-header"><div><h1>My Performance</h1><p class="subtitle">Today's stats</p></div></div>
+        <div class="card detail-hero"><div class="big">92/100</div><div class="label">1Menus Score</div></div>
+        <div class="card detail-hero" style="margin-top:10px"><div class="big">4.8 ⭐</div><div class="label">Guest Rating</div></div>
         <div class="card info-list">
           <div class="info-row"><span>Avg. Response Time</span><span>12m 25s</span></div>
           <div class="info-row"><span>Tasks This Week</span><span>42</span></div>
@@ -713,20 +933,25 @@
         <div class="card" style="padding:20px"><p style="font-size:16px;font-weight:600">You completed 18% more tasks this week 🎉</p><p style="color:#6b7280;margin-top:8px">Keep it up! Your response time improved by 2 minutes.</p></div>
       </section>
 
-      <section class="page" id="page-staff-profile" data-tab="profile">
-        <div class="page-header"><div><h1>My Profile</h1></div></div>
+      <section class="page" id="page-staff-profile" data-tab="profile" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Full Profile</h2><button class="icon-btn" style="width:36px;height:36px;font-size:16px;margin-left:auto" data-nav="staff/settings">⚙️</button></div>
         <div class="card" style="padding:20px;text-align:center;margin-bottom:12px">
-          <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#60a5fa,#2563eb);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:700">RK</div>
+          <div class="staff-avatar large" style="margin:0 auto 12px">RK</div>
           <h3>Ravi Kumar</h3>
-          <p style="color:#6b7280;font-size:13px">Housekeeping · HK1287</p>
+          <p style="color:var(--muted);font-size:13px">Housekeeping Attendant · <span data-settings-emp-id>HK1287</span></p>
+          <span class="platinum-badge" style="margin-top:10px">💎 Platinum Performer</span>
         </div>
         <div class="card info-list">
+          <div class="info-row"><span>Mobile</span><span data-settings-mobile>+91 98765 43210</span></div>
+          <div class="info-row"><span>Email</span><span data-settings-email>ravi.kumar@hotel.com</span></div>
           <div class="info-row"><span>Shift</span><span>9 AM – 5 PM</span></div>
           <div class="info-row"><span>Status</span><span style="color:#22c55e">Available</span></div>
-          <div class="info-row"><span>Department</span><span>Housekeeping</span></div>
+          <div class="info-row"><span>Department</span><span data-settings-dept>Housekeeping</span></div>
           <div class="info-row"><span>HOD</span><span>Sunil Kumar</span></div>
+          <div class="info-row"><span>Joined</span><span>May 2023</span></div>
         </div>
-        <button class="card list-item" data-nav="staff/change-password" style="margin-top:12px"><div><h4>Change Password</h4><p>Update your login credentials</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="staff/settings" style="margin-top:12px"><div><h4>Profile Settings</h4><p>Theme, notifications & preferences</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="staff/change-password"><div><h4>Change Password</h4><p>Update your login credentials</p></div><span>›</span></button>
         <button class="card list-item" data-nav="staff/support"><div><h4>Help & Support</h4><p>Raise issue with admin or contact support</p></div><span>›</span></button>
         <button class="card list-item" type="button" data-action="logout"><div><h4>Logout</h4><p>Sign out of your profile</p></div><span>›</span></button>
       </section>
@@ -736,6 +961,148 @@
         <button class="card list-item"><div><h4>Guest Etiquette Basics</h4><p>Assigned · Due in 2 days</p></div><span>›</span></button>
         <button class="card list-item"><div><h4>Room Service Excellence</h4><p>In progress · 60%</p></div><span>›</span></button>
         <button class="card list-item"><div><h4>Escalation SOP</h4><p>Completed · Certificate available</p></div><span>›</span></button>
+      </section>
+
+      <section class="page" id="page-staff-settings" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Profile Settings</h2></div>
+
+        <p class="settings-section-title">Appearance</p>
+        <div class="card settings-group">
+          <div class="settings-row">
+            <div><h4>Theme</h4><p>Light (default) or Dark mode</p></div>
+            <div class="theme-toggle" data-theme-toggle>
+              <button type="button" data-theme="light" class="active">Light</button>
+              <button type="button" data-theme="dark">Dark</button>
+            </div>
+          </div>
+        </div>
+
+        <p class="settings-section-title">Profile</p>
+        <div class="card settings-group">
+          <div class="settings-row stack">
+            <div><h4>Mobile Number</h4><p>Used for OTP & urgent alerts</p></div>
+            <input type="tel" data-settings-mobile placeholder="+91 98765 43210">
+          </div>
+          <div class="settings-row stack">
+            <div><h4>Email Address</h4><p>Reports & account notifications</p></div>
+            <input type="email" data-settings-email placeholder="ravi.kumar@hotel.com">
+          </div>
+          <div class="settings-row"><div><h4>Employee ID</h4></div><span data-settings-emp-id>HK1287</span></div>
+          <div class="settings-row"><div><h4>Department</h4></div><span data-settings-dept>Housekeeping</span></div>
+          <div class="settings-row stack">
+            <div><h4>Language</h4></div>
+            <select id="staff-language" data-settings-select="language">
+              <option value="en">English</option>
+              <option value="hi">Hindi</option>
+              <option value="mr">Marathi</option>
+            </select>
+          </div>
+        </div>
+
+        <p class="settings-section-title">Notifications</p>
+        <div class="card settings-group">
+          <div class="settings-row">
+            <div><h4>Push Notifications</h4><p>New tasks & updates</p></div>
+            <label class="toggle-switch"><input type="checkbox" id="staff-notif-push" data-settings-toggle="notifPush" checked><span class="slider"></span></label>
+          </div>
+          <div class="settings-row">
+            <div><h4>Notification Permission</h4><p>Allow app alerts on device</p></div>
+            <button type="button" class="btn-outline" style="font-size:11px" onclick="alert('Notification permission granted (prototype).')">Allow</button>
+          </div>
+          <div class="settings-row">
+            <div><h4>Notification Sound</h4><p>Play tone on new task</p></div>
+            <label class="toggle-switch"><input type="checkbox" id="staff-notif-sound" data-settings-toggle="notifSound" checked><span class="slider"></span></label>
+          </div>
+          <div class="settings-row stack">
+            <div><h4>Notification Tone</h4></div>
+            <select id="staff-notif-tone" data-settings-select="notifTone">
+              <option value="default">Default Chime</option>
+              <option value="bell">Soft Bell</option>
+              <option value="alert">Urgent Alert</option>
+              <option value="silent">Silent</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <div><h4>Vibration</h4><p>Vibrate on new task</p></div>
+            <label class="toggle-switch"><input type="checkbox" id="staff-notif-vibration" data-settings-toggle="notifVibration" checked><span class="slider"></span></label>
+          </div>
+          <div class="settings-row stack">
+            <div><h4>Ringtone</h4><p>For urgent escalation calls</p></div>
+            <select id="staff-ringtone" data-settings-select="ringtone">
+              <option value="classic">Classic Ring</option>
+              <option value="digital">Digital Tone</option>
+              <option value="hotel">Hotel Standard</option>
+            </select>
+          </div>
+        </div>
+
+        <p class="settings-section-title">AI & Smart Features</p>
+        <div class="card settings-group">
+          <div class="settings-row">
+            <div><h4>AI Task Suggestions</h4><p>Smart route & priority tips</p></div>
+            <label class="toggle-switch"><input type="checkbox" id="staff-ai-tasks" data-settings-toggle="aiTaskSuggestions" checked><span class="slider"></span></label>
+          </div>
+          <div class="settings-row">
+            <div><h4>Shift Summary Insights</h4><p>Productivity & peak hour analysis</p></div>
+            <label class="toggle-switch"><input type="checkbox" id="staff-ai-shift" data-settings-toggle="aiShiftInsights" checked><span class="slider"></span></label>
+          </div>
+          <div class="settings-row">
+            <div><h4>Smart Break Reminders</h4><p>AI-suggested rest intervals</p></div>
+            <label class="toggle-switch"><input type="checkbox" id="staff-ai-break" data-settings-toggle="aiBreakReminders" checked><span class="slider"></span></label>
+          </div>
+          <div class="settings-row">
+            <div><h4>Skill Recommendations</h4><p>Training matched to performance</p></div>
+            <label class="toggle-switch"><input type="checkbox" id="staff-ai-skill" data-settings-toggle="aiSkillRecommendations" checked><span class="slider"></span></label>
+          </div>
+          <p class="ai-settings-note">AI features use your task history and performance data to personalize suggestions. You can disable any feature above.</p>
+        </div>
+
+        <button type="button" class="settings-save-btn" data-settings-save>Save Settings</button>
+      </section>
+
+      <section class="page" id="page-staff-task-detail" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Task Details #308</h2></div>
+
+        <div class="card task-detail-card">
+          <div class="task-detail-top">
+            <div>
+              <h3>Room Cleaning</h3>
+              <p class="task-room">Room 308</p>
+              <p class="task-requested">Requested by Guest · 5 min ago</p>
+            </div>
+            <span class="priority-pill medium">MEDIUM</span>
+          </div>
+        </div>
+
+        <div class="card task-timeline">
+          <h4>Task Progress</h4>
+          <div class="timeline-step done">
+            <span class="step-dot">✓</span>
+            <div class="step-body"><h5>Accepted</h5><p>5 min ago</p></div>
+          </div>
+          <div class="timeline-step done">
+            <span class="step-dot">✓</span>
+            <div class="step-body"><h5>In Progress</h5><p>2 min ago</p></div>
+          </div>
+          <div class="timeline-step current">
+            <span class="step-dot">○</span>
+            <div class="step-body"><h5>Completed</h5><p>Now</p></div>
+          </div>
+        </div>
+
+        <div class="card task-feedback-card">
+          <div class="rating-big">5.0 Excellent!</div>
+          <div class="feedback-stars">★★★★★</div>
+          <p style="font-size:13px;color:#92400e;margin-top:6px">Guest Rating · "Thank you for your service"</p>
+        </div>
+
+        <div class="task-xp-reward">
+          <span class="xp-coin">🪙</span>
+          <div>
+            <div class="xp-text">+20 XP</div>
+            <div class="xp-sub">Earned for completing this task</div>
+          </div>
+        </div>
       </section>
 
       <section class="page" id="page-staff-change-password" data-hide-nav="true">
@@ -757,16 +1124,132 @@
 
       <section class="page" id="page-staff-history" data-tab="history">
         <div class="page-header"><div><h1>History</h1><p class="subtitle">Completed tasks</p></div></div>
+        <button type="button" class="card list-item" data-nav="staff/task-detail"><div><h4>Room 308 — Room Cleaning</h4><p>Completed · Today · +20 XP · 5★</p></div><span>✅</span></button>
         <div class="card list-item"><div><h4>Room 118 — Deep Clean</h4><p>Completed · Yesterday</p></div><span>✅</span></div>
         <div class="card list-item"><div><h4>Room 401 — Towels</h4><p>Completed · Yesterday</p></div><span>✅</span></div>
         <div class="card list-item"><div><h4>Room 205 — Mini Bar</h4><p>Completed · 2 days ago</p></div><span>✅</span></div>
       </section>
 
       <section class="page" id="page-staff-profile-tab" data-tab="profile">
-        <div class="page-header"><div><h1>Profile</h1></div></div>
-        <button class="card list-item" data-nav="staff/profile"><div><h4>View Full Profile</h4></div><span>›</span></button>
-        <button class="card list-item" data-nav="staff/performance"><div><h4>Performance</h4></div><span>›</span></button>
-        <button class="card list-item" type="button" data-action="logout"><div><h4>Logout</h4></div><span>›</span></button>
+        <div class="portfolio-header-actions" style="justify-content:flex-end;margin-bottom:4px">
+          <button class="icon-btn" data-nav="staff/settings" aria-label="Settings">⚙️</button>
+        </div>
+        <p class="portfolio-eyebrow">Staff Profile – Hospitality Achievement Portfolio</p>
+
+        <div class="card portfolio-hero">
+          <div class="portfolio-hero__main">
+            <div class="staff-avatar large">RK</div>
+            <div>
+              <h1>Ravi Kumar</h1>
+              <p>Housekeeping Attendant</p>
+              <span class="platinum-badge">💎 Platinum Performer</span>
+            </div>
+            <div class="nutcracker-shield">
+              <span class="shield-icon">🛡️</span>
+              <span class="shield-lbl">Nutcracker Score</span>
+              <span class="shield-xp">1250 XP</span>
+            </div>
+          </div>
+          <div class="level-progress">
+            <div class="level-labels"><span>Level 8</span><span>Level 9</span></div>
+            <div class="staff-perf-bar"><div class="staff-perf-bar-fill" style="width:83%"></div></div>
+            <p class="level-hint">250 XP to go</p>
+          </div>
+        </div>
+
+        <div class="grid-2 portfolio-stats">
+          <button type="button" class="card portfolio-stat-card" data-nav="staff/reviews">
+            <span class="stat-lbl">Guest Rating</span>
+            <div class="stat-val">4.9</div>
+            <div class="stat-stars">★★★★★</div>
+            <span class="stat-link">Rating Details ›</span>
+          </button>
+          <div class="card portfolio-stat-card">
+            <span class="stat-lbl">Task Completion</span>
+            <div class="stat-val green">98%</div>
+          </div>
+          <div class="card portfolio-stat-card">
+            <span class="stat-lbl">Tasks Completed</span>
+            <div class="stat-val gold">320 📋</div>
+          </div>
+          <button type="button" class="card portfolio-stat-card" data-nav="staff/rewards">
+            <span class="stat-lbl">Badges Earned</span>
+            <div class="stat-val gold">28 👑</div>
+          </button>
+        </div>
+
+        <div class="portfolio-tabs">
+          <button type="button" class="active" data-portfolio-tab="achievements">Achievements</button>
+          <button type="button" data-portfolio-tab="timeline">Timeline</button>
+          <button type="button" data-portfolio-tab="skills">Skills & Certifications</button>
+          <button type="button" data-portfolio-tab="feedback">Feedback</button>
+        </div>
+
+        <div class="portfolio-panel" data-portfolio-panel="achievements">
+          <h3>Trophy Cabinet</h3>
+          <div class="trophy-row">
+            <div class="trophy-item"><span class="trophy-icon">🏆</span><span class="trophy-name">Fast Responder</span><span class="trophy-count">×15</span></div>
+            <div class="trophy-item"><span class="trophy-icon">🏆</span><span class="trophy-name">Guest Favorite</span><span class="trophy-count">×12</span></div>
+            <div class="trophy-item"><span class="trophy-icon">🏆</span><span class="trophy-name">Perfect Attendance</span><span class="trophy-count">×8</span></div>
+            <div class="trophy-item"><span class="trophy-icon">🏆</span><span class="trophy-name">Team Player</span><span class="trophy-count">×10</span></div>
+            <div class="trophy-item"><span class="trophy-icon">🏆</span><span class="trophy-name">Problem Solver</span><span class="trophy-count">×6</span></div>
+          </div>
+        </div>
+
+        <div class="portfolio-panel" data-portfolio-panel="timeline" hidden>
+          <h3>Recent Activity</h3>
+          <div class="card list-item"><div><h4>Room 308 — Completed</h4><p>Today · +20 XP · 5★ rating</p></div><span>✅</span></div>
+          <div class="card list-item"><div><h4>Level 8 Achieved</h4><p>Yesterday · 1000 XP milestone</p></div><span>🎉</span></div>
+          <div class="card list-item"><div><h4>Guest Favorite Badge</h4><p>3 days ago · 12th award</p></div><span>⭐</span></div>
+        </div>
+
+        <div class="portfolio-panel" data-portfolio-panel="skills" hidden>
+          <h3>Skills & Certifications</h3>
+          <div class="card info-list">
+            <div class="info-row"><span>Room Service Excellence</span><span style="color:var(--green)">Certified</span></div>
+            <div class="info-row"><span>Guest Etiquette Basics</span><span>In Progress</span></div>
+            <div class="info-row"><span>Safety & Hygiene</span><span style="color:var(--green)">Certified</span></div>
+          </div>
+          <button type="button" class="card list-item" data-nav="staff/training" style="margin-top:10px"><div><h4>View Training Programs</h4></div><span>›</span></button>
+        </div>
+
+        <div class="portfolio-panel" data-portfolio-panel="feedback" hidden>
+          <h3>Guest Feedback</h3>
+          <div class="card" style="padding:14px;margin-bottom:8px"><p class="review-quote">"Very quick and helpful"</p><p style="font-size:12px;color:var(--muted);margin-top:4px">Room 204 · Today · 5★</p></div>
+          <div class="card" style="padding:14px"><p class="review-quote">"Room was spotless"</p><p style="font-size:12px;color:var(--muted);margin-top:4px">Room 118 · Yesterday · 5★</p></div>
+        </div>
+
+        <p class="section-title">AI Insights</p>
+        <button type="button" class="card staff-ai-card" data-nav="staff/rewards">
+          <span class="staff-ai-card__icon">🎯</span>
+          <div class="staff-ai-card__body">
+            <h4>Next Milestone</h4>
+            <p>Complete 5 more tasks to unlock the "Speedster" badge — you're 3 away.</p>
+          </div>
+          <span class="staff-ai-card__arrow">›</span>
+        </button>
+        <button type="button" class="card staff-ai-card" data-nav="staff/insights">
+          <span class="staff-ai-card__icon">📊</span>
+          <div class="staff-ai-card__body">
+            <h4>Shift Summary</h4>
+            <p>You're most productive between 10 AM – 12 PM. Schedule deep cleans in this window.</p>
+          </div>
+          <span class="staff-ai-card__arrow">›</span>
+        </button>
+        <button type="button" class="card staff-ai-card" data-nav="staff/training">
+          <span class="staff-ai-card__icon">🎓</span>
+          <div class="staff-ai-card__body">
+            <h4>Skill Up Recommendation</h4>
+            <p>Complete "Guest Etiquette Basics" to boost your Guest Rating score by ~0.2.</p>
+          </div>
+          <span class="staff-ai-card__arrow">›</span>
+        </button>
+
+        <div class="portfolio-footer">
+          <span>Joined: May 2023</span>
+          <span>Dept Rank: #2</span>
+          <button type="button" class="btn-portfolio-profile" data-nav="staff/profile">View Full Profile</button>
+        </div>
       </section>
 
       <!-- ========== HR SCREENS ========== -->
@@ -870,26 +1353,95 @@
         <div class="back-header"><button onclick="goBack()">←</button><h2>Training & Development</h2></div>
         <div class="card list-item"><div><h4>Guest Service Excellence</h4><p>Running · 5 enrolled</p></div><span>›</span></div>
         <div class="card list-item"><div><h4>Safety & Hygiene Protocol</h4><p>Running · 3 enrolled</p></div><span>›</span></div>
-        <div class="card" style="padding:16px;margin-top:12px;background:#f3e8ff"><p><strong>8 employees</strong> enrolled across 2 active programs</p></div>
+        <div class="card" style="padding:16px;margin-top:12px;background:#ecfdf5"><p><strong>8 employees</strong> enrolled across 2 active programs</p></div>
       </section>
 
       <section class="page" id="page-hr-more" data-tab="more">
         <div class="page-header"><div><h1>More</h1></div></div>
+        <button class="card list-item" data-nav="hr/settings"><div><h4>Profile Settings</h4><p>Theme & notification preferences</p></div><span>›</span></button>
         <button class="card list-item" data-nav="hr/profile"><div><h4>Profile</h4><p>HR account settings</p></div><span>›</span></button>
         <button class="card list-item" type="button" data-action="logout"><div><h4>Logout</h4></div><span>›</span></button>
         <button class="card list-item" data-nav="flow-map"><div><h4>Developer Flow Map</h4></div><span>›</span></button>
       </section>
 
       <section class="page" id="page-hr-profile" data-tab="profile">
-        <div class="page-header"><div><h1>HR Profile</h1><p class="subtitle">HR manager account</p></div></div>
+        <div class="page-header">
+          <div><h1>HR Profile</h1><p class="subtitle">Workforce management account</p></div>
+          <button class="icon-btn" data-nav="hr/settings" aria-label="Settings">⚙️</button>
+        </div>
+        <div class="card portfolio-hero" style="margin-bottom:12px">
+          <div class="portfolio-hero__main">
+            <div class="staff-avatar large" style="background:linear-gradient(135deg,#0f766e,#115e59)">PS</div>
+            <div>
+              <h1>Priya Sharma</h1>
+              <p>HR Manager · Pune Cluster</p>
+              <span class="platinum-badge">📋 Workforce Lead</span>
+            </div>
+            <div class="nutcracker-shield">
+              <span class="shield-icon">👥</span>
+              <span class="shield-lbl">Workforce</span>
+              <span class="shield-xp">124</span>
+            </div>
+          </div>
+        </div>
+        <div class="grid-2 portfolio-stats">
+          <div class="card portfolio-stat-card"><span class="stat-lbl">Present Today</span><div class="stat-val green">98</div></div>
+          <div class="card portfolio-stat-card"><span class="stat-lbl">Open Positions</span><div class="stat-val">6</div></div>
+          <div class="card portfolio-stat-card"><span class="stat-lbl">Training Active</span><div class="stat-val gold">2 🎓</div></div>
+          <div class="card portfolio-stat-card"><span class="stat-lbl">Avg Performance</span><div class="stat-val">4.5 ⭐</div></div>
+        </div>
         <div class="card info-list">
-          <div class="info-row"><span>Name</span><span>Priya Sharma</span></div>
-          <div class="info-row"><span>Role</span><span>HR Manager</span></div>
+          <div class="info-row"><span>Mobile</span><span data-settings-mobile>+91 98100 55443</span></div>
+          <div class="info-row"><span>Email</span><span data-settings-email>priya.sharma@hotel.com</span></div>
           <div class="info-row"><span>Region</span><span>Pune Cluster</span></div>
         </div>
-        <button class="card list-item" data-nav="hr/change-password" style="margin-top:12px"><div><h4>Change Password</h4><p>Update HR account password</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="hr/settings" style="margin-top:12px"><div><h4>Profile Settings</h4><p>Theme, alerts & HR notifications</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="hr/change-password"><div><h4>Change Password</h4><p>Update HR account password</p></div><span>›</span></button>
         <button class="card list-item" data-nav="hr/support"><div><h4>Help & Support</h4><p>Raise technical issue or query</p></div><span>›</span></button>
         <button class="card list-item" type="button" data-action="logout"><div><h4>Logout</h4><p>Sign out of HR account</p></div><span>›</span></button>
+      </section>
+
+      <section class="page" id="page-hr-settings" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>HR Settings</h2></div>
+
+        <p class="settings-section-title">Appearance</p>
+        <div class="card settings-group">
+          <div class="settings-row">
+            <div><h4>Theme</h4><p>Light (default) or Dark mode</p></div>
+            <div class="theme-toggle" data-theme-toggle>
+              <button type="button" data-theme="light" class="active">Light</button>
+              <button type="button" data-theme="dark">Dark</button>
+            </div>
+          </div>
+        </div>
+
+        <p class="settings-section-title">Profile</p>
+        <div class="card settings-group">
+          <div class="settings-row stack"><div><h4>Mobile Number</h4></div><input type="tel" data-settings-mobile></div>
+          <div class="settings-row stack"><div><h4>Email Address</h4></div><input type="email" data-settings-email></div>
+          <div class="settings-row"><div><h4>HR ID</h4></div><span data-settings-emp-id>HR2001</span></div>
+          <div class="settings-row"><div><h4>Department</h4></div><span data-settings-dept>Human Resources</span></div>
+        </div>
+
+        <p class="settings-section-title">Notifications</p>
+        <div class="card settings-group">
+          <div class="settings-row"><div><h4>Workforce Alerts</h4><p>Attendance & leave updates</p></div><label class="toggle-switch"><input type="checkbox" id="hr-notif-push" data-settings-toggle="notifPush" checked><span class="slider"></span></label></div>
+          <div class="settings-row"><div><h4>Recruitment Alerts</h4><p>New applications & interviews</p></div><label class="toggle-switch"><input type="checkbox" id="hr-notif-sound" data-settings-toggle="notifSound" checked><span class="slider"></span></label></div>
+          <div class="settings-row stack"><div><h4>Notification Tone</h4></div><select id="hr-notif-tone" data-settings-select="notifTone"><option value="default">Default</option><option value="bell">Soft Bell</option><option value="silent">Silent</option></select></div>
+          <div class="settings-row"><div><h4>Vibration</h4></div><label class="toggle-switch"><input type="checkbox" id="hr-notif-vibration" data-settings-toggle="notifVibration" checked><span class="slider"></span></label></div>
+          <div class="settings-row stack"><div><h4>Ringtone</h4></div><select id="hr-ringtone" data-settings-select="ringtone"><option value="classic">Classic Ring</option><option value="digital">Digital Tone</option></select></div>
+        </div>
+
+        <p class="settings-section-title">AI & Smart Features</p>
+        <div class="card settings-group">
+          <div class="settings-row"><div><h4>Attrition Risk Alerts</h4><p>AI flags at-risk employees</p></div><label class="toggle-switch"><input type="checkbox" id="hr-ai-tasks" data-settings-toggle="aiTaskSuggestions" checked><span class="slider"></span></label></div>
+          <div class="settings-row"><div><h4>Performance Trend Reports</h4><p>Auto-generated weekly summaries</p></div><label class="toggle-switch"><input type="checkbox" id="hr-ai-shift" data-settings-toggle="aiShiftInsights" checked><span class="slider"></span></label></div>
+          <div class="settings-row"><div><h4>Training Gap Analysis</h4><p>Skill gaps across departments</p></div><label class="toggle-switch"><input type="checkbox" id="hr-ai-break" data-settings-toggle="aiBreakReminders" checked><span class="slider"></span></label></div>
+          <div class="settings-row"><div><h4>Hiring Recommendations</h4><p>AI-suggested recruitment priorities</p></div><label class="toggle-switch"><input type="checkbox" id="hr-ai-skill" data-settings-toggle="aiSkillRecommendations" checked><span class="slider"></span></label></div>
+          <p class="ai-settings-note">HR AI features analyze workforce data to support retention, training, and hiring decisions.</p>
+        </div>
+
+        <button type="button" class="settings-save-btn" data-settings-save>Save Settings</button>
       </section>
 
       <section class="page" id="page-hr-change-password" data-hide-nav="true">
@@ -937,9 +1489,9 @@
           <span class="footer-ic">🎓</span>
           <span class="footer-label">Training</span>
         </button>
-        <button type="button" class="footer-item" id="footer-item-5" data-nav="staff/profile">
-          <span class="footer-ic">👤</span>
-          <span class="footer-label">Profile</span>
+        <button type="button" class="footer-item" id="footer-item-5" data-action="open-app-drawer">
+          <span class="footer-ic">⋯</span>
+          <span class="footer-label">More</span>
         </button>
       </nav>
     </div>
@@ -961,6 +1513,7 @@
 </div>
 
 <script src="js/router.js"></script>
+<script src="js/theme-settings.js"></script>
 <script src="js/task-timer.js"></script>
 <script src="js/staff-actions.js"></script>
 <script src="js/app-drawer.js"></script>

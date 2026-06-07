@@ -28,10 +28,10 @@
   const FOOTER_CONFIGS = {
     staff: [
       { nav: 'staff/home', label: 'Home', icon: '🏠' },
-      { nav: 'staff/tasks-tab', label: 'Requests', icon: '📥' },
-      { nav: 'staff/performance', label: 'Performance', icon: '📈' },
-      { nav: 'staff/training', label: 'Training', icon: '🎓' },
-      { nav: 'staff/profile', label: 'Profile', icon: '👤' },
+      { nav: 'staff/tasks-tab', label: 'Tasks', icon: '📋' },
+      { nav: 'staff/profile-tab', label: 'Profile', icon: '👤' },
+      { nav: 'staff/rewards', label: 'Leaderboard', icon: '🏆' },
+      { nav: 'staff/more', label: 'More', icon: '⋯', action: 'drawer' },
     ],
     hod: [
       { nav: 'hod/dashboard', label: 'Home', icon: '🏠' },
@@ -55,14 +55,22 @@
     config.forEach((item, idx) => {
       const btn = document.getElementById('footer-item-' + (idx + 1));
       if (!btn) return;
-      btn.dataset.nav = item.nav;
+      if (item.action === 'drawer') {
+        btn.dataset.action = 'open-app-drawer';
+        delete btn.dataset.nav;
+      } else {
+        btn.dataset.nav = item.nav;
+        delete btn.dataset.action;
+      }
       const iconEl = btn.querySelector('.footer-ic');
       const labelEl = btn.querySelector('.footer-label');
       if (iconEl) iconEl.textContent = item.icon;
       if (labelEl) labelEl.textContent = item.label;
-      const targetPageId = item.nav.replace(/\//g, '-');
+      const targetPageId = item.nav ? item.nav.replace(/\//g, '-') : '';
       btn.classList.toggle('active', targetPageId === pageId);
     });
+    const footerNav = document.querySelector('.footer-nav');
+    if (footerNav) footerNav.classList.toggle('footer-nav--staff', role === 'staff');
   }
 
   function parseHash() {
@@ -116,6 +124,12 @@
 
     applyPageParams(page, params);
     initStaffPages(pageId, params);
+    if (pageId.endsWith('-settings') && window.ThemeSettings) {
+      window.ThemeSettings.initSettingsForm(pageId);
+    }
+    if (['staff-profile', 'hod-profile', 'hr-profile', 'staff-profile-tab'].includes(pageId) && window.ThemeSettings) {
+      window.ThemeSettings.prefillProfileFields(pageId.split('-')[0]);
+    }
     window.scrollTo(0, 0);
     const scroller = document.querySelector('.screen-content');
     if (scroller) {
@@ -222,6 +236,14 @@
   }
 
   document.addEventListener('click', (e) => {
+    const drawerBtn = e.target.closest('[data-action="open-app-drawer"]');
+    if (drawerBtn) {
+      e.preventDefault();
+      const role = loadSavedRole();
+      if (role && window.AppDrawer && window.AppDrawer.show) window.AppDrawer.show(role);
+      return;
+    }
+
     const link = e.target.closest('[data-nav]');
     if (!link) return;
     e.preventDefault();
@@ -246,7 +268,8 @@ const PAGE_DATA = {
   'room-412': { name: 'Room 412 — Extra Towels', room: '412', assignee: 'Anita', status: 'In Progress', time: '8 min', dept: 'Housekeeping' },
   'room-118': { name: 'Room 118 — Deep Cleaning', room: '118', assignee: 'Suresh', status: 'In Progress', time: '25 min', dept: 'Housekeeping' },
   'room-220': { name: 'Room 220 — Mini Bar', room: '220', assignee: 'Unassigned', status: 'Pending', time: '5 min', dept: 'Housekeeping' },
-  'room-204': { name: 'Room 204 — Need Towels', room: '204', taskTitle: 'Need Towels', assignee: 'Ravi', status: 'Awaiting acceptance', priority: 'Medium', time: '2 min ago', dept: 'Housekeeping', durationMinutes: 15, guest: 'Mr. Sharma' },
+  'room-204': { name: 'Room 204 — Towels Request', room: '204', taskTitle: 'Towels Request', assignee: 'Ravi', status: 'Awaiting acceptance', priority: 'High', time: '2 min ago', dept: 'Housekeeping', durationMinutes: 15, guest: 'Mr. Sharma' },
+  'room-305-hk': { name: 'Room 305 — Room Cleaning', room: '305', taskTitle: 'Room Cleaning', assignee: 'Ravi', status: 'In Progress', priority: 'Medium', time: 'In Progress', dept: 'Housekeeping', durationMinutes: 25, guest: 'Mr. Gupta' },
   'room-512': { name: 'Room 512 — Room Cleaning', room: '512', taskTitle: 'Room Cleaning', assignee: 'Ravi', status: 'Awaiting acceptance', priority: 'High', time: '15 min ago', dept: 'Housekeeping', durationMinutes: 20, guest: 'Ms. Patel' },
   'room-308': { name: 'Room 308 — Mini Bar Restock', room: '308', taskTitle: 'Mini Bar Restock', assignee: 'Ravi', status: 'Awaiting acceptance', priority: 'Low', time: '30 min ago', dept: 'Housekeeping', durationMinutes: 25, guest: 'Mr. Lee' },
   housekeeping: { name: 'Housekeeping', rating: '4.6', tasks: '142', delayed: '3' },

@@ -28,6 +28,14 @@
   window.StaffActions = {
     syncRequestButtons,
 
+    acceptRequest(taskId) {
+      if (window.navigate) {
+        navigate('staff/task-active', { id: taskId, started: '1' }, true);
+      } else {
+        location.hash = 'staff/task-active?id=' + encodeURIComponent(taskId) + '&started=1';
+      }
+    },
+
     toggleServicePause() {
       const btn = document.getElementById('btn-pause-service');
       const banner = document.getElementById('service-status-banner');
