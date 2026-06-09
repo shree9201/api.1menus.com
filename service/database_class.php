@@ -251,29 +251,31 @@ class database_class {
                     "page_value"=>$value,
                     "url"=>$url,
                     "date"=>$date,
-                    "login_id"=>$login_id
+                    "login_id"=>$login_id,
+                    "hitCount"=>1
                     );
             $this->insert($insertArray, 'page_track');
+        } else {
+            $this->update("update page_track set hitCount = hitCount + 1 where ip='".$ip."' and date='".$date."' and page='".$page."' and page_key = '".$key."' and login_id='".$login_id."' and page_data='".$data."' and page_value='".$value."'");
         }
     }
     public function update ($sql=NULL)
                 {
                     if($sql!="")
                     {
-                        if(mysql_query($sql))
+                        $results = mysql_query($sql);
+                        if($results)
                         {
-                        $results=mysql_query($sql);
-                        if($results!='')
-                                return "Update query success.";
-                }
-                else
-                {
-                $this->error($sql);
-                return "Invalid Update Query";
-                }
-                }
-                else
-                    return "Invalid update Query";
+                            return "Update query success.";
+                        }
+                        else
+                        {
+                            $this->error($sql);
+                            return "Invalid Update Query";
+                        }
+                    }
+                    else
+                        return "Invalid update Query";
                 }
     
                 function delete($sql=NULL)

@@ -214,7 +214,7 @@
           <ul>
             <li><a href="#staff/home">staff/home</a> — View Request flow</li>
             <li><a href="#staff/task-request?id=room-204">task-request</a> (Accept/Pass/Pause/Reject)</li>
-            <li><a href="#staff/task-active?id=room-204&started=1">task-active</a> (timer + progress)</li>
+            <li><a href="#staff/task-active?id=room-204&started=1">task-active</a> (timer starts on START only)</li>
             <li><a href="#staff/performance">performance</a> · <a href="#staff/reviews">reviews</a> · <a href="#staff/insights">insights</a></li>
             <li><a href="#staff/profile">profile</a> · <a href="#staff/history">history</a></li>
           </ul>
@@ -619,33 +619,33 @@
           <button class="link-btn" data-nav="staff/tasks-tab">View All</button>
         </div>
 
-        <div class="card staff-active-task">
+        <div class="card staff-active-task" data-task-card="room-204">
           <div class="staff-active-task__left">
             <span class="staff-active-task__icon">🧴</span>
             <span class="staff-active-task__room">204</span>
           </div>
           <div class="staff-active-task__body">
             <h4>Towels Request</h4>
-            <p class="staff-active-task__meta">2 min ago</p>
+            <p class="staff-active-task__meta" data-task-meta>2 min ago</p>
           </div>
-          <div class="staff-active-task__actions">
+          <div class="staff-active-task__actions" data-task-actions="room-204">
             <span class="priority-pill high">HIGH</span>
             <button type="button" class="btn-task-accept" onclick="StaffActions.acceptRequest('room-204')">ACCEPT</button>
           </div>
         </div>
 
-        <div class="card staff-active-task">
+        <div class="card staff-active-task" data-task-card="room-305-hk">
           <div class="staff-active-task__left">
             <span class="staff-active-task__icon">🧹</span>
             <span class="staff-active-task__room">305</span>
           </div>
           <div class="staff-active-task__body">
             <h4>Room Cleaning</h4>
-            <p class="staff-active-task__meta">In Progress</p>
+            <p class="staff-active-task__meta" data-task-meta>Accepted · Ready to start</p>
           </div>
-          <div class="staff-active-task__actions">
+          <div class="staff-active-task__actions" data-task-actions="room-305-hk">
             <span class="priority-pill medium">MEDIUM</span>
-            <button type="button" class="btn-task-start" data-nav="staff/task-active" data-param-id="room-305-hk" data-param-started="1">START</button>
+            <button type="button" class="btn-task-start" onclick="StaffActions.startRequest('room-305-hk')">START</button>
           </div>
         </div>
 
@@ -728,33 +728,33 @@
       <section class="page" id="page-staff-tasks-tab" data-tab="tasks">
         <div class="page-header"><div><h1>Tasks</h1><p class="subtitle">Active & pending requests</p></div></div>
 
-        <div class="card staff-active-task">
+        <div class="card staff-active-task" data-task-card="room-204">
           <div class="staff-active-task__left">
             <span class="staff-active-task__icon">🧴</span>
             <span class="staff-active-task__room">204</span>
           </div>
           <div class="staff-active-task__body">
             <h4>Towels Request</h4>
-            <p class="staff-active-task__meta">2 min ago</p>
+            <p class="staff-active-task__meta" data-task-meta>2 min ago</p>
           </div>
-          <div class="staff-active-task__actions">
+          <div class="staff-active-task__actions" data-task-actions="room-204">
             <span class="priority-pill high">HIGH</span>
             <button type="button" class="btn-task-accept" onclick="StaffActions.acceptRequest('room-204')">ACCEPT</button>
           </div>
         </div>
 
-        <div class="card staff-active-task">
+        <div class="card staff-active-task" data-task-card="room-305-hk">
           <div class="staff-active-task__left">
             <span class="staff-active-task__icon">🧹</span>
             <span class="staff-active-task__room">305</span>
           </div>
           <div class="staff-active-task__body">
             <h4>Room Cleaning</h4>
-            <p class="staff-active-task__meta">In Progress</p>
+            <p class="staff-active-task__meta" data-task-meta>Accepted · Ready to start</p>
           </div>
-          <div class="staff-active-task__actions">
+          <div class="staff-active-task__actions" data-task-actions="room-305-hk">
             <span class="priority-pill medium">MEDIUM</span>
-            <button type="button" class="btn-task-start" data-nav="staff/task-active" data-param-id="room-305-hk" data-param-started="1">START</button>
+            <button type="button" class="btn-task-start" onclick="StaffActions.startRequest('room-305-hk')">START</button>
           </div>
         </div>
 
@@ -764,32 +764,46 @@
           <div class="task-body"><h4>Room 308</h4><p>Mini Bar Restock</p><span class="badge low">Low Priority</span></div>
           <div class="task-meta"><div class="time">30 min ago</div><span class="badge pending">Pending</span></div>
           <div class="staff-live-actions">
-            <button type="button" class="btn-outline" data-nav="staff/task-request" data-param-id="room-308">View Details</button>
+            <button type="button" class="btn-outline" onclick="StaffActions.openRequestDetails('room-308')">View Details</button>
             <button type="button" class="btn-accept" onclick="StaffActions.acceptRequest('room-308')">Accept</button>
           </div>
         </div>
       </section>
 
-      <!-- Incoming request: Accept / Pass / Pause / Reject -->
+      <!-- Request details: timeline + Accept / Start flow -->
       <section class="page" id="page-staff-task-request" data-hide-nav="true">
-        <div class="back-header"><button onclick="goBack()">←</button><h2>Service Request</h2></div>
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Request Details</h2></div>
         <div class="card request-card">
           <p class="room-title">Room <span data-dynamic-room>—</span></p>
           <p style="font-size:15px;font-weight:600;margin-top:8px" data-dynamic-field="taskTitle">—</p>
           <p class="meta">Guest: <span data-dynamic-field="guest">—</span> · <span data-dynamic-field="priority">—</span> priority</p>
           <p class="meta">Requested <span data-dynamic-field="time">—</span> · SLA <span data-dynamic-field="sla">—</span></p>
-          <span class="badge pending" style="margin-top:10px">New Request</span>
+          <span class="badge pending" data-request-status-badge style="margin-top:10px">New Request</span>
         </div>
         <div class="card info-list">
           <div class="info-row"><span>Department</span><span data-dynamic-field="dept">Housekeeping</span></div>
           <div class="info-row"><span>Est. duration</span><span data-dynamic-field="sla">15 min</span></div>
         </div>
+
+        <div class="card task-timeline" style="margin-top:12px">
+          <h4>Request Timeline</h4>
+          <div data-request-timeline></div>
+        </div>
+
         <p style="font-size:13px;font-weight:600;margin:16px 0 8px">Choose action</p>
-        <div class="request-actions">
-          <button type="button" class="btn-action accept" id="staff-accept-btn" data-nav="staff/task-active" data-param-started="1" data-param-id="room-204">✓ Accept Request</button>
+        <div class="request-actions" data-request-actions-open>
+          <button type="button" class="btn-action accept" id="staff-accept-btn" onclick="StaffActions.acceptRequest(getTaskIdFromPage())">✓ Accept Request</button>
           <button type="button" class="btn-action pass" data-nav="staff/pass-request" data-param-id="room-204">↪ Pass Request</button>
           <button type="button" class="btn-action pause" data-nav="staff/request-paused" data-param-id="room-204">⏸ Pause Request</button>
           <button type="button" class="btn-action reject" data-nav="staff/reject-request" data-param-id="room-204">✕ Reject Request</button>
+        </div>
+        <div class="request-actions" data-request-actions-accepted hidden>
+          <button type="button" class="btn-action accept" style="grid-column:1/-1" onclick="StaffActions.startRequest(getTaskIdFromPage())">▶ Start Service</button>
+          <button type="button" class="btn-action pass" data-nav="staff/pass-request" data-param-id="room-204">↪ Pass Request</button>
+          <button type="button" class="btn-action reject" data-nav="staff/reject-request" data-param-id="room-204">✕ Reject Request</button>
+        </div>
+        <div data-request-actions-started hidden>
+          <button type="button" class="btn-primary" style="width:100%;padding:14px;border-radius:12px" onclick="StaffActions.openActiveTask(getTaskIdFromPage())">View Active Timer →</button>
         </div>
       </section>
 
@@ -858,7 +872,11 @@
         </div>
         <div class="card info-list">
           <div class="info-row"><span>Guest</span><span data-dynamic-field="guest">—</span></div>
-          <div class="info-row"><span>Accepted</span><span>Just now</span></div>
+          <div class="info-row"><span>Status</span><span data-timer-status>In Progress</span></div>
+        </div>
+        <div class="card task-timeline" style="margin-top:12px">
+          <h4>Status Timeline</h4>
+          <div data-request-timeline></div>
         </div>
         <div class="service-actions" style="margin-top:16px">
           <button type="button" class="btn-pause-toggle" id="btn-pause-service" onclick="StaffActions.toggleServicePause()">⏸ Pause Service</button>
@@ -1061,42 +1079,31 @@
       </section>
 
       <section class="page" id="page-staff-task-detail" data-hide-nav="true">
-        <div class="back-header"><button onclick="goBack()">←</button><h2>Task Details #308</h2></div>
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Task Details</h2></div>
 
         <div class="card task-detail-card">
           <div class="task-detail-top">
             <div>
-              <h3>Room Cleaning</h3>
-              <p class="task-room">Room 308</p>
-              <p class="task-requested">Requested by Guest · 5 min ago</p>
+              <h3 data-dynamic-field="taskTitle">Room Cleaning</h3>
+              <p class="task-room">Room <span data-dynamic-room>308</span></p>
+              <p class="task-requested">Requested by Guest · <span data-dynamic-field="time">5 min ago</span></p>
             </div>
             <span class="priority-pill medium">MEDIUM</span>
           </div>
         </div>
 
         <div class="card task-timeline">
-          <h4>Task Progress</h4>
-          <div class="timeline-step done">
-            <span class="step-dot">✓</span>
-            <div class="step-body"><h5>Accepted</h5><p>5 min ago</p></div>
-          </div>
-          <div class="timeline-step done">
-            <span class="step-dot">✓</span>
-            <div class="step-body"><h5>In Progress</h5><p>2 min ago</p></div>
-          </div>
-          <div class="timeline-step current">
-            <span class="step-dot">○</span>
-            <div class="step-body"><h5>Completed</h5><p>Now</p></div>
-          </div>
+          <h4>Full Request Timeline</h4>
+          <div data-request-timeline></div>
         </div>
 
-        <div class="card task-feedback-card">
+        <div class="card task-feedback-card" data-task-feedback>
           <div class="rating-big">5.0 Excellent!</div>
           <div class="feedback-stars">★★★★★</div>
           <p style="font-size:13px;color:#92400e;margin-top:6px">Guest Rating · "Thank you for your service"</p>
         </div>
 
-        <div class="task-xp-reward">
+        <div class="task-xp-reward" data-task-xp>
           <span class="xp-coin">🪙</span>
           <div>
             <div class="xp-text">+20 XP</div>
@@ -1124,7 +1131,7 @@
 
       <section class="page" id="page-staff-history" data-tab="history">
         <div class="page-header"><div><h1>History</h1><p class="subtitle">Completed tasks</p></div></div>
-        <button type="button" class="card list-item" data-nav="staff/task-detail"><div><h4>Room 308 — Room Cleaning</h4><p>Completed · Today · +20 XP · 5★</p></div><span>✅</span></button>
+        <button type="button" class="card list-item" data-nav="staff/task-detail" data-param-id="room-308"><div><h4>Room 308 — Room Cleaning</h4><p>Completed · Today · +20 XP · 5★</p></div><span>✅</span></button>
         <div class="card list-item"><div><h4>Room 118 — Deep Clean</h4><p>Completed · Yesterday</p></div><span>✅</span></div>
         <div class="card list-item"><div><h4>Room 401 — Towels</h4><p>Completed · Yesterday</p></div><span>✅</span></div>
         <div class="card list-item"><div><h4>Room 205 — Mini Bar</h4><p>Completed · 2 days ago</p></div><span>✅</span></div>
@@ -1514,8 +1521,16 @@
 
 <script src="js/router.js"></script>
 <script src="js/theme-settings.js"></script>
+<script src="js/task-state.js"></script>
 <script src="js/task-timer.js"></script>
 <script src="js/staff-actions.js"></script>
+<script>
+  function getTaskIdFromPage() {
+    const q = (location.hash.split('?')[1] || '');
+    const m = q.match(/(?:^|&)id=([^&]+)/);
+    return m ? decodeURIComponent(m[1]) : 'room-204';
+  }
+</script>
 <script src="js/app-drawer.js"></script>
 <script src="js/login.js"></script>
 </body>

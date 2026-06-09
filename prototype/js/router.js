@@ -140,25 +140,24 @@
   }
 
   function initStaffPages(pageId, params) {
+    if (window.StaffActions) StaffActions.refreshTaskCards();
+
     if (pageId === 'staff-task-active' && params.id) {
       const data = PAGE_DATA[params.id];
       const mins = data?.durationMinutes || 15;
       const slaEl = document.querySelector('#page-staff-task-active [data-dynamic-field="sla"]');
       if (slaEl) slaEl.textContent = mins + ' min SLA';
-      if (window.TaskTimer) {
-        if (params.started === '1' || params.started === 'true') TaskTimer.start(params.id, mins);
-        else if (TaskTimer.getTaskId() !== params.id) TaskTimer.start(params.id, mins);
+      if (window.TaskTimer && (params.started === '1' || params.started === 'true')) {
+        const startedAt = window.TaskState ? TaskState.getStartedAt(params.id) : null;
+        TaskTimer.start(params.id, mins, startedAt);
       }
+      if (window.StaffActions) StaffActions.syncRequestPage(params.id);
     }
     if (pageId === 'staff-task-request' && params.id) {
-      if (window.StaffActions) StaffActions.syncRequestButtons(params.id);
-      const data = PAGE_DATA[params.id];
-      if (data) {
-        const mins = data.durationMinutes || 15;
-        document.querySelectorAll('#page-staff-task-request [data-dynamic-field="sla"]').forEach((el) => {
-          el.textContent = mins + ' min';
-        });
-      }
+      if (window.StaffActions) StaffActions.syncRequestPage(params.id);
+    }
+    if (pageId === 'staff-task-detail' && params.id) {
+      if (window.StaffActions) StaffActions.syncTaskDetailPage(params.id);
     }
     if (pageId === 'staff-task-active' && params.id) {
       document.querySelectorAll('#page-staff-task-active [data-nav="staff/pass-request"]').forEach((el) => {
@@ -271,7 +270,7 @@ const PAGE_DATA = {
   'room-204': { name: 'Room 204 — Towels Request', room: '204', taskTitle: 'Towels Request', assignee: 'Ravi', status: 'Awaiting acceptance', priority: 'High', time: '2 min ago', dept: 'Housekeeping', durationMinutes: 15, guest: 'Mr. Sharma' },
   'room-305-hk': { name: 'Room 305 — Room Cleaning', room: '305', taskTitle: 'Room Cleaning', assignee: 'Ravi', status: 'In Progress', priority: 'Medium', time: 'In Progress', dept: 'Housekeeping', durationMinutes: 25, guest: 'Mr. Gupta' },
   'room-512': { name: 'Room 512 — Room Cleaning', room: '512', taskTitle: 'Room Cleaning', assignee: 'Ravi', status: 'Awaiting acceptance', priority: 'High', time: '15 min ago', dept: 'Housekeeping', durationMinutes: 20, guest: 'Ms. Patel' },
-  'room-308': { name: 'Room 308 — Mini Bar Restock', room: '308', taskTitle: 'Mini Bar Restock', assignee: 'Ravi', status: 'Awaiting acceptance', priority: 'Low', time: '30 min ago', dept: 'Housekeeping', durationMinutes: 25, guest: 'Mr. Lee' },
+  'room-308': { name: 'Room 308 — Room Cleaning', room: '308', taskTitle: 'Room Cleaning', assignee: 'Ravi', status: 'Completed', priority: 'Medium', time: '45 min ago', dept: 'Housekeeping', durationMinutes: 25, guest: 'Mr. Lee' },
   housekeeping: { name: 'Housekeeping', rating: '4.6', tasks: '142', delayed: '3' },
   'front-office': { name: 'Front Office', rating: '4.4', tasks: '89', delayed: '5' },
   maintenance: { name: 'Maintenance', rating: '3.8', tasks: '67', delayed: '12' },

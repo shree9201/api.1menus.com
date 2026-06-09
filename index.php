@@ -119,24 +119,13 @@ if($action!=""){
 </html> 
 <?php 
 }
-function APIInfoPageStart($pageName,$infoPass){	
+function APIInfoPageStart($pageName, $description){	
 	?>
 	<div class="code-block">
-<p><code><i class="fa fa-info"></i></code> <?php echo ucfirst($pageName);?> process information</p>
-<pre class="language-css"><code class="language-css">
-	<span class="token property">action</span>:<span class="token string"> <?php echo $pageName;?></span>
-	<span class="token property">payload</span>:<span class="token string"> action=<?php echo $pageName.$infoPass['structure'];?></span>
-	<span class="token property">responce</span>:<span class="token string"><?php echo $infoPass['responce'];?></span>
-</code>
+        <p><?php echo $description;?></p>
+<pre class="language-css">
 <div class="table-responsive doc-table-responsive">
     <table class="table table-bordered">
-        <thead>
-            <tr class="color"><td colspan="2" class="text-center"><b>Details arguments list</b></td></tr>
-            <tr class="color2">
-                <th width="20%">Field Name</th>
-                <th>Field Description</th>
-            </tr>
-        </thead>
      <?php 
 }
 function APIInfoPageEnd(){

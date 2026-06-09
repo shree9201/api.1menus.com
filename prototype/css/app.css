@@ -2045,6 +2045,21 @@ body.drawer-open .screen-content { overflow: hidden; }
 .timeline-step .step-body h5 { font-size: 13px; font-weight: 600; }
 .timeline-step .step-body p { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
+.timeline-step.pending .step-dot {
+  border: 2px dashed var(--border);
+  background: transparent;
+  color: var(--muted);
+}
+
+.timeline-step.pending .step-body h5 { color: var(--muted); }
+
+.timeline-delta {
+  font-size: 10px !important;
+  font-weight: 700;
+  color: var(--primary) !important;
+  margin-top: 4px !important;
+}
+
 .task-feedback-card {
   padding: 16px;
   margin-bottom: 12px;

@@ -210,7 +210,12 @@ class api_class {
 	// function for throw error message
 	public	function displayOutputJson($arrayName)
 	{
+		$status = isset($arrayName['status']) ? $arrayName['status'] : 200;
+		if($status === false ||  $status === 'false' || (is_string($status) && strtolower($status) === 'false')){
+			http_response_code(500);
+		}
 		$arrayName=array($arrayName);
+		$this->APIAccessLogs($arrayName); // log API access with response
 		echo json_encode($arrayName);
 		exit;
 	}
@@ -1834,6 +1839,37 @@ if($token == null || $id == null){
 	$p = $this->APIIsValidToken($token, $id);	
 }
 
+}
+public function APIAccessLogs($responseArray){
+	$headers = getallheaders();
+		$json = file_get_contents('php://input'); 
+	$requestBody = json_decode($json, true);
+	$requestMethod = $_SERVER['REQUEST_METHOD'];
+// Target key (Note: header names are case-insensitive, but arrays are case-sensitive)
+$token = isset($headers['Token']) ? $headers['Token'] : null;
+$id = isset($headers['Id']) ? $headers['Id'] : null;
+$title = $this->db->getMyRecordValue('jwt_tokens_user', $id, 'title');
+$date = date("Y-m-d");
+$request = $json;
+$response = json_encode($responseArray);
+	$existingTokenCount = $this->db->selectCount("select count(*) as count from jwt_tokens_log where date = '".$date."' and jwt_tokens_user=".$id." and jwt_token='".$token."' and method='".$requestMethod."' and request='".$request."'");
+	if($existingTokenCount !=0){
+		// update date_time and count+1
+		$this->db->update("update jwt_tokens_log set date_time='".date("Y-m-d H:i:s")."', count=count+1 where date = '".$date."' and jwt_tokens_user=".$id." and jwt_token='".$token."' and method='".$requestMethod."' and request='".$request."'");
+	}else{
+	$insertArray = array(
+		'title' => $title,
+		'jwt_tokens_user' => $id,
+		'jwt_token' => $token,
+		'date'=> $date,
+		'IP' => $_SERVER['REMOTE_ADDR'],
+		'date_time' => date("Y-m-d H:i:s"),
+		'method' => $requestMethod,
+		'request' => $request,
+		'response' => $response
+	);
+	$this->db->insert($insertArray, 'jwt_tokens_log');
+	}
 }
 public function masterData(){
 	$responseArray =  array('status' => 'true', 'value' => 'Master data retrieved successfully', 'staffTypes' =>$this->staffTypes,'departments'=>$this->departments,'statusList'=>$this->statusList);
