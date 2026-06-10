@@ -80,8 +80,10 @@ class api_class {
 		$this->staffTypes = [['key' => 'FOMGR','value' => 'Front Office Manager'],['key' => 'FOSU','value' => 'Front Office Supervisor'],['key' => 'FO','value' => 'Front Office Executive'],['key' => 'HKMGR','value' => 'House Keeping Manager'],['key' => 'HKSU','value' => 'House Keeping Supervisor'],['key' => 'HK','value' => 'House Keeping Executive'],['key' => 'MTNS','value' => 'Maintenance'],['key' => 'SPA','value' => 'Spa'],['key' => 'WAITER-STAFF','value' => 'Waiter/Staff'],['key' => 'KITCHEN','value' => 'Kitchen']];
 		$this->departments = [['key' => 'STAFF','value' => 'Staff'],['key'=>'MANAGER','value'=>'Manager'],['key'=>'HR','value'=>'HR']];
 		// jwt_token authentication for API access validation can be implemented here if needed for all API calls
+		$this->getBodyJsonData();
 		if($_REQUEST['action'] !== 'getJwtToken'){ // skip token validation for getJwtToken API to allow clients to obtain token
 			 $this->getAndValidateHeaderTokenForJWT();
+			 
 		}
 	}
 
@@ -482,7 +484,6 @@ public function generateJwtToken($userId){
 }
 
 public function getJwtToken(){
-	$this->getBodyJsonData();
 	$id = $this->optionalParametterValidate($_REQUEST['id'], 'id');
 	$token = $this->optionalParametterValidate($_REQUEST['token'], 'token');
 	//$this->APIIsValidToken($token, $id);
@@ -518,9 +519,6 @@ public function APIReturnListData($list){
 	$this->displayOutputJson($responseArray);
 }
 /////************************************** Application related process APIs **********************************//////
-public function test(){
-	$this->getBodyJsonData();
-}
 public function getAppConfig(){
 	$responseArray = array();
 
@@ -533,7 +531,6 @@ public function getAppConfig(){
 	$this->displayOutputJson($responseArray);
 }
 public function outletInfo(){
-$this->getBodyJsonData();
 
     $city 	= isset($_REQUEST['city'])?$_REQUEST['city']:"";
     $name 	= isset($_REQUEST['name'])?$_REQUEST['name']:"";
@@ -638,7 +635,6 @@ $this->getBodyJsonData();
 }
 
 public function getData(){
-	$this->getBodyJsonData();
 	$responseArray = array();
 	$allowedTables = array('category', 'menu', 'banner', 'food_order', 'bill', 'bill_items');
 	$table = isset($_REQUEST['table']) ? $_REQUEST['table'] : "";
@@ -665,7 +661,6 @@ public function getData(){
 	$this->displayOutputJson($responseArray);
 }
 public function getBanners(){
-$this->getBodyJsonData();
 	$id 		= isset($_REQUEST['id'])?$_REQUEST['id']:"";
 	$token 	= isset($_REQUEST['token'])?$_REQUEST['token']:"";
 	$this->optionalParametterValidate($_REQUEST['id'], 'id');
@@ -693,7 +688,6 @@ $this->getBodyJsonData();
 	$this->APIReturnListData($returnData);
 }
 public function getReviews(){
-$this->getBodyJsonData();
 	$id 		= isset($_REQUEST['id'])?$_REQUEST['id']:"";
 	$token 	= isset($_REQUEST['token'])?$_REQUEST['token']:"";
 	$this->optionalParametterValidate($_REQUEST['id'], 'id');
@@ -764,7 +758,6 @@ public function getReviewQuestions(){
 	$this->displayOutputJson($responseArray);
 }
 public function addReview(){
-	$this->getBodyJsonData();
 	//id=5&token=of0prgMawPXEaglEpHIm5zAA9iNIwuExRzDAkxsVTIe&name=Vishwajeet%20Mahadik&mobile=7709034176&rating=4&comment=123123&date=Wed%20Jan%2007%202026%2020:40:03%20GMT%2B0530%20(India%20Standard%20Time)
 	$id = isset($_REQUEST['id'])?$_REQUEST['id']:"";
 	$token = isset($_REQUEST['token'])?$_REQUEST['token']:"";
@@ -983,7 +976,7 @@ $this->getBodyJsonData();
 	$popularItems = $this->db->select("SELECT m.id, m.title, m.cid,m.img as mediaID, IFNULL(NULLIF(i.photo, ''), 'https://1menus.com/app/b2c/assets/img/foodIcon.png') AS img FROM menu m LEFT JOIN images i ON m.img = i.id WHERE m.userId=".$id." AND m.populate='YES' AND m.status='YES' ORDER BY m.sq ASC");
 	$this->APIReturnListData($popularItems);
 }
-public function getOutletInfo(){
+public function getOutletInfo($return=false){
 	$id 		= isset($_REQUEST['id'])?$_REQUEST['id']:"";
 	$mobile 	= isset($_REQUEST['mobile'])?$_REQUEST['mobile']:"";
 	$username 	= isset($_REQUEST['username'])?$_REQUEST['username']:"";
@@ -991,7 +984,7 @@ public function getOutletInfo(){
 	$this->optionalParametterValidate($_REQUEST['id'], 'id');
 	$this->optionalParametterValidate($_REQUEST['mobile'], 'mobile');
 	$this->optionalParametterValidate($_REQUEST['username'], 'username');
-	$this->APIIsValidToken($token, $id);
+	//$this->APIIsValidToken($token, $id);
 	if($this->db->selectCount("select count(*) as count from users where id=".$id." and mobile='".$mobile."' and username='".$username."' and token='".$token."'" )==0){
 		$responseArray =  array('status' => 'false','value' =>'Invalid Details for fetch data for outlets');
 	}else{
@@ -1003,7 +996,7 @@ public function getOutletInfo(){
 		$responseArray =  array('status' => 'true','value' =>$info[0]);
 		}
 	}
-	$this->displayOutputJson($responseArray);
+		$this->displayOutputJson($responseArray);
 }
 public function getLiveOrders(){
 	$responseArray = array();
@@ -1814,7 +1807,6 @@ public function sendPushNotification(){
 
 // function for get a list of staff
 public function getStaffList(){
-	$this->getBodyJsonData();
 	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
 	if($this->db->selectCount("select count(*) as count from staff where userId=".$outletId)==0){
 		$responseArray =  array('status' => 'false','value' =>'No staff found for this outlet');
@@ -1875,5 +1867,132 @@ public function masterData(){
 	$responseArray =  array('status' => 'true', 'value' => 'Master data retrieved successfully', 'staffTypes' =>$this->staffTypes,'departments'=>$this->departments,'statusList'=>$this->statusList);
 	$this->displayOutputJson($responseArray);
 }
+
+public function validateOutlet($outletId){
+	$responseArray = array();
+	$info = $this->db->select("select * from users where id=".$outletId);
+	if(count($info)==0){
+		$responseArray =  array('status' => false,'value' =>'Invalid Outlet Id');
+	}else{
+		$info = $info[0];
+	$id 		= $info->id?$info->id:$outletId;
+	$mobile 	= $info->mobile?$info->mobile:"";
+	$username 	= $info->username?$info->username:"";
+	$token 	= $info->token?$info->token:"";
+	if($this->db->selectCount("select count(*) as count from users where id=".$id." and mobile='".$mobile."' and username='".$username."' and token='".$token."'" )==0){
+		$responseArray =  array('status' => 'false','value' =>'Invalid Details for fetch data for outlets');
+	}else{
+		$info = $this->db->select("select * from users where id=".$id." and mobile='".$mobile."' and username='".$username."' and token='".$token."'");
+		if($info[0]->status == 'NO'){
+			$responseArray =  array('status' => 'false','value' =>'Outlet account has been disabled');
+		}else{
+			$info[0]->password = "***";
+			$responseArray =  array('status' => 'true','value' =>$info[0]);
+		}
+	}
+	}
+	return $responseArray;
 }
+public function getOutletServices(){
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$outletValidatedResponse = $this->validateOutlet($outletId);
+	$value = $outletValidatedResponse['value'];
+	$status = $outletValidatedResponse['status'];
+	// check $status is string or boolean and convert to boolean
+	if(is_string($status)) {
+	$status = ($status === 'true') ? true : false;
+	}
+	$responseArray = array();
+		if($status){
+			// $serviceCategory = $this->db->select("select id,title,subTitle from room_service_my_category where userId=".$outletId." and status='YES' order by sq ASC");	
+			// if(is_array($serviceCategory) && count($serviceCategory) > 0){
+			// 	foreach($serviceCategory as $category){
+			// 		// Get service items for this category
+			// 		$serviceItems = $this->db->select("select * from room_service_my_service where serviceId=".$category->id." and userId=".$outletId." and status='YES' order by sq ASC");
+					
+			// 		// Add items array to category (empty array if no items)
+			// 		$category->items = (is_array($serviceItems) && count($serviceItems) > 0) ? $serviceItems : array();
+			// 		$category->count = count($category->items);
+			// 	}
+			// }
+			$room_service_my_service = $this->db->select("select * from room_service_my_service where userId=".$outletId." and status='YES' order by sq ASC");
+			
+			$responseArray = array(
+				'status' => $status,
+				'value' => 'result found',
+				'count' => is_array($room_service_my_service) ? count($room_service_my_service) : 0,
+				'services' => is_array($room_service_my_service) ? $room_service_my_service : array()
+			);
+			
+		}else{
+			$responseArray =  array('status' => $status,'value' =>$value);
+		}
+	
+	$this->displayOutputJson($responseArray);
+
+	
+	}
+	public function getOutletCategories(){
+		$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$outletValidatedResponse = $this->validateOutlet($outletId);
+	$value = $outletValidatedResponse['value'];
+	$status = $outletValidatedResponse['status'];
+	// check $status is string or boolean and convert to boolean
+	if(is_string($status)) {
+	$status = ($status === 'true') ? true : false;
+	}
+	$responseArray = array();
+		if($status){
+			$serviceCategory = $this->db->select("select id,title,subTitle from room_service_my_category where userId=".$outletId." and status='YES' order by sq ASC");	
+			$responseArray = array(
+				'status' => $status,
+				'value' => 'result found',
+				'count' => is_array($serviceCategory) ? count($serviceCategory) : 0,
+				'services' => is_array($serviceCategory) ? $serviceCategory : array()
+			);
+			
+		}else{
+			$responseArray =  array('status' => $status,'value' =>$value);
+		}
+	
+	$this->displayOutputJson($responseArray);
+	}
+	public function getRoomRequest(){
+	$responseArray = array();
+	
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$filterBy = isset($_REQUEST['filterBy'])?$_REQUEST['filterBy']:"";
+	$filterBySqlString = "";
+	if(count($_REQUEST)>0 && $filterBy!=""){
+		for($f=0;$f<count($filterBy);$f++){
+			if(isset($filterBy[$f]['key']) && isset($filterBy[$f]['value'])){
+				$filterBySqlString .= " and ".$filterBy[$f]['key']."='".$filterBy[$f]['value']."'";
+			}
+		}
+		
+	}
+	$outletValidatedResponse = $this->validateOutlet($outletId);
+	$value = $outletValidatedResponse['value'];
+	$status = $outletValidatedResponse['status'];
+	// check $status is string or boolean and convert to boolean
+	if(is_string($status)) {
+	$status = ($status === 'true') ? true : false;
+	}
+	$responseArray = array();
+		if($status){
+			$roomRequest = $this->db->select("select * from room_service_request where userId=".$outletId." ".$filterBySqlString." order by id DESC");	
+			$responseArray = array(
+				'status' => $status,
+				'value' => 'result found',
+				'count' => is_array($roomRequest) ? count($roomRequest) : 0,
+				'roomRequest' => is_array($roomRequest) ? $roomRequest : array()
+			);
+			
+		}else{
+			$responseArray =  array('status' => $status,'value' =>$value);
+		}
+	$this->displayOutputJson($responseArray);
+	}
+}
+
 ?>

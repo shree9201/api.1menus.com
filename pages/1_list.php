@@ -8,6 +8,9 @@ $apiNamesArray =array(
 				'staffLogin'	=>'Staff Login',
 				'getDeviceIds'	=>'Get Device Ids',
 				'getStaffList'	=>'Get Staff List',
+				'getOutletCategories'	=>'Get Outlet Categories',
+				'getOutletServices'	=>'Get Outlet Services',
+				'getRoomRequest'	=>'Get Room Request',
                 );
 $keys = array_keys($apiNamesArray);
 ?>
