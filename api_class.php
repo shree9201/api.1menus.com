@@ -1832,6 +1832,8 @@ if($token == null || $id == null){
 }
 
 }
+
+// function for log API access for JWT token based authentication for 1menus private project
 public function APIAccessLogs($responseArray){
 	$headers = getallheaders();
 		$json = file_get_contents('php://input'); 
@@ -1863,11 +1865,14 @@ $response = json_encode($responseArray);
 	$this->db->insert($insertArray, 'jwt_tokens_log');
 	}
 }
+
+// function for get master data for 1menus private project
 public function masterData(){
 	$responseArray =  array('status' => 'true', 'value' => 'Master data retrieved successfully', 'staffTypes' =>$this->staffTypes,'departments'=>$this->departments,'statusList'=>$this->statusList);
 	$this->displayOutputJson($responseArray);
 }
 
+// function for validate outlet for 1menus private project
 public function validateOutlet($outletId){
 	$responseArray = array();
 	$info = $this->db->select("select * from users where id=".$outletId);
@@ -1893,6 +1898,8 @@ public function validateOutlet($outletId){
 	}
 	return $responseArray;
 }
+
+// function for get room service my services list for outlet
 public function getOutletServices(){
 	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
 	$outletValidatedResponse = $this->validateOutlet($outletId);
@@ -1904,34 +1911,19 @@ public function getOutletServices(){
 	}
 	$responseArray = array();
 		if($status){
-			// $serviceCategory = $this->db->select("select id,title,subTitle from room_service_my_category where userId=".$outletId." and status='YES' order by sq ASC");	
-			// if(is_array($serviceCategory) && count($serviceCategory) > 0){
-			// 	foreach($serviceCategory as $category){
-			// 		// Get service items for this category
-			// 		$serviceItems = $this->db->select("select * from room_service_my_service where serviceId=".$category->id." and userId=".$outletId." and status='YES' order by sq ASC");
-					
-			// 		// Add items array to category (empty array if no items)
-			// 		$category->items = (is_array($serviceItems) && count($serviceItems) > 0) ? $serviceItems : array();
-			// 		$category->count = count($category->items);
-			// 	}
-			// }
 			$room_service_my_service = $this->db->select("select * from room_service_my_service where userId=".$outletId." and status='YES' order by sq ASC");
-			
 			$responseArray = array(
 				'status' => $status,
 				'value' => 'result found',
 				'count' => is_array($room_service_my_service) ? count($room_service_my_service) : 0,
 				'services' => is_array($room_service_my_service) ? $room_service_my_service : array()
 			);
-			
 		}else{
 			$responseArray =  array('status' => $status,'value' =>$value);
 		}
-	
-	$this->displayOutputJson($responseArray);
-
-	
+		$this->displayOutputJson($responseArray);
 	}
+	// function for get room service categories for outlet
 	public function getOutletCategories(){
 		$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
 	$outletValidatedResponse = $this->validateOutlet($outletId);
@@ -1957,6 +1949,8 @@ public function getOutletServices(){
 	
 	$this->displayOutputJson($responseArray);
 	}
+
+	// function for get room service request list for outlet
 	public function getRoomRequest(){
 	$responseArray = array();
 	
@@ -1981,6 +1975,16 @@ public function getOutletServices(){
 	$responseArray = array();
 		if($status){
 			$roomRequest = $this->db->select("select * from room_service_request where userId=".$outletId." ".$filterBySqlString." order by id DESC");	
+			
+			// Add time tracking metrics to each request
+			if(is_array($roomRequest) && count($roomRequest) > 0) {
+				foreach($roomRequest as &$request) {
+					$timeMetrics = $this->getRequestTimeMetrics($request['id'], $outletId);
+					$request['timeMetrics'] = $timeMetrics;
+				}
+				unset($request);
+			}
+			
 			$responseArray = array(
 				'status' => $status,
 				'value' => 'result found',
@@ -1992,7 +1996,350 @@ public function getOutletServices(){
 			$responseArray =  array('status' => $status,'value' =>$value);
 		}
 	$this->displayOutputJson($responseArray);
+}
+
+// function for get outlet request overview counts
+public function serviceStatusCount(){
+	$myRoomServiceRequestCountByStatus = array();
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$sql = "select status, count(*) as count from room_service_request where userId=".$outletId." group by status";
+	$myRoomServiceRequestCountByStatus = $this->db->select($sql);
+	$responseArray = array(
+		'status' => true,
+		'value' => 'result found',
+		'countByStatus' => is_array($myRoomServiceRequestCountByStatus) ? $myRoomServiceRequestCountByStatus : array()
+	);
+	$this->displayOutputJson($responseArray);	
+}
+
+public function getRequestDetails(){
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$requestId = isset($_REQUEST['requestId'])?$_REQUEST['requestId']:"";
+	$requestDetails = $this->db->select("select * from room_service_request where userId=".$outletId." and id=".$requestId);
+	if(count($requestDetails)==0){
+		$responseArray =  array('status' => 'false','value' =>'No request found for this request id');
+	}else{
+		$activity = $this->db->select("select rsra.dateTime,rsra.status,rsra.comment,rsra.created_date,s.name as assignedTo,s.mobile as assignedMobile from room_service_request_activity rsra , staff s where rsra.assigned=s.id and rsra.reqId=".$requestId." and rsra.userId=".$outletId." order by rsra.id ASC");
+		
+		// Get time tracking details for this request
+		$timeTrackingData = $this->db->select("select * from room_service_request_staff_time_track where reqId=".$requestId." and userId=".$outletId." order by id ASC");
+		
+		// Add time metrics to request details
+		$timeMetrics = $this->getRequestTimeMetrics($requestId, $outletId);
+		
+		// Enrich activity with time tracking information
+		$enrichedActivity = $this->enrichActivityWithTimeTracking($activity, $timeTrackingData);
+		
+		$responseArray =  array(
+			'status' => 'true',
+			'value' => $requestDetails[0],
+			'activity' => is_array($enrichedActivity) ? $enrichedActivity : array(),
+			'timeTracking' => is_array($timeTrackingData) ? $timeTrackingData : array(),
+			'timeMetrics' => $timeMetrics
+		);
 	}
+	$this->displayOutputJson($responseArray);
+}
+
+/**
+ * Calculate time metrics for a request
+ * Returns total time spent, average time per activity, and timeline
+ */
+public function getRequestTimeMetrics($requestId, $outletId) {
+	$timeTrackingData = $this->db->select("select * from room_service_request_staff_time_track where reqId=".$requestId." and userId=".$outletId." order by id ASC");
+	
+	$metrics = array(
+		'totalTimeMinutes' => 0,
+		'totalTimeFormatted' => '0h 0m',
+		'activitiesCount' => 0,
+		'staffInvolved' => array(),
+		'timeline' => array(),
+		'averageTimePerActivityMinutes' => 0
+	);
+	
+	if(!is_array($timeTrackingData) || count($timeTrackingData) == 0) {
+		return $metrics;
+	}
+	
+	$totalSeconds = 0;
+	$staffList = array();
+	
+	foreach($timeTrackingData as $trackItem) {
+		$track = is_object($trackItem) ? json_decode(json_encode($trackItem), true) : $trackItem;
+		if(!empty($track['start_time']) && !empty($track['end_time'])) {
+			$startTime = strtotime($track['start_time']);
+			$endTime = strtotime($track['end_time']);
+			$diffSeconds = $endTime - $startTime;
+			
+			if($diffSeconds > 0) {
+				$totalSeconds += $diffSeconds;
+				
+				// Add to timeline
+				$metrics['timeline'][] = array(
+					'userId' => isset($track['userId']) ? $track['userId'] : null,
+					'assignedTo' => isset($track['assigned']) ? $track['assigned'] : null,
+					'startTime' => $track['start_time'],
+					'endTime' => $track['end_time'],
+					'durationMinutes' => round($diffSeconds / 60, 2),
+					'durationFormatted' => $this->secondsToTimeFormat($diffSeconds)
+				);
+				
+				// Track staff involved
+				if(!in_array($track['assigned'], $staffList)) {
+					$staffList[] = $track['assigned'];
+				}
+			}
+		}
+	}
+	
+	$metrics['totalTimeMinutes'] = round($totalSeconds / 60, 2);
+	$metrics['totalTimeFormatted'] = $this->secondsToTimeFormat($totalSeconds);
+	$metrics['activitiesCount'] = count($timeTrackingData);
+	$metrics['staffInvolved'] = $staffList;
+	
+	if(count($timeTrackingData) > 0) {
+		$metrics['averageTimePerActivityMinutes'] = round($metrics['totalTimeMinutes'] / count($timeTrackingData), 2);
+	}
+	
+	return $metrics;
+}
+
+/**
+ * Enrich activity records with time tracking information
+ */
+public function enrichActivityWithTimeTracking($activity, $timeTrackingData) {
+	if(!is_array($activity) || !is_array($timeTrackingData)) {
+		return $activity;
+	}
+	
+	// Create index of time tracking data by assigned staff
+	$timeIndex = array();
+	foreach($timeTrackingData as $trackItem) {
+		$track = is_object($trackItem) ? json_decode(json_encode($trackItem), true) : $trackItem;
+		$assigned = isset($track['assigned']) ? $track['assigned'] : '';
+		if(!isset($timeIndex[$assigned])) {
+			$timeIndex[$assigned] = array();
+		}
+		$timeIndex[$assigned][] = $track;
+	}
+	
+	// Enrich activity with time data
+	foreach($activity as &$actItem) {
+		$actArray = is_object($actItem) ? json_decode(json_encode($actItem), true) : $actItem;
+		$assigned = isset($actArray['assignedTo']) ? $actArray['assignedTo'] : '';
+		$timeData = isset($timeIndex[$assigned]) ? $timeIndex[$assigned] : array();
+		
+		if(is_object($actItem)) {
+			$actItem->timeData = $timeData;
+		} else {
+			$actItem['timeData'] = $timeData;
+		}
+	}
+	unset($actItem);
+	
+	return $activity;
+}
+
+/**
+ * Convert seconds to human-readable format (e.g., "2h 30m")
+ */
+public function secondsToTimeFormat($seconds) {
+	$seconds = (int)$seconds;
+	$hours = floor($seconds / 3600);
+	$minutes = floor(($seconds % 3600) / 60);
+	$secs = $seconds % 60;
+	
+	$formatted = '';
+	if($hours > 0) {
+		$formatted .= $hours . 'h ';
+	}
+	if($minutes > 0 || $hours > 0) {
+		$formatted .= $minutes . 'm';
+	}
+	if($secs > 0 && $hours == 0 && $minutes == 0) {
+		$formatted .= $secs . 's';
+	}
+	
+	return trim($formatted) ?: '0m';
+}
+
+/**
+ * Track request activity start time
+ */
+public function trackRequestTimeStart() {
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$requestId = isset($_REQUEST['requestId'])?$_REQUEST['requestId']:"";
+	$requestCode = isset($_REQUEST['requestCode'])?$_REQUEST['requestCode']:"";
+	$staffId = isset($_REQUEST['staffId'])?$_REQUEST['staffId']:"";
+	$date = isset($_REQUEST['date'])?$_REQUEST['date']:date('Y-m-d');
+	
+	if(!$requestId || !$staffId || !$outletId) {
+		$responseArray = array('status' => 'false', 'value' => 'Missing required parameters');
+		$this->displayOutputJson($responseArray);
+		return;
+	}
+	
+	// Insert start time record
+	$insertData = array(
+		'reqId' => $requestId,
+		'reqCode' => $requestCode,
+		'userId' => $outletId,
+		'assigned' => $staffId,
+		'date' => $date,
+		'start_time' => date('Y-m-d H:i:s'),
+		'created_date' => date('Y-m-d H:i:s')
+	);
+	
+	$insertResult = $this->db->insert('room_service_request_staff_time_track', $insertData);
+	
+	if($insertResult) {
+		$responseArray = array(
+			'status' => 'true',
+			'value' => 'Time tracking started',
+			'trackId' => $this->db->lastId(),
+			'startTime' => $insertData['start_time']
+		);
+	} else {
+		$responseArray = array('status' => 'false', 'value' => 'Failed to start time tracking');
+	}
+	
+	$this->displayOutputJson($responseArray);
+}
+
+/**
+ * Track request activity end time
+ */
+public function trackRequestTimeEnd() {
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$requestId = isset($_REQUEST['requestId'])?$_REQUEST['requestId']:"";
+	$staffId = isset($_REQUEST['staffId'])?$_REQUEST['staffId']:"";
+	$trackId = isset($_REQUEST['trackId'])?$_REQUEST['trackId']:"";
+	
+	if(!$trackId || !$requestId || !$staffId) {
+		$responseArray = array('status' => 'false', 'value' => 'Missing required parameters');
+		$this->displayOutputJson($responseArray);
+		return;
+	}
+	
+	// Update end time record
+	$updateData = array(
+		'end_time' => date('Y-m-d H:i:s')
+	);
+	
+	$updateResult = $this->db->update('room_service_request_staff_time_track', $updateData, "id=".$trackId);
+	
+	if($updateResult) {
+		// Fetch the updated record with time difference
+		$trackRecord = $this->db->select("select * from room_service_request_staff_time_track where id=".$trackId);
+		
+		if(is_array($trackRecord) && count($trackRecord) > 0) {
+			$track = $trackRecord[0];
+			if(is_object($track)) {
+				$track = json_decode(json_encode($track), true);
+			}
+			$startTime = strtotime($track['start_time']);
+			$endTime = strtotime($track['end_time']);
+			$diffSeconds = $endTime - $startTime;
+			$diffMinutes = round($diffSeconds / 60, 2);
+			
+			$responseArray = array(
+				'status' => 'true',
+				'value' => 'Time tracking ended',
+				'trackId' => $trackId,
+				'startTime' => $track['start_time'],
+				'endTime' => $track['end_time'],
+				'durationSeconds' => $diffSeconds,
+				'durationMinutes' => $diffMinutes,
+				'durationFormatted' => $this->secondsToTimeFormat($diffSeconds)
+			);
+		} else {
+			$responseArray = array('status' => 'false', 'value' => 'Track record not found');
+		}
+	} else {
+		$responseArray = array('status' => 'false', 'value' => 'Failed to end time tracking');
+	}
+	
+	$this->displayOutputJson($responseArray);
+}
+
+/**
+ * Get activity time report by staff
+ */
+public function getStaffTimeReport() {
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$staffId = isset($_REQUEST['staffId'])?$_REQUEST['staffId']:"";
+	$startDate = isset($_REQUEST['startDate'])?$_REQUEST['startDate']:date('Y-m-d', strtotime('-7 days'));
+	$endDate = isset($_REQUEST['endDate'])?$_REQUEST['endDate']:date('Y-m-d');
+	
+	if(!$outletId) {
+		$responseArray = array('status' => 'false', 'value' => 'Missing outlet ID');
+		$this->displayOutputJson($responseArray);
+		return;
+	}
+	
+	$whereClause = "userId=".$outletId." and date between '".$startDate."' and '".$endDate."'";
+	if($staffId) {
+		$whereClause .= " and assigned=".$staffId;
+	}
+	
+	$timeRecords = $this->db->select("select * from room_service_request_staff_time_track where ".$whereClause." order by date DESC, start_time DESC");
+	
+	// Calculate summary metrics
+	$totalSeconds = 0;
+	$requestCount = 0;
+	$staffMetrics = array();
+	
+	if(is_array($timeRecords)) {
+		foreach($timeRecords as $recordItem) {
+			$record = is_object($recordItem) ? json_decode(json_encode($recordItem), true) : $recordItem;
+			if(!empty($record['start_time']) && !empty($record['end_time'])) {
+				$startTime = strtotime($record['start_time']);
+				$endTime = strtotime($record['end_time']);
+				$diffSeconds = $endTime - $startTime;
+				
+				if($diffSeconds > 0) {
+					$totalSeconds += $diffSeconds;
+					$assigned = $record['assigned'];
+					
+					if(!isset($staffMetrics[$assigned])) {
+						$staffMetrics[$assigned] = array(
+							'totalSeconds' => 0,
+							'taskCount' => 0,
+							'avgTimePerTask' => 0
+						);
+					}
+					
+					$staffMetrics[$assigned]['totalSeconds'] += $diffSeconds;
+					$staffMetrics[$assigned]['taskCount']++;
+				}
+			}
+		}
+		
+		// Calculate averages
+		foreach($staffMetrics as &$metric) {
+			$metric['totalTimeFormatted'] = $this->secondsToTimeFormat($metric['totalSeconds']);
+			$metric['totalTimeMinutes'] = round($metric['totalSeconds'] / 60, 2);
+			if($metric['taskCount'] > 0) {
+				$metric['avgTimePerTask'] = round($metric['totalSeconds'] / $metric['taskCount'], 2);
+				$metric['avgTimePerTaskFormatted'] = $this->secondsToTimeFormat($metric['avgTimePerTask']);
+			}
+		}
+		unset($metric);
+	}
+	
+	$responseArray = array(
+		'status' => 'true',
+		'value' => 'Staff time report',
+		'period' => array('startDate' => $startDate, 'endDate' => $endDate),
+		'totalTimeMinutes' => round($totalSeconds / 60, 2),
+		'totalTimeFormatted' => $this->secondsToTimeFormat($totalSeconds),
+		'recordCount' => is_array($timeRecords) ? count($timeRecords) : 0,
+		'staffMetrics' => $staffMetrics,
+		'records' => is_array($timeRecords) ? $timeRecords : array()
+	);
+	
+	$this->displayOutputJson($responseArray);
+}
 }
 
 ?>

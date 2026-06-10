@@ -10,7 +10,9 @@ $apiNamesArray =array(
 				'getStaffList'	=>'Get Staff List',
 				'getOutletCategories'	=>'Get Outlet Categories',
 				'getOutletServices'	=>'Get Outlet Services',
+				'serviceStatusCount'	=>'Service Status Count',
 				'getRoomRequest'	=>'Get Room Request',
+				'getRequestDetails'=>'Get Request Details',
                 );
 $keys = array_keys($apiNamesArray);
 ?>
