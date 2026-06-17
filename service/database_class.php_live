@@ -1,9 +1,9 @@
 <?php
 //////////////////////////////////////////////////////////////////////////////////////////////
 // File Name        : database_class.php													//
-// Craeted By       : Vishwajeet Mahadik													//
+// Craeted By       : vishu													//
 // Created Date     : 26-June-2019															//
-// File Modified By : Vishwajeet Mahadik													//
+// File Modified By : vishu													//
 // Modify  Date     : 26-June-2019															//
 // Description      : Database main service class to process db values						//
 //////////////////////////////////////////////////////////////////////////////////////////////

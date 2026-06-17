@@ -1,9 +1,9 @@
 <?php
 //////////////////////////////////////////////////////////////////////////////////////////
 // File Name        : constants.php														//
-// Craeted By       : Vishwajeet Mahadik												//
+// Craeted By       : vishu												//
 // Created Date     : 26-June-2019													    //
-// File Modified By : Vishwajeet Mahadik												//
+// File Modified By : vishu												//
 // Created Date     : 26-June-2019													 	//
 // Description      : Website Global constants variables initialize						//
 //////////////////////////////////////////////////////////////////////////////////////////

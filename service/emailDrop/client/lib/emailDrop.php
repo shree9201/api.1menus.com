@@ -1,9 +1,9 @@
 <?php
 ///////////////////////////////////////////
 // File Name        : emailDrop.php
-// Craeted By       : Vishwajeet Mahadik
+// Craeted By       : vishu
 // Created Date     : 20-11-2015
-// File Modified By : Vishwajeet Mahadik
+// File Modified By : vishu
 // Modify  Date     : 23-11-2015
 // Description      : This is file email process template
 ///////////////////////////////////////////

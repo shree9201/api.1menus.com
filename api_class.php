@@ -14,9 +14,9 @@ error_reporting(E_ALL);
 
 ///////////////////////////////////////////
 // File Name        : api_class.php
-// Craeted By       : Vishwajeet Mahadik
+// Craeted By       : vishu
 // Created Date     : 04-July-2020
-// File Modified By : Vishwajeet Mahadik
+// File Modified By : vishu
 // Modify  Date     : 04-July-2020
 // Description      : This is file API process functions. API methods for the Android  and IOS application.
 ///////////////////////////////////////////
@@ -218,7 +218,7 @@ class api_class {
 		}
 		$arrayName=array($arrayName);
 		$this->APIAccessLogs($arrayName); // log API access with response
-		echo json_encode($arrayName);
+		echo json_encode($arrayName[0]);
 		exit;
 	}
 	public function getCurldata($url) {
