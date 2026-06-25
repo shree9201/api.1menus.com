@@ -1713,7 +1713,7 @@ public function getDeviceIds(){
 	}
 }
 // function for sending push notification to staff devices
-public function sendPushNotification(){
+public function sendPushNotification($argStaffId="", $argTitle="", $argMessage=""){
 	try {
 		// Validate file exists
 		$pushFile = __DIR__ . '/push-notification/send_push.php';
@@ -1730,6 +1730,10 @@ public function sendPushNotification(){
 		}
 		$push = new PushNotification();
 		$this->getBodyJsonData();
+		if($argStaffId != ""){
+			$_REQUEST['staffId'] = $argStaffId;
+			$staffId = $argStaffId;
+		}
 		$staffId = $this->optionalParametterValidate($_REQUEST['staffId'], 'staffId');
 		
 		// Validate staff has devices
@@ -1739,6 +1743,14 @@ public function sendPushNotification(){
 			return;
 		}
 		
+		if($argTitle != ""){
+			$_REQUEST['title'] = $argTitle;
+			$title = $argTitle;
+		}
+		if($argMessage != ""){
+			$_REQUEST['message'] = $argMessage;
+			$message = $argMessage;
+		}
 		$deviceIdList = $this->db->select("select deviceType,deviceId from staff_devices where staffId=".$staffId." order by last_login DESC");
 		$title = $this->optionalParametterValidate($_REQUEST['title'], 'title');
 		$message = $this->optionalParametterValidate($_REQUEST['message'], 'message');
@@ -1784,15 +1796,19 @@ public function sendPushNotification(){
 				array_push($responseArraySet, array('deviceId' => isset($deviceToken) ? $deviceToken : 'unknown', 'status' => 'failed', 'error' => $e->getMessage()));
 			}
 		}
-		
-		$this->displayOutputJson(array(
+		$rteunArrayObject =array(
 			'status' => true,
 			'value' => 'Notifications processed',
 			'sent' => $successCount,
 			'failed' => $failureCount,
 			'totalDevices' => count($deviceIdList),
 			'response' => $responseArraySet
-		));
+		);
+		if($argStaffId != "" && $argTitle != "" && $argMessage != ""){
+			return $rteunArrayObject;
+		}else{
+			return $this->displayOutputJson($rteunArrayObject);
+		}
 		
 	} catch (Exception $e) {
 		$this->displayOutputJson(array(
@@ -1955,15 +1971,17 @@ public function getOutletServices(){
 	$responseArray = array();
 	
 	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
-	$filterBy = isset($_REQUEST['filterBy'])?$_REQUEST['filterBy']:"";
+	$filterBy = isset($_REQUEST['filterBy']) ? $_REQUEST['filterBy'] : array();
+	if (!is_array($filterBy)) {
+		$filterBy = array();
+	}
 	$filterBySqlString = "";
-	if(count($_REQUEST)>0 && $filterBy!=""){
-		for($f=0;$f<count($filterBy);$f++){
-			if(isset($filterBy[$f]['key']) && isset($filterBy[$f]['value'])){
-				$filterBySqlString .= " and ".$filterBy[$f]['key']."='".$filterBy[$f]['value']."'";
+	if (count($filterBy) > 0) {
+		for ($f = 0; $f < count($filterBy); $f++) {
+			if (isset($filterBy[$f]['key']) && isset($filterBy[$f]['value'])) {
+				$filterBySqlString .= " and " . $filterBy[$f]['key'] . "='" . $filterBy[$f]['value'] . "'";
 			}
 		}
-		
 	}
 	$outletValidatedResponse = $this->validateOutlet($outletId);
 	$value = $outletValidatedResponse['value'];
@@ -1977,10 +1995,22 @@ public function getOutletServices(){
 			$roomRequest = $this->db->select("select * from room_service_request where userId=".$outletId." ".$filterBySqlString." order by id DESC");	
 			
 			// Add time tracking metrics to each request
-			if(is_array($roomRequest) && count($roomRequest) > 0) {
-				foreach($roomRequest as &$request) {
-					$timeMetrics = $this->getRequestTimeMetrics($request['id'], $outletId);
-					$request['timeMetrics'] = $timeMetrics;
+			if (is_array($roomRequest) && count($roomRequest) > 0) {
+				foreach ($roomRequest as &$request) {
+					$requestId = null;
+					if (is_array($request) && isset($request['id'])) {
+						$requestId = $request['id'];
+					} elseif (is_object($request) && isset($request->id)) {
+						$requestId = $request->id;
+					}
+					if ($requestId !== null) {
+						$timeMetrics = $this->getRequestTimeMetrics($requestId, $outletId);
+						if (is_array($request)) {
+							$request['timeMetrics'] = $timeMetrics;
+						} elseif (is_object($request)) {
+							$request->timeMetrics = $timeMetrics;
+						}
+					}
 				}
 				unset($request);
 			}
@@ -2015,22 +2045,54 @@ public function serviceStatusCount(){
 public function getRequestDetails(){
 	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
 	$requestId = isset($_REQUEST['requestId'])?$_REQUEST['requestId']:"";
+	$responseArray = $this->getRequestDetailsById($outletId, $requestId);
+	$this->displayOutputJson($responseArray);
+}
+public function getRequestDetailsById($outletId, $requestId){
 	$requestDetails = $this->db->select("select * from room_service_request where userId=".$outletId." and id=".$requestId);
 	if(count($requestDetails)==0){
-		$responseArray =  array('status' => 'false','value' =>'No request found for this request id');
+		return array('status' => 'false','value' =>'No request found for this request id');
 	}else{
 		$activity = $this->db->select("select rsra.dateTime,rsra.status,rsra.comment,rsra.created_date,s.name as assignedTo,s.mobile as assignedMobile from room_service_request_activity rsra , staff s where rsra.assigned=s.id and rsra.reqId=".$requestId." and rsra.userId=".$outletId." order by rsra.id ASC");
-		
 		// Get time tracking details for this request
-		$timeTrackingData = $this->db->select("select * from room_service_request_staff_time_track where reqId=".$requestId." and userId=".$outletId." order by id ASC");
+		$timeTrackingData = $this->db->select("select * from room_service_request_activity where reqId=".$requestId." and userId=".$outletId." order by id ASC");
 		
 		// Add time metrics to request details
-		$timeMetrics = $this->getRequestTimeMetrics($requestId, $outletId);
+		$timeMetrics = array();
+		//$timeMetrics = $this->getRequestTimeMetrics($requestId, $outletId);
 		
 		// Enrich activity with time tracking information
-		$enrichedActivity = $this->enrichActivityWithTimeTracking($activity, $timeTrackingData);
-		
-		$responseArray =  array(
+		$activityTracker = array();
+		$lastEndTime = 0;
+		$totalTimeMinutes = 0;
+		for($a=0; $a<count($activity); $a++){
+			$start_time = isset($timeTrackingData[$a]->created_date) ? $timeTrackingData[$a]->created_date : null;
+			if($lastEndTime > 0 && $start_time !== null){
+				$activity[$a]->timeSpent = strtotime($start_time) - $lastEndTime;
+			} else {
+				$activity[$a]->timeSpent = 0;
+			}
+			$activity[$a]->startTime = $start_time;
+			$activity[$a]->endTime = $lastEndTime > 0 ? date("Y-m-d H:i:s", $lastEndTime) : null;
+			// timeSpent in minites
+			$activity[$a]->timeSpentMinutes = round($activity[$a]->timeSpent / 60, 2);
+			// timeSpent in hours and minutes
+			$hours = floor($activity[$a]->timeSpent / 3600);
+			$minutes = floor(($activity[$a]->timeSpent % 3600) / 60);
+			$totalTimeMinutes += $activity[$a]->timeSpentMinutes;
+			$activity[$a]->timeSpentFormatted = $hours . "h ". $minutes . "m";
+			$lastEndTime = isset($timeTrackingData[$a]->created_date) ? strtotime($timeTrackingData[$a]->created_date) : $lastEndTime;
+	
+			$activityTracker[] = $activity[$a];
+		}
+		$enrichedActivity =  $activityTracker;// $this->enrichActivityWithTimeTracking($activity, $timeTrackingData);
+		$timeMetrics = array(
+			'totalTimeMinutes' => $totalTimeMinutes,
+			'totalTimeFormatted' => $hours . "h ". $minutes . "m",
+			'activitiesCount' => count($enrichedActivity),
+			'averageTimePerActivityMinutes' => 0
+		);
+		return array(
 			'status' => 'true',
 			'value' => $requestDetails[0],
 			'activity' => is_array($enrichedActivity) ? $enrichedActivity : array(),
@@ -2038,8 +2100,56 @@ public function getRequestDetails(){
 			'timeMetrics' => $timeMetrics
 		);
 	}
-	$this->displayOutputJson($responseArray);
+}	
+// function for update service details for outlets
+public function updateRequest(){
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$requestId = isset($_REQUEST['requestId'])?$_REQUEST['requestId']:"";
+	$status = isset($_REQUEST['status'])?$_REQUEST['status']:"";
+	$comment = isset($_REQUEST['comment'])?$_REQUEST['comment']:"";
+	$assignedTo = isset($_REQUEST['assignedTo'])?$_REQUEST['assignedTo']:"";
+	
+	
+	if($this->db->selectCount("select count(*) as count from room_service_request where userId=".$outletId." and id=".$requestId)==0){
+		$responseArray =  array('status' => 'false','value' =>'No request found for this request id');
+		$this->displayOutputJson($responseArray);
+	}else{
+		$reqInfo = $this->db->select("select * from room_service_request where userId=".$outletId." and id=".$requestId);
+		$roomId = $reqInfo[0]->roomId?$reqInfo[0]->roomId:"";
+		$reqCode = $reqInfo[0]->reqCode?$reqInfo[0]->reqCode:"";
+		$currentStatus = $reqInfo[0]->status?$reqInfo[0]->status:"";
+		$updateArray = array(
+			'status' => $status,
+			'comment' => $comment,
+			'assignedTo' => $assignedTo,
+			'updated_date' => date("Y-m-d H:i:s")
+		);
+		$this->db->update("update room_service_request set status='".$status."',  assigned='".$assignedTo."', updated_date='".date("Y-m-d H:i:s")."' where userId=".$outletId." and id=".$requestId);
+
+		
+		// Insert into activity log
+		$activityArray = array(
+			'reqId' => $requestId,
+			'roomId' => $roomId,
+			'userId' => $outletId,
+			'status' => $status,
+			'comment' => $comment,
+			'assigned' => $assignedTo,
+			'dateTime' => date("Y-m-d H:i:s"),
+			'ip' => $_SERVER['REMOTE_ADDR'],
+			'created_date' => date("Y-m-d H:i:s")
+		);
+		$this->db->insert($activityArray, "room_service_request_activity");
+		$notificationDetails = $this->sendPushNotification($assignedTo, "Room Service Status: " . $status, "You have been assigned to a new room service request (Code: $reqCode) for Room ID: $roomId. Please check the app for details.");
+			$_REQUEST['outletId'] = $outletId;
+			$_REQUEST['requestId'] = $requestId;
+		$updatedDetails = $this->getRequestDetailsById($outletId, $requestId);
+		$responseArray =  array('status' => 'true','value' =>'Request updated successfully', 'requestDetails' => $updatedDetails, 'notificationDetails' => $notificationDetails);
+		$this->displayOutputJson($responseArray);
+	}
+	
 }
+
 
 /**
  * Calculate time metrics for a request
@@ -2111,32 +2221,112 @@ public function enrichActivityWithTimeTracking($activity, $timeTrackingData) {
 	if(!is_array($activity) || !is_array($timeTrackingData)) {
 		return $activity;
 	}
-	
 	// Create index of time tracking data by assigned staff
 	$timeIndex = array();
-	foreach($timeTrackingData as $trackItem) {
+	foreach ($timeTrackingData as $trackItem) {
 		$track = is_object($trackItem) ? json_decode(json_encode($trackItem), true) : $trackItem;
 		$assigned = isset($track['assigned']) ? $track['assigned'] : '';
-		if(!isset($timeIndex[$assigned])) {
+		if (!isset($timeIndex[$assigned])) {
 			$timeIndex[$assigned] = array();
 		}
 		$timeIndex[$assigned][] = $track;
 	}
-	
+	// Sort each staff's time records by created_date and compute timeData entries
+	foreach ($timeIndex as $assigned => &$records) {
+		usort($records, function($a, $b) {
+			echo "<br>".$createdA = isset($a['created_date']) ? strtotime($a['created_date']) : 0;
+			echo "<br>".$createdB = isset($b['created_date']) ? strtotime($b['created_date']) : 0;
+			if ($createdA === $createdB) {
+				$startA = isset($a['start_time']) ? strtotime($a['start_time']) : 0;
+				$startB = isset($b['start_time']) ? strtotime($b['start_time']) : 0;
+				if ($startA === $startB) {
+					return isset($a['id']) && isset($b['id']) ? $a['id'] - $b['id'] : 0;
+				}
+				return $startA < $startB ? -1 : 1;
+			}
+			return $createdA < $createdB ? -1 : 1;
+		});
+
+		$totalSeconds = 0;
+		$entries = array();
+		$overallStart = null;
+		$overallEnd = null;
+
+		for ($index = 0; $index < count($records); $index++) {
+			$record = $records[$index];
+			$start = !empty($record['start_time']) ? strtotime($record['start_time']) : (!empty($record['created_date']) ? strtotime($record['created_date']) : null);
+			$end = !empty($record['end_time']) ? strtotime($record['end_time']) : null;
+
+			// If end_time is missing, infer it from the next record's created_date
+			if ($start !== null && $end === null && isset($records[$index + 1])) {
+				$nextCreated = !empty($records[$index + 1]['created_date']) ? strtotime($records[$index + 1]['created_date']) : null;
+				if ($nextCreated !== null && $nextCreated > $start) {
+					$end = $nextCreated;
+				}
+			}
+
+			$durationSeconds = 0;
+			if ($start !== null && $end !== null) {
+				$durationSeconds = max(0, $end - $start);
+				$totalSeconds += $durationSeconds;
+			}
+
+			if ($start !== null) {
+				$overallStart = $overallStart === null || $start < $overallStart ? $start : $overallStart;
+			}
+			if ($end !== null) {
+				$overallEnd = $overallEnd === null || $end > $overallEnd ? $end : $overallEnd;
+			}
+
+			$entries[] = array(
+				'id' => isset($record['id']) ? $record['id'] : null,
+				'reqId' => isset($record['reqId']) ? $record['reqId'] : null,
+				'assigned' => $assigned,
+				'date' => isset($record['date']) ? $record['date'] : null,
+				'created_date' => isset($record['created_date']) ? $record['created_date'] : null,
+				'start_time' => $start !== null ? date('Y-m-d H:i:s', $start) : null,
+				'end_time' => $end !== null ? date('Y-m-d H:i:s', $end) : null,
+				'durationSeconds' => $durationSeconds,
+				'durationMinutes' => round($durationSeconds / 60, 2),
+				'durationHours' => round($durationSeconds / 3600, 2),
+				'durationFormatted' => $this->secondsToTimeFormat($durationSeconds)
+			);
+		}
+		$timeIndex[$assigned] = array(
+			'entries' => $entries,
+			'totalSeconds' => $totalSeconds,
+			'totalMinutes' => round($totalSeconds / 60, 2),
+			'totalHours' => round($totalSeconds / 3600, 2),
+			'totalFormatted' => $this->secondsToTimeFormat($totalSeconds),
+			'overallStartTime' => $overallStart !== null ? date('Y-m-d H:i:s', $overallStart) : null,
+			'overallEndTime' => $overallEnd !== null ? date('Y-m-d H:i:s', $overallEnd) : null,
+			'entryCount' => count($entries)
+		);
+	}
+	unset($records);
+
 	// Enrich activity with time data
-	foreach($activity as &$actItem) {
+	foreach ($activity as &$actItem) {
 		$actArray = is_object($actItem) ? json_decode(json_encode($actItem), true) : $actItem;
 		$assigned = isset($actArray['assignedTo']) ? $actArray['assignedTo'] : '';
-		$timeData = isset($timeIndex[$assigned]) ? $timeIndex[$assigned] : array();
-		
-		if(is_object($actItem)) {
+		$timeData = isset($timeIndex[$assigned]) ? $timeIndex[$assigned] : array(
+			'entries' => array(),
+			'totalSeconds' => 0,
+			'totalMinutes' => 0,
+			'totalFormatted' => '0m',
+			'overallStartTime' => null,
+			'overallEndTime' => null,
+			'entryCount' => 0
+		);
+
+		if (is_object($actItem)) {
 			$actItem->timeData = $timeData;
 		} else {
 			$actItem['timeData'] = $timeData;
 		}
 	}
 	unset($actItem);
-	
+
 	return $activity;
 }
 

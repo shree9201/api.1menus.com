@@ -13,6 +13,7 @@ $apiNamesArray =array(
 				'serviceStatusCount'	=>'Service Status Count',
 				'getRoomRequest'	=>'Get Room Request',
 				'getRequestDetails'=>'Get Request Details',
+				'updateRequest'	=>'Update Request',
                 );
 $keys = array_keys($apiNamesArray);
 ?>

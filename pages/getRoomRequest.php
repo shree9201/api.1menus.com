@@ -24,40 +24,38 @@ APIInfoPageStart($pageName, "Retrieves all available device IDs against staff id
         </details></td></tr>
             <tr><td>Response</td><td><details><summary><strong>Sample response</strong></summary>
 <pre>
-[
-    {
-        "status": true,
-        "value": "result found",
-        "count": 1,
-        "roomRequest": [
-            {
-                "id": "302",
-                "reqCode": "RSRQ-00000302",
-                "title": "",
-                "userId": "5",
-                "roomId": "199",
-                "serviceId": "68",
-                "assigned": "20",
-                "start_time": null,
-                "end_time": null,
-                "date": "2023-07-08",
-                "ip": "152.58.18.57",
-                "additionalField": "",
-                "audio": null,
-                "note": "",
-                "status": "NEW",
-                "escalated_by": null,
-                "created_date": "2023-07-08 22:29:39",
-                "updated_date": "2023-07-08 22:29:39",
-                "guestId": "0",
-                "guestName": "",
-                "guestMobile": "",
-                "guestCode": "",
-                "points": "0"
-            }
-        ]
-    }
-]    
+{
+    "status": true,
+    "value": "result found",
+    "count": 1,
+    "roomRequest": [
+        {
+            "id": "302",
+            "reqCode": "RSRQ-00000302",
+            "title": "",
+            "userId": "5",
+            "roomId": "199",
+            "serviceId": "68",
+            "assigned": "20",
+            "start_time": null,
+            "end_time": null,
+            "date": "2023-07-08",
+            "ip": "152.58.18.57",
+            "additionalField": "",
+            "audio": null,
+            "note": "",
+            "status": "NEW",
+            "escalated_by": null,
+            "created_date": "2023-07-08 22:29:39",
+            "updated_date": "2023-07-08 22:29:39",
+            "guestId": "0",
+            "guestName": "",
+            "guestMobile": "",
+            "guestCode": "",
+            "points": "0"
+        }
+    ]
+}
 </pre></details></td>
             </tr>
         </tbody>
