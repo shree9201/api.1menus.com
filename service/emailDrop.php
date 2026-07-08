@@ -1,16 +1,28 @@
 <?php
 ///////////////////////////////////////////
 // File Name        : emailDrop.php
-// Craeted By       : Vishwajeet Mahadik
+// Craeted By       : vishu
 // Created Date     : 1-Dec-2024
-// File Modified By : Vishwajeet Mahadik
+// File Modified By : vishu
 // Modify  Date     : 1-Dec-2024
 // Description      : This is file email process template
 ///////////////////////////////////////////
 
 class emailDrop {
-	//TODO - Insert your code here
-	
+	// Declared properties to avoid dynamic property deprecation warnings (PHP 8.2+)
+	public $request;
+	public $files;
+	public $responseArray;
+	public $urlBase;
+	public $url;
+	public $to;
+	public $from;
+	public $subject;
+	public $body;
+	public $type;
+	public $debug;
+	public $content;
+	public $emailSent;
 
 	function __construct() {
 	

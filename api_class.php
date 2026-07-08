@@ -1,22 +1,25 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Set headers and start session BEFORE any includes or error output
 header('Access-Control-Allow-Origin: *');
 header("Access-Control-Allow-Credentials: true");
 header('Access-Control-Allow-Methods: GET, PUT, POST, DELETE, OPTIONS');
 header('Access-Control-Max-Age: 1000');
 header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token , Authorization');
+header('Content-Type: application/json; charset=utf-8');
+session_start();
+
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 ///////////////////////////////////////////
 // File Name        : api_class.php
-// Craeted By       : Vishwajeet Mahadik
+// Craeted By       : vishu
 // Created Date     : 04-July-2020
-// File Modified By : Vishwajeet Mahadik
+// File Modified By : vishu
 // Modify  Date     : 04-July-2020
 // Description      : This is file API process functions. API methods for the Android  and IOS application.
 ///////////////////////////////////////////
-header( 'Content-Type: text/html; charset=utf-8' );
-session_start();
 // try multiple locations for includes to support different deployments
 function _safe_include_once_top(array $candidates, $name){
 	foreach($candidates as $file){
@@ -34,15 +37,27 @@ _safe_include_once_top(array(__DIR__.'/constant.php', __DIR__.'/service/constant
 _safe_include_once_top(array(__DIR__.'/service/database_class.php', __DIR__.'/database_class.php', __DIR__.'/../service/database_class.php'), 'database_class.php');
 _safe_include_once_top(array(__DIR__.'/emailDrop.php', __DIR__.'/service/emailDrop.php', __DIR__.'/../emailDrop.php'), 'emailDrop.php');
 _safe_include_once_top(array(__DIR__.'/massages.php', __DIR__.'/service/massages.php', __DIR__.'/../massages.php'), 'massages.php');
+_safe_include_once_top(array(__DIR__.'/jwt.php', __DIR__.'/service/jwt.php', __DIR__.'/../jwt.php'), 'jwt.php');
 class api_class {
 	
 	var $post;
 	var $get;
 	var $request;
-	var $dbclass;
 	var $files;
-	
-
+	var $email;
+	var $db;
+	var $responseArray;
+	var $response;
+	var $sessionInfo;
+	var $loginUserId;
+	var $action;
+	var $ip;
+	var $config;
+	var $statusList;
+	var $hotelWebsiteThemes;
+	var $staffTypes;
+	var $departments;
+	var $message;
 	public function __construct(){
 		$this->post = $_POST;
 		$this->get = $_GET;
@@ -54,12 +69,27 @@ class api_class {
 		$this->responseArray = array();
 		$this->response = "";
 		$this->sessionInfo = explode('_', isset($_SESSION['people']) ? $_SESSION['people'] : "");
+		$this->responseArray = array();
+		$this->sessionInfo 	= isset($_SESSION['userInfo'])?$_SESSION['userInfo']:"";
+		$this->loginUserId = isset($this->sessionInfo['id'])?$this->sessionInfo['id']:'';
+		$this->action = isset($_REQUEST['action'])?$_REQUEST['action']:"";
+		$this->ip = isset($_SERVER['REMOTE_ADDR'])?$_SERVER['REMOTE_ADDR']:'';
+		$this->config = $this->db->selectSingleRowData('config', 1);
+		$this->statusList = array('NEW'=>'NEW' , 'ACCEPT'=>'ACCEPT','ASSIGN' => 'ASSIGN' , 'START'=>'START','HOLD'=>'HOLD','END'=>'END','DONE'=>'DONE','CLOSE'=>'CLOSE','REJECT'=>'REJECT','REOPEN'=>'REOPEN');
+		$this->hotelWebsiteThemes = array("HotWebTheme-1"=>'HotWebTheme-1');
+		$this->staffTypes = [['key' => 'FOMGR','value' => 'Front Office Manager'],['key' => 'FOSU','value' => 'Front Office Supervisor'],['key' => 'FO','value' => 'Front Office Executive'],['key' => 'HKMGR','value' => 'House Keeping Manager'],['key' => 'HKSU','value' => 'House Keeping Supervisor'],['key' => 'HK','value' => 'House Keeping Executive'],['key' => 'MTNS','value' => 'Maintenance'],['key' => 'SPA','value' => 'Spa'],['key' => 'WAITER-STAFF','value' => 'Waiter/Staff'],['key' => 'KITCHEN','value' => 'Kitchen']];
+		$this->departments = [['key' => 'STAFF','value' => 'Staff'],['key'=>'MANAGER','value'=>'Manager'],['key'=>'HR','value'=>'HR']];
+		// jwt_token authentication for API access validation can be implemented here if needed for all API calls
+		$this->getBodyJsonData();
+		if($_REQUEST['action'] !== 'getJwtToken'){ // skip token validation for getJwtToken API to allow clients to obtain token
+			 $this->getAndValidateHeaderTokenForJWT();
+			 
+		}
 	}
 
 	public function getBodyJsonData(){
 		$json = file_get_contents('php://input'); 
 	$data = json_decode($json, true);
-	header('Content-Type: application/json');
 	// convert $data to request param array (only if decoded to array)
 	if (is_array($data)) {
 		foreach ($data as $key => $value) {
@@ -182,9 +212,13 @@ class api_class {
 	// function for throw error message
 	public	function displayOutputJson($arrayName)
 	{
-		header('Content-type: application/json');
+		$status = isset($arrayName['status']) ? $arrayName['status'] : 200;
+		if($status === false ||  $status === 'false' || (is_string($status) && strtolower($status) === 'false')){
+			http_response_code(500);
+		}
 		$arrayName=array($arrayName);
-		echo json_encode($arrayName);
+		$this->APIAccessLogs($arrayName); // log API access with response
+		echo json_encode($arrayName[0]);
 		exit;
 	}
 	public function getCurldata($url) {
@@ -199,7 +233,34 @@ class api_class {
 	
 		return $data;
 	}
-	public function applicationAPI($url) {
+	public function getAuthorizationHeader(){
+	// Read the Authorization header from common server variables.
+	$headers = null;
+	if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+		$headers = trim($_SERVER['HTTP_AUTHORIZATION']);
+	} elseif (isset($_SERVER['Authorization'])) {
+		$headers = trim($_SERVER['Authorization']);
+	} elseif (function_exists('apache_request_headers')) {
+		$requestHeaders = apache_request_headers();
+		if (isset($requestHeaders['Authorization'])) {
+			$headers = trim($requestHeaders['Authorization']);
+		} elseif (isset($requestHeaders['authorization'])) {
+			$headers = trim($requestHeaders['authorization']);
+		}
+	}
+	return $headers;
+}
+
+public function getBearerToken(){
+	$header = $this->getAuthorizationHeader();
+	// Extract Bearer token from header value like: Authorization: Bearer TOKEN
+	if (!empty($header) && preg_match('/Bearer\s+(.*)$/i', $header, $matches)) {
+		return trim($matches[1]);
+	}
+	return "";
+}
+
+public function applicationAPI($url) {
 		$ch = curl_init();	
 		curl_setopt($ch, CURLOPT_HEADER, 0);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); //Set curl to return the data instead of printing it to the browser.
@@ -329,18 +390,112 @@ public function imgSourceReturn($src){
 	return  CMS_MEDIA_PATH.$url;
 
 }
-public function APIIsValidToken($token,$id){
-	if($token!="" && $id!=""){
-		$count = $this->db->selectCount("select count(*) as count from users where id=".$id." and token='".$token."'");
-		if($count == 0){
-			$responseArray =  array('status' => false,'value'=>'Invalid Account Id or Token');
-			$this->displayOutputJson($responseArray);
-		}else{ return true;
-		}
-	}else{
-		$responseArray =  array('status' => false,'value'=>'Missing Data for Token or Account id');
-		$this->displayOutputJson($responseArray);
+public function APIIsValidToken($token,&$id = null){
+	if($token == ""){
+		$token = isset($_REQUEST['jwt_token']) ? $_REQUEST['jwt_token'] : $this->getBearerToken();
 	}
+	if($token != ""){
+		if(strpos($token, '.') !== false){
+			$payload = null;
+			if(!$this->validateJwtToken($token, $payload)){
+				$responseArray =  array('status' => false,'value'=>'Invalid or expired JWT token');
+				$this->displayOutputJson($responseArray);
+			}
+			if(isset($payload['sub'])){
+				$tokenUserId = intval($payload['sub']);
+				if($tokenUserId <= 0){
+					$responseArray =  array('status' => false,'value'=>'Invalid JWT subject value');
+					$this->displayOutputJson($responseArray);
+				}
+				if(empty($id)){
+					$id = $tokenUserId;
+				} elseif(intval($id) !== $tokenUserId){
+					$responseArray =  array('status' => false,'value'=>'JWT token subject does not match requested user id');
+					$this->displayOutputJson($responseArray);
+				}
+			}
+			return true;
+		}
+		if(empty($id)){
+			$responseArray =  array('status' => false,'value'=>'Missing Account id for legacy token validation');
+			$this->displayOutputJson($responseArray);
+		}
+		$count = $this->db->selectCount("select count(*) as count from jwt_tokens_user where id=".$id." and token='".addslashes($token)."'");
+		if($count == 0){
+			$responseArray =  array('status' => false,'value'=>'Invalid legacy token or account id, Please contact to support team');
+			// return API response code is 500
+			 http_response_code(500);
+			$this->displayOutputJson($responseArray);
+		}else{
+			return true;
+		}
+	}
+	$responseArray =  array('status' => false,'value'=>'Missing Data for Token or Account id');
+	$this->displayOutputJson($responseArray);
+}
+
+public function validateJwtToken($token, &$payload = null){
+	$payload = JWTHandler::decode($token, JWT_SECRET_KEY);
+	if(!$payload || !is_array($payload)){
+		return false;
+	}
+	if(!isset($payload['exp']) || time() > intval($payload['exp'])){
+		return false;
+	}
+	if(!isset($payload['sub'])){
+		return false;
+	}
+	$userId = intval($payload['sub']);
+	if($userId <= 0){
+		return false;
+	}
+	$count = $this->db->selectCount("select count(*) as count from jwt_tokens_user where id=".$userId." and jwt_token='".addslashes($token)."' and jwt_expires_at >= NOW()");
+	if($count == 0){
+		return false;
+	}
+	return true;
+}
+
+public function generateJwtToken($userId){
+	$issuedAt = time();
+	$expiresAt = $issuedAt + JWT_EXPIRE_SECONDS;
+	$payload = array(
+		'iss' => SITE_URL,
+		'aud' => API_URL,
+		'iat' => $issuedAt,
+		'exp' => $expiresAt,
+		'sub' => $userId,
+		'userId' => $userId
+	);
+	$jwt = JWTHandler::encode($payload, JWT_SECRET_KEY, JWT_ALGORITHM);
+	$expiresAtSql = date('Y-m-d H:i:s', $expiresAt);
+	
+	// Store JWT in the dedicated jwt_tokens_user table to match validation logic.
+	if($this->db->selectCount("select count(*) as count from jwt_tokens_user where id=".$userId) == 0){
+		$this->db->insert(array(
+			'id' => $userId,
+			'jwt_token' => $jwt,
+			'jwt_expires_at' => $expiresAtSql
+		), 'jwt_tokens_user');
+	} else {
+		$this->db->update("update jwt_tokens_user set jwt_token='".addslashes($jwt)."', jwt_expires_at='".$expiresAtSql."' where id=".$userId);
+	}
+	return $jwt;
+}
+
+public function getJwtToken(){
+	$id = $this->optionalParametterValidate($_REQUEST['id'], 'id');
+	$token = $this->optionalParametterValidate($_REQUEST['token'], 'token');
+	//$this->APIIsValidToken($token, $id);
+	$jwt = $this->generateJwtToken($id);
+	$responseArray = array(
+		'status' => true,
+		'value' => 'JWT token created successfully',
+		'jwtToken' => $jwt,
+		'expiresAt' => date('Y-m-d H:i:s', time() + JWT_EXPIRE_SECONDS),
+		'tokenType' => 'Bearer'
+	);
+	$this->displayOutputJson($responseArray);
 }
 public function APIIsItemPresents($table,$id){
 	if($table!="" && $id!=""){
@@ -364,9 +519,6 @@ public function APIReturnListData($list){
 	$this->displayOutputJson($responseArray);
 }
 /////************************************** Application related process APIs **********************************//////
-public function test(){
-	$this->getBodyJsonData();
-}
 public function getAppConfig(){
 	$responseArray = array();
 
@@ -379,7 +531,6 @@ public function getAppConfig(){
 	$this->displayOutputJson($responseArray);
 }
 public function outletInfo(){
-$this->getBodyJsonData();
 
     $city 	= isset($_REQUEST['city'])?$_REQUEST['city']:"";
     $name 	= isset($_REQUEST['name'])?$_REQUEST['name']:"";
@@ -484,7 +635,6 @@ $this->getBodyJsonData();
 }
 
 public function getData(){
-	$this->getBodyJsonData();
 	$responseArray = array();
 	$allowedTables = array('category', 'menu', 'banner', 'food_order', 'bill', 'bill_items');
 	$table = isset($_REQUEST['table']) ? $_REQUEST['table'] : "";
@@ -511,7 +661,6 @@ public function getData(){
 	$this->displayOutputJson($responseArray);
 }
 public function getBanners(){
-$this->getBodyJsonData();
 	$id 		= isset($_REQUEST['id'])?$_REQUEST['id']:"";
 	$token 	= isset($_REQUEST['token'])?$_REQUEST['token']:"";
 	$this->optionalParametterValidate($_REQUEST['id'], 'id');
@@ -539,7 +688,6 @@ $this->getBodyJsonData();
 	$this->APIReturnListData($returnData);
 }
 public function getReviews(){
-$this->getBodyJsonData();
 	$id 		= isset($_REQUEST['id'])?$_REQUEST['id']:"";
 	$token 	= isset($_REQUEST['token'])?$_REQUEST['token']:"";
 	$this->optionalParametterValidate($_REQUEST['id'], 'id');
@@ -610,7 +758,6 @@ public function getReviewQuestions(){
 	$this->displayOutputJson($responseArray);
 }
 public function addReview(){
-	$this->getBodyJsonData();
 	//id=5&token=of0prgMawPXEaglEpHIm5zAA9iNIwuExRzDAkxsVTIe&name=Vishwajeet%20Mahadik&mobile=7709034176&rating=4&comment=123123&date=Wed%20Jan%2007%202026%2020:40:03%20GMT%2B0530%20(India%20Standard%20Time)
 	$id = isset($_REQUEST['id'])?$_REQUEST['id']:"";
 	$token = isset($_REQUEST['token'])?$_REQUEST['token']:"";
@@ -829,7 +976,7 @@ $this->getBodyJsonData();
 	$popularItems = $this->db->select("SELECT m.id, m.title, m.cid,m.img as mediaID, IFNULL(NULLIF(i.photo, ''), 'https://1menus.com/app/b2c/assets/img/foodIcon.png') AS img FROM menu m LEFT JOIN images i ON m.img = i.id WHERE m.userId=".$id." AND m.populate='YES' AND m.status='YES' ORDER BY m.sq ASC");
 	$this->APIReturnListData($popularItems);
 }
-public function getOutletInfo(){
+public function getOutletInfo($return=false){
 	$id 		= isset($_REQUEST['id'])?$_REQUEST['id']:"";
 	$mobile 	= isset($_REQUEST['mobile'])?$_REQUEST['mobile']:"";
 	$username 	= isset($_REQUEST['username'])?$_REQUEST['username']:"";
@@ -837,7 +984,7 @@ public function getOutletInfo(){
 	$this->optionalParametterValidate($_REQUEST['id'], 'id');
 	$this->optionalParametterValidate($_REQUEST['mobile'], 'mobile');
 	$this->optionalParametterValidate($_REQUEST['username'], 'username');
-	$this->APIIsValidToken($token, $id);
+	//$this->APIIsValidToken($token, $id);
 	if($this->db->selectCount("select count(*) as count from users where id=".$id." and mobile='".$mobile."' and username='".$username."' and token='".$token."'" )==0){
 		$responseArray =  array('status' => 'false','value' =>'Invalid Details for fetch data for outlets');
 	}else{
@@ -849,7 +996,7 @@ public function getOutletInfo(){
 		$responseArray =  array('status' => 'true','value' =>$info[0]);
 		}
 	}
-	$this->displayOutputJson($responseArray);
+		$this->displayOutputJson($responseArray);
 }
 public function getLiveOrders(){
 	$responseArray = array();
@@ -1191,11 +1338,6 @@ public function signup(){
 	}
 	$this->displayOutputJson($responseArray);
 }
-
-public function login(){
-	
-}
-public function socialLogin(){}
 public function test2(){
 	header('Access-Control-Allow-Origin: *');
 	header("Access-Control-Allow-Credentials: true");
@@ -1448,9 +1590,6 @@ public function products(){
     $responseArray =  array('status' => 'true','category'=>$categoryList,'value' =>$info);
     $this->displayOutputJson($responseArray);
 }
-public function getSession(){
-	echo "Hello";	
-}
 public function takeAwayEmailTrigger($userInfo,$orderInfo){
 	$to = $userInfo->email?$userInfo->email:'';
 	if($to!=""){
@@ -1513,6 +1652,7 @@ print_r($em);
 	public function staffLogin(){
 		$this->getBodyJsonData();
 		$outletId = $this->optionalParametterValidate($_REQUEST['outletId'], 'outletId');
+		$userType = $this->optionalParametterValidate($_REQUEST['userType'], 'userType');
 		$username = $this->optionalParametterValidate($_REQUEST['username'], 'username');
 		$password = $this->optionalParametterValidate($_REQUEST['password'], 'password');
 		$deviceType = $this->optionalParametterValidate($_REQUEST['deviceType'], 'deviceType');
@@ -1521,8 +1661,14 @@ print_r($em);
 			$responseArray =  array('status' => 'false','value' =>'Invalid username or password');
 			$this->displayOutputJson($responseArray);
 		}else{
-			$staffInfo = $this->db->select("select * from staff where userId='".$outletId."' and username='".$username."' and password='".$password."'");
+			$staffInfo = $this->db->select("select * from staff where department='".$userType."' and userId='".$outletId."' and username='".$username."' and password='".$password."'");
+			if(count($staffInfo)==0){
+				$responseArray =  array('status' => 'false','value' =>'Invalid username or password');
+				$this->displayOutputJson($responseArray);
+			}else{
 			$staffInfo = $staffInfo[0];
+			$staffInfo->outletId = $staffInfo->userId;
+			
 			if($staffInfo->status == 'NO'){
 				$responseArray =  array('status' => 'false','value' =>'Your account has been disabled, please contact to outlet admin');
 				$this->displayOutputJson($responseArray);
@@ -1546,9 +1692,13 @@ print_r($em);
 					}
 					$responseArray =  array('status' => 'true','value' =>$staffInfo,'devices'=>$deviceIdList);
 				}
+		
+		}
 			$this->displayOutputJson($responseArray);
 		}
 }
+
+/* Application Level API Methods */
 public function getDeviceIds(){
 	
 	$this->getBodyJsonData();
@@ -1564,7 +1714,7 @@ public function getDeviceIds(){
 	}
 }
 // function for sending push notification to staff devices
-public function sendPushNotification(){
+public function sendPushNotification($argStaffId="", $argTitle="", $argMessage=""){
 	try {
 		// Validate file exists
 		$pushFile = __DIR__ . '/push-notification/send_push.php';
@@ -1581,6 +1731,10 @@ public function sendPushNotification(){
 		}
 		$push = new PushNotification();
 		$this->getBodyJsonData();
+		if($argStaffId != ""){
+			$_REQUEST['staffId'] = $argStaffId;
+			$staffId = $argStaffId;
+		}
 		$staffId = $this->optionalParametterValidate($_REQUEST['staffId'], 'staffId');
 		
 		// Validate staff has devices
@@ -1590,6 +1744,14 @@ public function sendPushNotification(){
 			return;
 		}
 		
+		if($argTitle != ""){
+			$_REQUEST['title'] = $argTitle;
+			$title = $argTitle;
+		}
+		if($argMessage != ""){
+			$_REQUEST['message'] = $argMessage;
+			$message = $argMessage;
+		}
 		$deviceIdList = $this->db->select("select deviceType,deviceId from staff_devices where staffId=".$staffId." order by last_login DESC");
 		$title = $this->optionalParametterValidate($_REQUEST['title'], 'title');
 		$message = $this->optionalParametterValidate($_REQUEST['message'], 'message');
@@ -1635,15 +1797,19 @@ public function sendPushNotification(){
 				array_push($responseArraySet, array('deviceId' => isset($deviceToken) ? $deviceToken : 'unknown', 'status' => 'failed', 'error' => $e->getMessage()));
 			}
 		}
-		
-		$this->displayOutputJson(array(
+		$rteunArrayObject =array(
 			'status' => true,
 			'value' => 'Notifications processed',
 			'sent' => $successCount,
 			'failed' => $failureCount,
 			'totalDevices' => count($deviceIdList),
 			'response' => $responseArraySet
-		));
+		);
+		if($argStaffId != "" && $argTitle != "" && $argMessage != ""){
+			return $rteunArrayObject;
+		}else{
+			return $this->displayOutputJson($rteunArrayObject);
+		}
 		
 	} catch (Exception $e) {
 		$this->displayOutputJson(array(
@@ -1658,7 +1824,6 @@ public function sendPushNotification(){
 
 // function for get a list of staff
 public function getStaffList(){
-	$this->getBodyJsonData();
 	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
 	if($this->db->selectCount("select count(*) as count from staff where userId=".$outletId)==0){
 		$responseArray =  array('status' => 'false','value' =>'No staff found for this outlet');
@@ -1669,5 +1834,720 @@ public function getStaffList(){
 		$this->displayOutputJson($responseArray);
 	}
 }
+public function getAndValidateHeaderTokenForJWT(){
+	// Fetch all headers into an associative array
+$headers = getallheaders(); 
+// Target key (Note: header names are case-insensitive, but arrays are case-sensitive)
+$token = isset($headers['Token']) ? $headers['Token'] : null;
+$id = isset($headers['Id']) ? $headers['Id'] : null;
+
+if($token == null || $id == null){
+	$responseArray =  array('status' => 'false', 'value' => "Token and Id headers are required");
+	$this->displayOutputJson($responseArray);
+}else{
+	$p = $this->APIIsValidToken($token, $id);	
 }
+
+}
+
+// function for log API access for JWT token based authentication for 1menus private project
+public function APIAccessLogs($responseArray){
+	$headers = getallheaders();
+		$json = file_get_contents('php://input'); 
+	$requestBody = json_decode($json, true);
+	$requestMethod = $_SERVER['REQUEST_METHOD'];
+// Target key (Note: header names are case-insensitive, but arrays are case-sensitive)
+$token = isset($headers['Token']) ? $headers['Token'] : null;
+$id = isset($headers['Id']) ? $headers['Id'] : null;
+$title = $this->db->getMyRecordValue('jwt_tokens_user', $id, 'title');
+$date = date("Y-m-d");
+$request = $json;
+$response = json_encode($responseArray);
+	$existingTokenCount = $this->db->selectCount("select count(*) as count from jwt_tokens_log where date = '".$date."' and jwt_tokens_user=".$id." and jwt_token='".$token."' and method='".$requestMethod."' and request='".$request."'");
+	if($existingTokenCount !=0){
+		// update date_time and count+1
+		$this->db->update("update jwt_tokens_log set date_time='".date("Y-m-d H:i:s")."', count=count+1 where date = '".$date."' and jwt_tokens_user=".$id." and jwt_token='".$token."' and method='".$requestMethod."' and request='".$request."'");
+	}else{
+	$insertArray = array(
+		'title' => $title,
+		'jwt_tokens_user' => $id,
+		'jwt_token' => $token,
+		'date'=> $date,
+		'IP' => $_SERVER['REMOTE_ADDR'],
+		'date_time' => date("Y-m-d H:i:s"),
+		'method' => $requestMethod,
+		'request' => $request,
+		'response' => $response
+	);
+	$this->db->insert($insertArray, 'jwt_tokens_log');
+	}
+}
+
+// function for get master data for 1menus private project
+public function masterData(){
+	$responseArray =  array('status' => 'true', 'value' => 'Master data retrieved successfully', 'staffTypes' =>$this->staffTypes,'departments'=>$this->departments,'statusList'=>$this->statusList);
+	$this->displayOutputJson($responseArray);
+}
+
+// function for validate outlet for 1menus private project
+public function validateOutlet($outletId){
+	$responseArray = array();
+	$info = $this->db->select("select * from users where id=".$outletId);
+	if(count($info)==0){
+		$responseArray =  array('status' => false,'value' =>'Invalid Outlet Id');
+	}else{
+		$info = $info[0];
+	$id 		= $info->id?$info->id:$outletId;
+	$mobile 	= $info->mobile?$info->mobile:"";
+	$username 	= $info->username?$info->username:"";
+	$token 	= $info->token?$info->token:"";
+	if($this->db->selectCount("select count(*) as count from users where id=".$id." and mobile='".$mobile."' and username='".$username."' and token='".$token."'" )==0){
+		$responseArray =  array('status' => 'false','value' =>'Invalid Details for fetch data for outlets');
+	}else{
+		$info = $this->db->select("select * from users where id=".$id." and mobile='".$mobile."' and username='".$username."' and token='".$token."'");
+		if($info[0]->status == 'NO'){
+			$responseArray =  array('status' => 'false','value' =>'Outlet account has been disabled');
+		}else{
+			$info[0]->password = "***";
+			$responseArray =  array('status' => 'true','value' =>$info[0]);
+		}
+	}
+	}
+	return $responseArray;
+}
+
+// function for get room service my services list for outlet
+public function getOutletServices($return=false){
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$id = isset($_REQUEST['id'])?$_REQUEST['id']:"";
+	$outletValidatedResponse = $this->validateOutlet($outletId);
+	$value = $outletValidatedResponse['value'];
+	$status = $outletValidatedResponse['status'];
+	// check $status is string or boolean and convert to boolean
+	if(is_string($status)) {
+	$status = ($status === 'true') ? true : false;
+	}
+	$responseArray = array();
+		if($status){
+			$sql = "select * from room_service_my_service where userId=".$outletId." and status='YES' ";
+			if($id!=""){
+				$sql .= " and id=".$id;
+			}
+			$sql .= " order by sq ASC";
+			$room_service_my_service = $this->db->select($sql);
+			$responseArray = array(
+				'status' => $status,
+				'value' => 'result found',
+				'count' => is_array($room_service_my_service) ? count($room_service_my_service) : 0,
+				'services' => is_array($room_service_my_service) ? $room_service_my_service : array()
+			);
+		}else{
+			$responseArray =  array('status' => $status,'value' =>$value);
+		}
+		if($return){
+			return $responseArray;
+		}else{
+			$this->displayOutputJson($responseArray);
+		}
+	}
+	// function for get room service categories for outlet
+	public function getOutletCategories(){
+		$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$outletValidatedResponse = $this->validateOutlet($outletId);
+	$value = $outletValidatedResponse['value'];
+	$status = $outletValidatedResponse['status'];
+	// check $status is string or boolean and convert to boolean
+	if(is_string($status)) {
+	$status = ($status === 'true') ? true : false;
+	}
+	$responseArray = array();
+		if($status){
+			$serviceCategory = $this->db->select("select id,title,subTitle from room_service_my_category where userId=".$outletId." and status='YES' order by sq ASC");	
+			$responseArray = array(
+				'status' => $status,
+				'value' => 'result found',
+				'count' => is_array($serviceCategory) ? count($serviceCategory) : 0,
+				'services' => is_array($serviceCategory) ? $serviceCategory : array()
+			);
+			
+		}else{
+			$responseArray =  array('status' => $status,'value' =>$value);
+		}
+	
+	$this->displayOutputJson($responseArray);
+	}
+
+	// function for get room service request list for outlet
+	public function getRoomRequest(){
+	$responseArray = array();
+	$limit = isset($_REQUEST['limit'])?$_REQUEST['limit']:" 0 ,100";
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$filterBy = isset($_REQUEST['filterBy']) ? $_REQUEST['filterBy'] : array();
+	if (!is_array($filterBy)) {
+		$filterBy = array();
+	}
+	$filterBySqlString = "";
+	if (count($filterBy) > 0) {
+		for ($f = 0; $f < count($filterBy); $f++) {
+			if (isset($filterBy[$f]['key']) && isset($filterBy[$f]['value'])) {
+				$filterBySqlString .= " and " . $filterBy[$f]['key'] . "='" . $filterBy[$f]['value'] . "'";
+			}
+		}
+	}
+	$outletValidatedResponse = $this->validateOutlet($outletId);
+	$value = $outletValidatedResponse['value'];
+	$status = $outletValidatedResponse['status'];
+	// check $status is string or boolean and convert to boolean
+	if(is_string($status)) {
+	$status = ($status === 'true') ? true : false;
+	}
+	$responseArray = array();
+		if($status){
+			$sql = "select * from room_service_request where userId=".$outletId." ".$filterBySqlString." order by id DESC";
+			if($limit!=""){
+				$sql .= " limit ".$limit;
+			}
+			$roomRequest = $this->db->select($sql);
+			
+			// Add time tracking metrics to each request
+			if (is_array($roomRequest) && count($roomRequest) > 0) {
+				foreach ($roomRequest as &$request) {
+					$requestId = null;
+					if (is_array($request) && isset($request['id'])) {
+						$requestId = $request['id'];
+					} elseif (is_object($request) && isset($request->id)) {
+						$requestId = $request->id;
+					}
+					if ($requestId !== null) {
+						$timeMetrics = $this->getRequestTimeMetrics($requestId, $outletId);
+						if (is_array($request)) {
+							$request['timeMetrics'] = $timeMetrics;
+						} elseif (is_object($request)) {
+							$request->timeMetrics = $timeMetrics;
+						}
+					}
+				}
+				unset($request);
+			}
+			
+			$responseArray = array(
+				'status' => $status,
+				'value' => 'result found',
+				'count' => is_array($roomRequest) ? count($roomRequest) : 0,
+				'roomRequest' => is_array($roomRequest) ? $roomRequest : array()
+			);
+			
+		}else{
+			$responseArray =  array('status' => $status,'value' =>$value);
+		}
+	$this->displayOutputJson($responseArray);
+}
+
+// function for get outlet request overview counts
+public function serviceStatusCount(){
+	$myRoomServiceRequestCountByStatus = array();
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$sql = "select status, count(*) as count from room_service_request where userId=".$outletId." group by status";
+	$myRoomServiceRequestCountByStatus = $this->db->select($sql);
+	$responseArray = array(
+		'status' => true,
+		'value' => 'result found',
+		'countByStatus' => is_array($myRoomServiceRequestCountByStatus) ? $myRoomServiceRequestCountByStatus : array()
+	);
+	$this->displayOutputJson($responseArray);	
+}
+
+public function getRequestDetails(){
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$requestId = isset($_REQUEST['requestId'])?$_REQUEST['requestId']:"";
+	$responseArray = $this->getRequestDetailsById($outletId, $requestId);
+	$this->displayOutputJson($responseArray);
+}
+public function getRequestDetailsById($outletId, $requestId){
+	$requestDetails = $this->db->select("select * from room_service_request where userId=".$outletId." and id=".$requestId);
+	if(count($requestDetails)==0){
+		return array('status' => 'false','value' =>'No request found for this request id');
+	}else{
+		$activity = $this->db->select("select rsra.dateTime,rsra.status,rsra.comment,rsra.created_date,s.name as assignedTo,s.mobile as assignedMobile from room_service_request_activity rsra , staff s where rsra.assigned=s.id and rsra.reqId=".$requestId." and rsra.userId=".$outletId." order by rsra.id ASC");
+		// Get time tracking details for this request
+		$timeTrackingData = $this->db->select("select * from room_service_request_activity where reqId=".$requestId." and userId=".$outletId." order by id ASC");
+		
+		// Add time metrics to request details
+		$timeMetrics = array();
+		//$timeMetrics = $this->getRequestTimeMetrics($requestId, $outletId);
+		
+		// Enrich activity with time tracking information
+		$activityTracker = array();
+		$lastEndTime = 0;
+		$totalTimeMinutes = 0;
+		for($a=0; $a<count($activity); $a++){
+			$start_time = isset($timeTrackingData[$a]->created_date) ? $timeTrackingData[$a]->created_date : null;
+			if($lastEndTime > 0 && $start_time !== null){
+				$activity[$a]->timeSpent = strtotime($start_time) - $lastEndTime;
+			} else {
+				$activity[$a]->timeSpent = 0;
+			}
+			$activity[$a]->startTime = $start_time;
+			$activity[$a]->endTime = $lastEndTime > 0 ? date("Y-m-d H:i:s", $lastEndTime) : null;
+			// timeSpent in minites
+			$activity[$a]->timeSpentMinutes = round($activity[$a]->timeSpent / 60, 2);
+			// timeSpent in hours and minutes
+			$hours = floor($activity[$a]->timeSpent / 3600);
+			$minutes = floor(($activity[$a]->timeSpent % 3600) / 60);
+			$totalTimeMinutes += $activity[$a]->timeSpentMinutes;
+			$activity[$a]->timeSpentFormatted = $hours . "h ". $minutes . "m";
+			$lastEndTime = isset($timeTrackingData[$a]->created_date) ? strtotime($timeTrackingData[$a]->created_date) : $lastEndTime;
+	
+			$activityTracker[] = $activity[$a];
+		}
+		$enrichedActivity =  $activityTracker;// $this->enrichActivityWithTimeTracking($activity, $timeTrackingData);
+		$timeMetrics = array(
+			'totalTimeMinutes' => $totalTimeMinutes,
+			'totalTimeFormatted' => $hours . "h ". $minutes . "m",
+			'activitiesCount' => count($enrichedActivity),
+			'averageTimePerActivityMinutes' => 0
+		);
+		$_REQUEST['id'] = $requestDetails[0]->serviceId;
+		$serviceDetails  = $this->getOutletServices(true);
+		
+		return array(
+			'status' => 'true',
+			'value' => $requestDetails[0],
+			'serviceDetails' => $serviceDetails['services'][0],
+			'activity' => is_array($enrichedActivity) ? $enrichedActivity : array(),
+			'timeMetrics' => $timeMetrics
+		);
+	}
+}	
+// function for update service details for outlets
+public function updateRequest(){
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$requestId = isset($_REQUEST['requestId'])?$_REQUEST['requestId']:"";
+	$status = isset($_REQUEST['status'])?$_REQUEST['status']:"";
+	$comment = isset($_REQUEST['comment'])?$_REQUEST['comment']:"";
+	$assignedTo = isset($_REQUEST['assignedTo'])?$_REQUEST['assignedTo']:"";
+	
+	
+	if($this->db->selectCount("select count(*) as count from room_service_request where userId=".$outletId." and id=".$requestId)==0){
+		$responseArray =  array('status' => 'false','value' =>'No request found for this request id');
+		$this->displayOutputJson($responseArray);
+	}else{
+		$reqInfo = $this->db->select("select * from room_service_request where userId=".$outletId." and id=".$requestId);
+		$roomId = $reqInfo[0]->roomId?$reqInfo[0]->roomId:"";
+		$reqCode = $reqInfo[0]->reqCode?$reqInfo[0]->reqCode:"";
+		$currentStatus = $reqInfo[0]->status?$reqInfo[0]->status:"";
+		$updateArray = array(
+			'status' => $status,
+			'comment' => $comment,
+			'assignedTo' => $assignedTo,
+			'updated_date' => date("Y-m-d H:i:s")
+		);
+		$this->db->update("update room_service_request set status='".$status."',  assigned='".$assignedTo."', updated_date='".date("Y-m-d H:i:s")."' where userId=".$outletId." and id=".$requestId);
+
+		
+		// Insert into activity log
+		$activityArray = array(
+			'reqId' => $requestId,
+			'roomId' => $roomId,
+			'userId' => $outletId,
+			'status' => $status,
+			'comment' => $comment,
+			'assigned' => $assignedTo,
+			'dateTime' => date("Y-m-d H:i:s"),
+			'ip' => $_SERVER['REMOTE_ADDR'],
+			'created_date' => date("Y-m-d H:i:s")
+		);
+		$this->db->insert($activityArray, "room_service_request_activity");
+		$notificationDetails = $this->sendPushNotification($assignedTo, "Room Service Status: " . $status, "You have been assigned to a new room service request (Code: $reqCode) for Room ID: $roomId. Please check the app for details.");
+			$_REQUEST['outletId'] = $outletId;
+			$_REQUEST['requestId'] = $requestId;
+		$updatedDetails = $this->getRequestDetailsById($outletId, $requestId);
+		$responseArray =  array('status' => 'true','value' =>'Request updated successfully', 'requestDetails' => $updatedDetails, 'notificationDetails' => $notificationDetails);
+		$this->displayOutputJson($responseArray);
+	}
+	
+}
+
+
+/**
+ * Calculate time metrics for a request
+ * Returns total time spent, average time per activity, and timeline
+ */
+public function getRequestTimeMetrics($requestId, $outletId) {
+	$timeTrackingData = $this->db->select("select * from room_service_request_staff_time_track where reqId=".$requestId." and userId=".$outletId." order by id ASC");
+	
+	$metrics = array(
+		'totalTimeMinutes' => 0,
+		'totalTimeFormatted' => '0h 0m',
+		'activitiesCount' => 0,
+		'staffInvolved' => array(),
+		'timeline' => array(),
+		'averageTimePerActivityMinutes' => 0
+	);
+	
+	if(!is_array($timeTrackingData) || count($timeTrackingData) == 0) {
+		return $metrics;
+	}
+	
+	$totalSeconds = 0;
+	$staffList = array();
+	
+	foreach($timeTrackingData as $trackItem) {
+		$track = is_object($trackItem) ? json_decode(json_encode($trackItem), true) : $trackItem;
+		if(!empty($track['start_time']) && !empty($track['end_time'])) {
+			$startTime = strtotime($track['start_time']);
+			$endTime = strtotime($track['end_time']);
+			$diffSeconds = $endTime - $startTime;
+			
+			if($diffSeconds > 0) {
+				$totalSeconds += $diffSeconds;
+				
+				// Add to timeline
+				$metrics['timeline'][] = array(
+					'userId' => isset($track['userId']) ? $track['userId'] : null,
+					'assignedTo' => isset($track['assigned']) ? $track['assigned'] : null,
+					'startTime' => $track['start_time'],
+					'endTime' => $track['end_time'],
+					'durationMinutes' => round($diffSeconds / 60, 2),
+					'durationFormatted' => $this->secondsToTimeFormat($diffSeconds)
+				);
+				
+				// Track staff involved
+				if(!in_array($track['assigned'], $staffList)) {
+					$staffList[] = $track['assigned'];
+				}
+			}
+		}
+	}
+	
+	$metrics['totalTimeMinutes'] = round($totalSeconds / 60, 2);
+	$metrics['totalTimeFormatted'] = $this->secondsToTimeFormat($totalSeconds);
+	$metrics['activitiesCount'] = count($timeTrackingData);
+	$metrics['staffInvolved'] = $staffList;
+	
+	if(count($timeTrackingData) > 0) {
+		$metrics['averageTimePerActivityMinutes'] = round($metrics['totalTimeMinutes'] / count($timeTrackingData), 2);
+	}
+	
+	return $metrics;
+}
+
+/**
+ * Enrich activity records with time tracking information
+ */
+public function enrichActivityWithTimeTracking($activity, $timeTrackingData) {
+	if(!is_array($activity) || !is_array($timeTrackingData)) {
+		return $activity;
+	}
+	// Create index of time tracking data by assigned staff
+	$timeIndex = array();
+	foreach ($timeTrackingData as $trackItem) {
+		$track = is_object($trackItem) ? json_decode(json_encode($trackItem), true) : $trackItem;
+		$assigned = isset($track['assigned']) ? $track['assigned'] : '';
+		if (!isset($timeIndex[$assigned])) {
+			$timeIndex[$assigned] = array();
+		}
+		$timeIndex[$assigned][] = $track;
+	}
+	// Sort each staff's time records by created_date and compute timeData entries
+	foreach ($timeIndex as $assigned => &$records) {
+		usort($records, function($a, $b) {
+			echo "<br>".$createdA = isset($a['created_date']) ? strtotime($a['created_date']) : 0;
+			echo "<br>".$createdB = isset($b['created_date']) ? strtotime($b['created_date']) : 0;
+			if ($createdA === $createdB) {
+				$startA = isset($a['start_time']) ? strtotime($a['start_time']) : 0;
+				$startB = isset($b['start_time']) ? strtotime($b['start_time']) : 0;
+				if ($startA === $startB) {
+					return isset($a['id']) && isset($b['id']) ? $a['id'] - $b['id'] : 0;
+				}
+				return $startA < $startB ? -1 : 1;
+			}
+			return $createdA < $createdB ? -1 : 1;
+		});
+
+		$totalSeconds = 0;
+		$entries = array();
+		$overallStart = null;
+		$overallEnd = null;
+
+		for ($index = 0; $index < count($records); $index++) {
+			$record = $records[$index];
+			$start = !empty($record['start_time']) ? strtotime($record['start_time']) : (!empty($record['created_date']) ? strtotime($record['created_date']) : null);
+			$end = !empty($record['end_time']) ? strtotime($record['end_time']) : null;
+
+			// If end_time is missing, infer it from the next record's created_date
+			if ($start !== null && $end === null && isset($records[$index + 1])) {
+				$nextCreated = !empty($records[$index + 1]['created_date']) ? strtotime($records[$index + 1]['created_date']) : null;
+				if ($nextCreated !== null && $nextCreated > $start) {
+					$end = $nextCreated;
+				}
+			}
+
+			$durationSeconds = 0;
+			if ($start !== null && $end !== null) {
+				$durationSeconds = max(0, $end - $start);
+				$totalSeconds += $durationSeconds;
+			}
+
+			if ($start !== null) {
+				$overallStart = $overallStart === null || $start < $overallStart ? $start : $overallStart;
+			}
+			if ($end !== null) {
+				$overallEnd = $overallEnd === null || $end > $overallEnd ? $end : $overallEnd;
+			}
+
+			$entries[] = array(
+				'id' => isset($record['id']) ? $record['id'] : null,
+				'reqId' => isset($record['reqId']) ? $record['reqId'] : null,
+				'assigned' => $assigned,
+				'date' => isset($record['date']) ? $record['date'] : null,
+				'created_date' => isset($record['created_date']) ? $record['created_date'] : null,
+				'start_time' => $start !== null ? date('Y-m-d H:i:s', $start) : null,
+				'end_time' => $end !== null ? date('Y-m-d H:i:s', $end) : null,
+				'durationSeconds' => $durationSeconds,
+				'durationMinutes' => round($durationSeconds / 60, 2),
+				'durationHours' => round($durationSeconds / 3600, 2),
+				'durationFormatted' => $this->secondsToTimeFormat($durationSeconds)
+			);
+		}
+		$timeIndex[$assigned] = array(
+			'entries' => $entries,
+			'totalSeconds' => $totalSeconds,
+			'totalMinutes' => round($totalSeconds / 60, 2),
+			'totalHours' => round($totalSeconds / 3600, 2),
+			'totalFormatted' => $this->secondsToTimeFormat($totalSeconds),
+			'overallStartTime' => $overallStart !== null ? date('Y-m-d H:i:s', $overallStart) : null,
+			'overallEndTime' => $overallEnd !== null ? date('Y-m-d H:i:s', $overallEnd) : null,
+			'entryCount' => count($entries)
+		);
+	}
+	unset($records);
+
+	// Enrich activity with time data
+	foreach ($activity as &$actItem) {
+		$actArray = is_object($actItem) ? json_decode(json_encode($actItem), true) : $actItem;
+		$assigned = isset($actArray['assignedTo']) ? $actArray['assignedTo'] : '';
+		$timeData = isset($timeIndex[$assigned]) ? $timeIndex[$assigned] : array(
+			'entries' => array(),
+			'totalSeconds' => 0,
+			'totalMinutes' => 0,
+			'totalFormatted' => '0m',
+			'overallStartTime' => null,
+			'overallEndTime' => null,
+			'entryCount' => 0
+		);
+
+		if (is_object($actItem)) {
+			$actItem->timeData = $timeData;
+		} else {
+			$actItem['timeData'] = $timeData;
+		}
+	}
+	unset($actItem);
+
+	return $activity;
+}
+
+/**
+ * Convert seconds to human-readable format (e.g., "2h 30m")
+ */
+public function secondsToTimeFormat($seconds) {
+	$seconds = (int)$seconds;
+	$hours = floor($seconds / 3600);
+	$minutes = floor(($seconds % 3600) / 60);
+	$secs = $seconds % 60;
+	
+	$formatted = '';
+	if($hours > 0) {
+		$formatted .= $hours . 'h ';
+	}
+	if($minutes > 0 || $hours > 0) {
+		$formatted .= $minutes . 'm';
+	}
+	if($secs > 0 && $hours == 0 && $minutes == 0) {
+		$formatted .= $secs . 's';
+	}
+	
+	return trim($formatted) ?: '0m';
+}
+
+/**
+ * Track request activity start time
+ */
+public function trackRequestTimeStart() {
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$requestId = isset($_REQUEST['requestId'])?$_REQUEST['requestId']:"";
+	$requestCode = isset($_REQUEST['requestCode'])?$_REQUEST['requestCode']:"";
+	$staffId = isset($_REQUEST['staffId'])?$_REQUEST['staffId']:"";
+	$date = isset($_REQUEST['date'])?$_REQUEST['date']:date('Y-m-d');
+	
+	if(!$requestId || !$staffId || !$outletId) {
+		$responseArray = array('status' => 'false', 'value' => 'Missing required parameters');
+		$this->displayOutputJson($responseArray);
+		return;
+	}
+	
+	// Insert start time record
+	$insertData = array(
+		'reqId' => $requestId,
+		'reqCode' => $requestCode,
+		'userId' => $outletId,
+		'assigned' => $staffId,
+		'date' => $date,
+		'start_time' => date('Y-m-d H:i:s'),
+		'created_date' => date('Y-m-d H:i:s')
+	);
+	
+	$insertResult = $this->db->insert('room_service_request_staff_time_track', $insertData);
+	
+	if($insertResult) {
+		$responseArray = array(
+			'status' => 'true',
+			'value' => 'Time tracking started',
+			'trackId' => $this->db->lastId(),
+			'startTime' => $insertData['start_time']
+		);
+	} else {
+		$responseArray = array('status' => 'false', 'value' => 'Failed to start time tracking');
+	}
+	
+	$this->displayOutputJson($responseArray);
+}
+
+/**
+ * Track request activity end time
+ */
+public function trackRequestTimeEnd() {
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$requestId = isset($_REQUEST['requestId'])?$_REQUEST['requestId']:"";
+	$staffId = isset($_REQUEST['staffId'])?$_REQUEST['staffId']:"";
+	$trackId = isset($_REQUEST['trackId'])?$_REQUEST['trackId']:"";
+	
+	if(!$trackId || !$requestId || !$staffId) {
+		$responseArray = array('status' => 'false', 'value' => 'Missing required parameters');
+		$this->displayOutputJson($responseArray);
+		return;
+	}
+	
+	// Update end time record
+	$updateData = array(
+		'end_time' => date('Y-m-d H:i:s')
+	);
+	
+	$updateResult = $this->db->update('room_service_request_staff_time_track', $updateData, "id=".$trackId);
+	
+	if($updateResult) {
+		// Fetch the updated record with time difference
+		$trackRecord = $this->db->select("select * from room_service_request_staff_time_track where id=".$trackId);
+		
+		if(is_array($trackRecord) && count($trackRecord) > 0) {
+			$track = $trackRecord[0];
+			if(is_object($track)) {
+				$track = json_decode(json_encode($track), true);
+			}
+			$startTime = strtotime($track['start_time']);
+			$endTime = strtotime($track['end_time']);
+			$diffSeconds = $endTime - $startTime;
+			$diffMinutes = round($diffSeconds / 60, 2);
+			
+			$responseArray = array(
+				'status' => 'true',
+				'value' => 'Time tracking ended',
+				'trackId' => $trackId,
+				'startTime' => $track['start_time'],
+				'endTime' => $track['end_time'],
+				'durationSeconds' => $diffSeconds,
+				'durationMinutes' => $diffMinutes,
+				'durationFormatted' => $this->secondsToTimeFormat($diffSeconds)
+			);
+		} else {
+			$responseArray = array('status' => 'false', 'value' => 'Track record not found');
+		}
+	} else {
+		$responseArray = array('status' => 'false', 'value' => 'Failed to end time tracking');
+	}
+	
+	$this->displayOutputJson($responseArray);
+}
+
+/**
+ * Get activity time report by staff
+ */
+public function getStaffTimeReport() {
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$staffId = isset($_REQUEST['staffId'])?$_REQUEST['staffId']:"";
+	$startDate = isset($_REQUEST['startDate'])?$_REQUEST['startDate']:date('Y-m-d', strtotime('-7 days'));
+	$endDate = isset($_REQUEST['endDate'])?$_REQUEST['endDate']:date('Y-m-d');
+	
+	if(!$outletId) {
+		$responseArray = array('status' => 'false', 'value' => 'Missing outlet ID');
+		$this->displayOutputJson($responseArray);
+		return;
+	}
+	
+	$whereClause = "userId=".$outletId." and date between '".$startDate."' and '".$endDate."'";
+	if($staffId) {
+		$whereClause .= " and assigned=".$staffId;
+	}
+	
+	$timeRecords = $this->db->select("select * from room_service_request_staff_time_track where ".$whereClause." order by date DESC, start_time DESC");
+	
+	// Calculate summary metrics
+	$totalSeconds = 0;
+	$requestCount = 0;
+	$staffMetrics = array();
+	
+	if(is_array($timeRecords)) {
+		foreach($timeRecords as $recordItem) {
+			$record = is_object($recordItem) ? json_decode(json_encode($recordItem), true) : $recordItem;
+			if(!empty($record['start_time']) && !empty($record['end_time'])) {
+				$startTime = strtotime($record['start_time']);
+				$endTime = strtotime($record['end_time']);
+				$diffSeconds = $endTime - $startTime;
+				
+				if($diffSeconds > 0) {
+					$totalSeconds += $diffSeconds;
+					$assigned = $record['assigned'];
+					
+					if(!isset($staffMetrics[$assigned])) {
+						$staffMetrics[$assigned] = array(
+							'totalSeconds' => 0,
+							'taskCount' => 0,
+							'avgTimePerTask' => 0
+						);
+					}
+					
+					$staffMetrics[$assigned]['totalSeconds'] += $diffSeconds;
+					$staffMetrics[$assigned]['taskCount']++;
+				}
+			}
+		}
+		
+		// Calculate averages
+		foreach($staffMetrics as &$metric) {
+			$metric['totalTimeFormatted'] = $this->secondsToTimeFormat($metric['totalSeconds']);
+			$metric['totalTimeMinutes'] = round($metric['totalSeconds'] / 60, 2);
+			if($metric['taskCount'] > 0) {
+				$metric['avgTimePerTask'] = round($metric['totalSeconds'] / $metric['taskCount'], 2);
+				$metric['avgTimePerTaskFormatted'] = $this->secondsToTimeFormat($metric['avgTimePerTask']);
+			}
+		}
+		unset($metric);
+	}
+	
+	$responseArray = array(
+		'status' => 'true',
+		'value' => 'Staff time report',
+		'period' => array('startDate' => $startDate, 'endDate' => $endDate),
+		'totalTimeMinutes' => round($totalSeconds / 60, 2),
+		'totalTimeFormatted' => $this->secondsToTimeFormat($totalSeconds),
+		'recordCount' => is_array($timeRecords) ? count($timeRecords) : 0,
+		'staffMetrics' => $staffMetrics,
+		'records' => is_array($timeRecords) ? $timeRecords : array()
+	);
+	
+	$this->displayOutputJson($responseArray);
+}
+}
+
 ?>

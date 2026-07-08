@@ -1,9 +1,9 @@
 <?php
 //////////////////////////////////////////////////////////////////////////////////////////////
 // File Name        : database_class.php													//
-// Craeted By       : Vishwajeet Mahadik													//
+// Craeted By       : vishu													//
 // Created Date     : 26-June-2019															//
-// File Modified By : Vishwajeet Mahadik													//
+// File Modified By : vishu													//
 // Modify  Date     : 26-June-2019															//
 // Description      : Database main service class to process db values						//
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -218,20 +218,22 @@ class database_class {
                 "page_value"=>$value,
                 "url"=>$url,
                 "date"=>$date,
-                "login_id"=>$login_id
+                "login_id"=>$login_id,
+                "hitCount"=>1
             );
             $this->insert($insertArray, 'page_track');
+        } else {
+            $this->update("update page_track set hitCount = hitCount + 1 where ip='".$ip."' and date='".$date."' and page='".$page."' and page_key = '".$key."' and login_id='".$login_id."' and page_data='".$data."' and page_value='".$value."'");
         }
     }
     public function update ($sql=NULL)
     {
         if($sql!="")
         {
-            if(mysql_query($sql))
+            $results = mysql_query($sql);
+            if($results)
             {
-                $results=mysql_query($sql);
-                if($results!='')
-                    return "Update query success.";
+                return "Update query success.";
             }
             else
             {

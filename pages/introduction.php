@@ -3,18 +3,18 @@
   <table class="table table-striped table-bordered table table-hover">    
     <tbody>
       <tr>
-        <td>API Test Server Base URL</td>
-        <td><?php echo SITE_URL;?>app/application_service/</td>        
+        <td>API Local Server Base URL</td>
+        <td>localhost:/api.1menus.com</td>        
       </tr>
 
       <tr>
         <td>API Live Server Base URL</td>
-        <td><?php echo SITE_URL;?>app/application_service/</td>        
+        <td><?php echo SITE_URL;?></td>        
       </tr>
 
       <tr>
         <td>App Test Server Link</td>
-        <td><?php echo SITE_URL;?>app/application_service/</td>        
+        <td><?php echo SITE_URL;?></td>        
       </tr>
 
       <tr>
@@ -34,5 +34,5 @@
        
     </tbody>
   </table>
-  <h5 style="color: blue;">Note: All Request Payload you may send Request body (form-date) or header</h5>
+  <h5 style="color: orange;">Note: All Request Payload you may send Request body (json) formar  and auth token can be pass ID & token</h5>
   </div>

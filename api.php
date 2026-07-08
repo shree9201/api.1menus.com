@@ -1,15 +1,22 @@
 <?php
+// Set CORS headers first, before any includes or output
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PATCH, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token, Authorization');
+header('Content-Type: application/json; charset=utf-8');
+
 ///////////////////////////////////////////
 // File Name        : api.php
-// Craeted By       : Vishwajeet Mahadik
+// Craeted By       : vishu
 // Created Date     : 26-May-2026
-// File Modified By : Vishwajeet Mahadik
+// File Modified By : vishu
 // Modify  Date     : 26-May-2026
 // Description      : This is file file api.
 ///////////////////////////////////////////
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PATCH, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token');
+
+// object create
+require_once 'api_class.php';
+
 $defaultContentType = 'text/html; charset=utf-8';
 // If a clean API action path is used (e.g. /app/API/outletInfo) detect it and treat as API call
 $detectedAction = "";
@@ -23,18 +30,10 @@ if (empty($_REQUEST['action']) && !empty($_SERVER['REQUEST_URI'])) {
 		$_REQUEST['action'] = $detectedAction;
 	}
 }
-// Set JSON content type when an API action is requested
-if (!empty($_REQUEST['action'])) {
-	header('Content-Type: application/json; charset=utf-8');
-} else {
-	header('Content-Type: ' . $defaultContentType);
-}
+
 $action = isset($_REQUEST['action'])?$_REQUEST['action']:"";
 $responseArray = array();
-// object create
-require_once 'api_class.php';
 $item = new api_class();
-
 $allowedAction = false;
 if ($action !== '' && preg_match('/^[a-zA-Z0-9_]+$/', $action) && method_exists($item, $action) && is_callable([$item, $action])) {
 	$internalMethods = array(
@@ -51,10 +50,10 @@ if ($action !== '' && preg_match('/^[a-zA-Z0-9_]+$/', $action) && method_exists(
 	}
 }
 
-header('Content-Type: application/json; charset=utf-8');
 if ($allowedAction) {
 	$item->$action();
-	return;
+	exit;
+} else {
+	echo json_encode(array('status' => false, 'value' => 'your Param are not valid to perform actions', 'action' => $action));
+	exit;
 }
-
-echo json_encode(array('status' => false, 'value' => 'INVALID API ACTION', 'action' => $action));

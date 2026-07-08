@@ -56,11 +56,11 @@
     });
   }
 
-  function startTimer(id, durationMinutes) {
+  function startTimer(id, durationMinutes, existingStartedAt) {
     stopTimer();
     taskId = id;
     durationSec = (durationMinutes || 15) * 60;
-    startedAt = Date.now();
+    startedAt = existingStartedAt || Date.now();
     pausedAt = null;
     totalPausedMs = 0;
     isPaused = false;

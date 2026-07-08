@@ -1,9 +1,9 @@
 <?php
 //////////////////////////////////////////////////////////////////////////////////////////
 // File Name        : constants.php														//
-// Craeted By       : Vishwajeet Mahadik												//
+// Craeted By       : vishu												//
 // Created Date     : 26-June-2019													    //
-// File Modified By : Vishwajeet Mahadik												//
+// File Modified By : vishu												//
 // Created Date     : 26-June-2019													 	//
 // Description      : Website Global constants variables initialize						//
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -30,7 +30,7 @@ if($_SERVER['HTTP_HOST']=="localhost" || $_SERVER['HTTP_HOST']=="127.0.0.1" || $
 	$isLive = false;
 	$Directory_Name = "1menus";
 }else{
-	define("DB_NAME", "1menus_database_2026");
+	define("DB_NAME", "1menus_application_database_core_2026");
 	define("DB_USER", "1menus_droptech_vishu");
 	define("DB_PASS", "Vishu9201@9201");
 }
@@ -62,6 +62,9 @@ define("SITE_TITLE", "1Menus");
 define("SITE_URL", $siteUrl);
 define("CMS_URL", $siteUrl."cms/");
 define("API_URL", $siteUrl."service/api.php");
+define("JWT_SECRET_KEY", "8b9f3d23a5c74e1f923a4b6c7d8e9f01a2b3c4d5e6f7a");
+define("JWT_ALGORITHM", "HS256");
+define("JWT_EXPIRE_SECONDS", 3600);
 define("CMS_NAVIGATION_PROCESS_URL", $siteUrl);
 
 
