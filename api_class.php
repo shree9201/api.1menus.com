@@ -1667,6 +1667,7 @@ print_r($em);
 				$this->displayOutputJson($responseArray);
 			}else{
 			$staffInfo = $staffInfo[0];
+			$staffInfo->outletId = $staffInfo->userId;
 			
 			if($staffInfo->status == 'NO'){
 				$responseArray =  array('status' => 'false','value' =>'Your account has been disabled, please contact to outlet admin');
@@ -1916,8 +1917,9 @@ public function validateOutlet($outletId){
 }
 
 // function for get room service my services list for outlet
-public function getOutletServices(){
+public function getOutletServices($return=false){
 	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$id = isset($_REQUEST['id'])?$_REQUEST['id']:"";
 	$outletValidatedResponse = $this->validateOutlet($outletId);
 	$value = $outletValidatedResponse['value'];
 	$status = $outletValidatedResponse['status'];
@@ -1927,7 +1929,12 @@ public function getOutletServices(){
 	}
 	$responseArray = array();
 		if($status){
-			$room_service_my_service = $this->db->select("select * from room_service_my_service where userId=".$outletId." and status='YES' order by sq ASC");
+			$sql = "select * from room_service_my_service where userId=".$outletId." and status='YES' ";
+			if($id!=""){
+				$sql .= " and id=".$id;
+			}
+			$sql .= " order by sq ASC";
+			$room_service_my_service = $this->db->select($sql);
 			$responseArray = array(
 				'status' => $status,
 				'value' => 'result found',
@@ -1937,7 +1944,11 @@ public function getOutletServices(){
 		}else{
 			$responseArray =  array('status' => $status,'value' =>$value);
 		}
-		$this->displayOutputJson($responseArray);
+		if($return){
+			return $responseArray;
+		}else{
+			$this->displayOutputJson($responseArray);
+		}
 	}
 	// function for get room service categories for outlet
 	public function getOutletCategories(){
@@ -1969,7 +1980,7 @@ public function getOutletServices(){
 	// function for get room service request list for outlet
 	public function getRoomRequest(){
 	$responseArray = array();
-	
+	$limit = isset($_REQUEST['limit'])?$_REQUEST['limit']:" 0 ,100";
 	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
 	$filterBy = isset($_REQUEST['filterBy']) ? $_REQUEST['filterBy'] : array();
 	if (!is_array($filterBy)) {
@@ -1992,7 +2003,11 @@ public function getOutletServices(){
 	}
 	$responseArray = array();
 		if($status){
-			$roomRequest = $this->db->select("select * from room_service_request where userId=".$outletId." ".$filterBySqlString." order by id DESC");	
+			$sql = "select * from room_service_request where userId=".$outletId." ".$filterBySqlString." order by id DESC";
+			if($limit!=""){
+				$sql .= " limit ".$limit;
+			}
+			$roomRequest = $this->db->select($sql);
 			
 			// Add time tracking metrics to each request
 			if (is_array($roomRequest) && count($roomRequest) > 0) {
@@ -2092,11 +2107,14 @@ public function getRequestDetailsById($outletId, $requestId){
 			'activitiesCount' => count($enrichedActivity),
 			'averageTimePerActivityMinutes' => 0
 		);
+		$_REQUEST['id'] = $requestDetails[0]->serviceId;
+		$serviceDetails  = $this->getOutletServices(true);
+		
 		return array(
 			'status' => 'true',
 			'value' => $requestDetails[0],
+			'serviceDetails' => $serviceDetails['services'][0],
 			'activity' => is_array($enrichedActivity) ? $enrichedActivity : array(),
-			'timeTracking' => is_array($timeTrackingData) ? $timeTrackingData : array(),
 			'timeMetrics' => $timeMetrics
 		);
 	}

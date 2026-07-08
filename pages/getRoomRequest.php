@@ -9,6 +9,7 @@ APIInfoPageStart($pageName, "Retrieves all available device IDs against staff id
 <pre>
 {
   "outletId":5,
+  "limit":"0,10", // Optional
     "filterBy": [{ // Optional
         "key": "assigned",
         "value": "17"
@@ -30,29 +31,37 @@ APIInfoPageStart($pageName, "Retrieves all available device IDs against staff id
     "count": 1,
     "roomRequest": [
         {
-            "id": "302",
-            "reqCode": "RSRQ-00000302",
+            "id": "2",
+            "reqCode": "RSRQ-00000002",
             "title": "",
             "userId": "5",
-            "roomId": "199",
-            "serviceId": "68",
-            "assigned": "20",
+            "roomId": "2",
+            "serviceId": "17",
+            "assigned": "2",
             "start_time": null,
             "end_time": null,
-            "date": "2023-07-08",
-            "ip": "152.58.18.57",
+            "date": "2026-06-24",
+            "ip": "::1",
             "additionalField": "",
             "audio": null,
-            "note": "",
+            "note": "123123123",
             "status": "NEW",
             "escalated_by": null,
-            "created_date": "2023-07-08 22:29:39",
-            "updated_date": "2023-07-08 22:29:39",
-            "guestId": "0",
-            "guestName": "",
-            "guestMobile": "",
-            "guestCode": "",
-            "points": "0"
+            "created_date": "2026-06-24 16:54:20",
+            "updated_date": "2026-06-24 16:54:20",
+            "guestId": null,
+            "guestName": null,
+            "guestMobile": null,
+            "guestCode": null,
+            "points": "0",
+            "timeMetrics": {
+                "totalTimeMinutes": 0,
+                "totalTimeFormatted": "0h 0m",
+                "activitiesCount": 0,
+                "staffInvolved": [],
+                "timeline": [],
+                "averageTimePerActivityMinutes": 0
+            }
         }
     ]
 }
