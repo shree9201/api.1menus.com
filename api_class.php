@@ -1978,7 +1978,7 @@ public function getOutletServices($return=false){
 	}
 
 	// function for get room service request list for outlet
-	public function getRoomRequest(){
+	public function getRoomRequests(){
 	$responseArray = array();
 	$limit = isset($_REQUEST['limit'])?$_REQUEST['limit']:" 0 ,100";
 	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
