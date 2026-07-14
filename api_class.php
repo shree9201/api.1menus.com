@@ -1929,11 +1929,11 @@ public function getOutletServices($return=false){
 	}
 	$responseArray = array();
 		if($status){
-			$sql = "select * from room_service_my_service where userId=".$outletId." and status='YES' ";
+			$sql = "select rsms.*,rs.icon,rs.aksDateTime from room_service_my_service rsms left join room_services rs on rsms.serviceId = rs.id where rsms.userId=".$outletId." and rsms.status='YES' ";
 			if($id!=""){
-				$sql .= " and id=".$id;
+				$sql .= " and rsms.id=".$id;
 			}
-			$sql .= " order by sq ASC";
+			$sql .= " order by rsms.sq ASC";
 			$room_service_my_service = $this->db->select($sql);
 			$responseArray = array(
 				'status' => $status,
@@ -2019,6 +2019,13 @@ public function getOutletServices($return=false){
 						$requestId = $request->id;
 					}
 					if ($requestId !== null) {
+
+					// logic for adding service details to each request if needed
+					$sql = "select rsms.*,rs.icon,rs.aksDateTime from room_service_my_service rsms left join room_services rs on rsms.serviceId = rs.id where rsms.userId=".$outletId." and rsms.status='YES' and rsms.id=".$requestId." order by rsms.sq ASC";
+					$room_service_my_service = $this->db->select($sql);
+					$request->serviceDetails = $room_service_my_service;
+
+					// logic for matrix
 						$timeMetrics = $this->getRequestTimeMetrics($requestId, $outletId);
 						if (is_array($request)) {
 							$request['timeMetrics'] = $timeMetrics;
@@ -2026,6 +2033,7 @@ public function getOutletServices($return=false){
 							$request->timeMetrics = $timeMetrics;
 						}
 					}
+					
 				}
 				unset($request);
 			}
