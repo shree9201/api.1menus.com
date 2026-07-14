@@ -11,7 +11,7 @@ $apiNamesArray =array(
 				'getOutletCategories'	=>'Get Outlet Categories',
 				'getOutletServices'	=>'Get Outlet Services',
 				'serviceStatusCount'	=>'Service Status Count',
-				'getRoomRequest'	=>'Get Room Request',
+				'getRoomRequests'	=>'Get Room Request',
 				'getRequestDetails'=>'Get Request Details',
 				'updateRequest'	=>'Update Request',
                 );
