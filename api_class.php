@@ -2021,10 +2021,12 @@ public function getOutletServices($return=false){
 					if ($requestId !== null) {
 
 					// logic for adding service details to each request if needed
-					$sql = "select rsms.*,rs.icon,rs.aksDateTime from room_service_my_service rsms left join room_services rs on rsms.serviceId = rs.id where rsms.userId=".$outletId." and rsms.status='YES' and rsms.id=".$requestId." order by rsms.sq ASC";
+					$serviceId = $request->serviceId ?? null;
+					if ($serviceId !== null) {
+					$sql = "select rsms.*,rs.icon,rs.aksDateTime from room_service_my_service rsms , room_services rs where rsms.serviceId = rs.id and rsms.userId=".$outletId." and rsms.status='YES' and rsms.id=".$serviceId." order by rsms.sq ASC";
 					$room_service_my_service = $this->db->select($sql);
 					$request->serviceDetails = $room_service_my_service;
-
+					}
 					// logic for matrix
 						$timeMetrics = $this->getRequestTimeMetrics($requestId, $outletId);
 						if (is_array($request)) {
