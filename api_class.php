@@ -1648,9 +1648,28 @@ $this->email->from('contact@droptech.in');
 $em = $this->email->send($to,$subject,$content);
 print_r($em);
 	}
+	// get client IP address
+	public function getClientIP() {
+		$ipaddress = '';
+		if (getenv('HTTP_CLIENT_IP'))
+			$ipaddress = getenv('HTTP_CLIENT_IP');
+		else if(getenv('HTTP_X_FORWARDED_FOR'))
+			$ipaddress = getenv('HTTP_X_FORWARDED_FOR');
+		else if(getenv('HTTP_X_FORWARDED'))
+			$ipaddress = getenv('HTTP_X_FORWARDED');
+		else if(getenv('HTTP_FORWARDED_FOR'))
+			$ipaddress = getenv('HTTP_FORWARDED_FOR');
+		else if(getenv('HTTP_FORWARDED'))
+			$ipaddress = getenv('HTTP_FORWARDED');
+		else if(getenv('REMOTE_ADDR'))
+			$ipaddress = getenv('REMOTE_ADDR');
+		else
+			$ipaddress = 'UNKNOWN';
+		return $ipaddress;
+	}
 	// secttion API endpoint for android app for 1menus private project
 	public function staffLogin(){
-		$this->getBodyJsonData();
+		//$this->getBodyJsonData();
 		$outletId = $this->optionalParametterValidate($_REQUEST['outletId'], 'outletId');
 		$userType = $this->optionalParametterValidate($_REQUEST['userType'], 'userType');
 		$username = $this->optionalParametterValidate($_REQUEST['username'], 'username');
@@ -1675,10 +1694,13 @@ print_r($em);
 			}else{
 				$deviceIdList = array();
 				if($deviceId!='' && $deviceType!=''){
+					$ip = $this->getClientIP();
 					if($this->db->selectCount("select count(*) as count from staff_devices where staffId=".$staffInfo->id." and deviceId='".$deviceId."' and deviceType='".$deviceType."'")==0){
 							$insertNewDevice = array(
 									'staffId'=>$staffInfo->id,
 									'deviceId'=>$deviceId,
+									'outletId'=>$staffInfo->userId,
+									'ip'=>$ip,
 									'deviceType'=>$deviceType,
 									'last_login'=>date("Y-m-d H:i:s"),
 									'created_date'=>date("Y-m-d H:i:s"),
@@ -1686,19 +1708,58 @@ print_r($em);
 							);
 							$insertId = $this->db->insert($insertNewDevice, "staff_devices");
 						}else{
-							$this->db->update("update staff_devices set last_login='".date("Y-m-d H:i:s")."' where staffId=".$staffInfo->id." and deviceId='".$deviceId."' and deviceType='".$deviceType."'");
+							$this->db->update("update staff_devices set last_login='".date("Y-m-d H:i:s")."' , ip='".$ip."' where staffId=".$staffInfo->id." and deviceId='".$deviceId."' and deviceType='".$deviceType."'");
 						}
 						$deviceIdList = $this->db->select("select deviceType,deviceId,last_login from staff_devices where staffId=".$staffInfo->id." order by last_login DESC");
 					}
+					$this->staffAttendance($outletId, $staffInfo->id, 'LOGIN');
 					$responseArray =  array('status' => 'true','value' =>$staffInfo,'devices'=>$deviceIdList);
 				}
 		
 		}
 			$this->displayOutputJson($responseArray);
 		}
-}
 
-/* Application Level API Methods */
+public function staffAttendance($outletId, $staffId, $attendanceType) {
+	
+	if (!in_array($attendanceType, array('LOGIN','LOGOUT'), true)) {
+		$responseArray = array('status' => 'false', 'value' => 'Invalid attendanceType value; use LOGIN or LOGOUT');
+		$this->displayOutputJson($responseArray);
+	}
+	$activityBy = $this->getClientIP();
+	$date = date('Y-m-d');
+	$currentDateTime = date('Y-m-d H:i:s');
+
+	if ($attendanceType === 'LOGIN') {
+		$insertData = array(
+			'title' => 'L',
+			'userId' => $outletId,
+			'staffId' => $staffId,
+			'date' => $date,
+			'activity_by' => $activityBy,
+			'status' => 'LOGIN',
+			'login_date_time' => $currentDateTime,
+			'created_date' => $currentDateTime,
+			'updated_date' => $currentDateTime,
+		);
+		$insertId = $this->db->insert($insertData, 'staff_attendance');
+		if ($insertId > 0) {
+			$responseArray = array('status' => 'true', 'value' => 'Attendance login recorded', 'attendanceId' => $insertId, 'statusType' => 'LOGIN');
+		} else {
+			$responseArray = array('status' => 'false', 'value' => 'Unable to record login attendance');
+		}
+	} else {
+		$attendanceRecord = $this->db->select("select * from staff_attendance where userId='".$outletId."' and staffId='".$staffId."' and status='LOGIN' and logout_date_time IS NULL order by id DESC limit 1");
+		if (count($attendanceRecord) === 0) {
+			$responseArray = array('status' => 'false', 'value' => 'No active login record found for logout');
+		} else {
+			$attendanceId = $attendanceRecord[0]->id;
+			$this->db->update("update staff_attendance set status='LOGOUT', title='O', logout_date_time='".$currentDateTime."', activity_by='".addslashes($activityBy)."', updated_date='".$currentDateTime."' where id=".$attendanceId);
+			$responseArray = array('status' => 'true', 'value' => 'Attendance logout recorded', 'attendanceId' => $attendanceId, 'statusType' => 'LOGOUT');
+		}
+	}
+	return $responseArray;
+}
 public function getDeviceIds(){
 	
 	$this->getBodyJsonData();
@@ -1714,7 +1775,7 @@ public function getDeviceIds(){
 	}
 }
 // function for sending push notification to staff devices
-public function sendPushNotification($argStaffId="", $argTitle="", $argMessage=""){
+public function oldMethodNotification($argStaffId="", $argTitle="", $argMessage=""){
 	try {
 		// Validate file exists
 		$pushFile = __DIR__ . '/push-notification/send_push.php';
@@ -1778,6 +1839,128 @@ public function sendPushNotification($argStaffId="", $argTitle="", $argMessage="
 				}
 				
 				$notification = $push->sendFcm($deviceToken, $title, $message);
+				
+				// Check if notification was sent successfully
+				if(is_array($notification) && isset($notification[0])){
+					if($notification[0] >= 200 && $notification[0] < 300){
+						$successCount++;
+						array_push($responseArraySet, array('deviceId' => $deviceToken, 'status' => 'sent', 'httpCode' => $notification[0]));
+					} else {
+						$failureCount++;
+						array_push($responseArraySet, array('deviceId' => $deviceToken, 'status' => 'failed', 'httpCode' => $notification[0], 'error' => isset($notification[1]) ? $notification[1] : 'Unknown error'));
+					}
+				} else {
+					$failureCount++;
+					array_push($responseArraySet, array('deviceId' => $deviceToken, 'status' => 'failed', 'error' => 'Invalid response from sendFcm'));
+				}
+			} catch (Exception $e) {
+				$failureCount++;
+				array_push($responseArraySet, array('deviceId' => isset($deviceToken) ? $deviceToken : 'unknown', 'status' => 'failed', 'error' => $e->getMessage()));
+			}
+		}
+		$rteunArrayObject =array(
+			'status' => true,
+			'value' => 'Notifications processed',
+			'sent' => $successCount,
+			'failed' => $failureCount,
+			'totalDevices' => count($deviceIdList),
+			'response' => $responseArraySet
+		);
+		if($argStaffId != "" && $argTitle != "" && $argMessage != ""){
+			return $rteunArrayObject;
+		}else{
+			return $this->displayOutputJson($rteunArrayObject);
+		}
+		
+	} catch (Exception $e) {
+		$this->displayOutputJson(array(
+			'status' => false,
+			'value' => 'Error sending notifications',
+			'error' => $e->getMessage(),
+			'file' => $e->getFile(),
+			'line' => $e->getLine()
+		));
+	}
+}
+public function sendFcm($deviceToken, $title, $message){
+		$content = [
+    'app_id'          => 'e417d7b6-972d-4c33-9f70-3838e1fa17da',
+    'contents'        => ['en' => $title],
+    'headings'        => ['en' => $message],
+    'include_subscription_ids' => [$deviceToken],
+    'target_channel'  => 'push',
+];
+
+$ch = curl_init('https://api.onesignal.com/notifications');
+curl_setopt_array($ch, [
+    CURLOPT_POST           => true,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_HTTPHEADER     => [
+        'Content-Type: application/json',
+        'Authorization: os_v2_app_4ql5pnuxfvgdhh3qha4od6qx3lphjotpoc5u7wur73uvqzmnld5jt4owy43ktpranalzs4324vosway6ugawtnxzbik5uzzdtjb2qgq',
+		'Cookie: __cf_bm=zwK4QnegG.pP4vMM82uIlcvTu5.2dcLzduBZC8RkxQo-1785251723.869693-1.0.1.1-6yhXwTP0dTOUAp1hL2JuQT4hssAYG6giJvACHnCaX5Z66peZvAwJvpf7C67vvCe5TwNn1HiQKpFxJcrbNNwJTFpMZ0RKgImWQ.iLYKxd7jkGIrrAPYlo8iO0oNUPtqXK'
+    ],
+    CURLOPT_POSTFIELDS     => json_encode($content),
+]);
+
+$response = curl_exec($ch);
+curl_close($ch);
+
+echo $response;
+	}
+// function for sending push notification to staff devices
+public function sendPushNotification($argStaffId="", $argTitle="", $argMessage=""){
+	try {
+		
+	
+		$this->getBodyJsonData();
+		if($argStaffId != ""){
+			$_REQUEST['staffId'] = $argStaffId;
+			$staffId = $argStaffId;
+		}
+		$staffId = $this->optionalParametterValidate($_REQUEST['staffId'], 'staffId');
+		
+		// Validate staff has devices
+		$deviceCount = $this->db->selectCount("select count(*) as count from staff_devices where staffId=".$staffId);
+		if($deviceCount == 0){
+			$this->displayOutputJson(array('status' => false, 'value' => 'No device found for this staff'));
+			return;
+		}
+		
+		if($argTitle != ""){
+			$_REQUEST['title'] = $argTitle;
+			$title = $argTitle;
+		}
+		if($argMessage != ""){
+			$_REQUEST['message'] = $argMessage;
+			$message = $argMessage;
+		}
+		$deviceIdList = $this->db->select("select deviceType,deviceId from staff_devices where staffId=".$staffId." order by last_login DESC");
+		$title = $this->optionalParametterValidate($_REQUEST['title'], 'title');
+		$message = $this->optionalParametterValidate($_REQUEST['message'], 'message');
+		
+		// Validate inputs
+		if(empty($title) || empty($message)){
+			$this->displayOutputJson(array('status' => false, 'value' => 'Title and message are required'));
+			return;
+		}
+		
+		$responseArraySet = array();
+		$successCount = 0;
+		$failureCount = 0;
+		
+		// Send notification to each device
+		for($d=0; $d<count($deviceIdList); $d++){
+			try {
+				$deviceToken = $deviceIdList[$d]->deviceId;
+				
+				if(empty($deviceToken)){
+					$failureCount++;
+					array_push($responseArraySet, array('deviceId' => 'unknown', 'status' => 'failed', 'error' => 'Empty device token'));
+					continue;
+				}
+				
+				$notification = $this->sendFcm($deviceToken, $title, $message);
 				
 				// Check if notification was sent successfully
 				if(is_array($notification) && isset($notification[0])){
@@ -2557,6 +2740,43 @@ public function getStaffTimeReport() {
 	);
 	
 	$this->displayOutputJson($responseArray);
+}
+public function logout(){
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$staffId = isset($_REQUEST['staffId'])?$_REQUEST['staffId']:"";
+	// remove all staff_devices from staffId
+	$this->db->delete("delete from staff_devices where staffId=".$staffId);
+	$this->db->update("update staff set online='NO' where id=".$staffId." and userId='".$outletId."'");
+	$responseArray = array('status' => 'true','value' =>'Logout successfully');	
+	$this->$this->staffAttendance($outletId, $staffInfo->id, 'LOGOUT');
+	$this->displayOutputJson($responseArray);
+}
+
+// function for onDutyFlag set YES / NO
+public function setOnDutyFlag(){
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$staffId = isset($_REQUEST['staffId'])?$_REQUEST['staffId']:"";
+	$onDutyFlag = isset($_REQUEST['flag'])?$_REQUEST['flag']:"NO";
+	if($onDutyFlag!=true && $onDutyFlag!=false && $onDutyFlag!="true" && $onDutyFlag!="false" && $onDutyFlag!="YES" && $onDutyFlag!="NO"){
+		$responseArray = array('status' => 'false','value' =>'Invalid onDutyFlag value, should be true or false');	
+	}else{
+		if($onDutyFlag == "true" || $onDutyFlag == true || $onDutyFlag == "YES") {
+			$onDutyFlag = "YES";
+		} elseif($onDutyFlag == "false" || $onDutyFlag == false || $onDutyFlag == "NO") {
+			$onDutyFlag = "NO";
+		}
+		$this->db->update("update staff set online='".$onDutyFlag."' where id=".$staffId." and userId='".$outletId."'");
+		$getStaffInfo = $this->db->select("select * from staff where id=".$staffId." and userId='".$outletId."'");
+		if(count($getStaffInfo)>0){
+			$staffInfo = $getStaffInfo[0];
+			// send push notification to staff about onDutyFlag change
+			$notificationMessage = "Your on-duty status has been changed to: " . $onDutyFlag;
+			$this->sendPushNotification($staffId, "On-Duty Status Update", $notificationMessage);
+		}
+		$responseArray = array('status' => 'true','value' =>'onDutyFlag updated successfully', 'onDutyFlag' => $onDutyFlag, 'info' => isset($staffInfo) ? $staffInfo : array());	
+	}
+	$this->displayOutputJson($responseArray);
+
 }
 }
 

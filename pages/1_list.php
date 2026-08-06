@@ -14,6 +14,8 @@ $apiNamesArray =array(
 				'getRoomRequests'	=>'Get Room Request',
 				'getRequestDetails'=>'Get Request Details',
 				'updateRequest'	=>'Update Request',
+				'setOnDutyFlag'	=>'Set On Duty Flag',
+				'logout'	=>'Logout',
                 );
 $keys = array_keys($apiNamesArray);
 ?>
