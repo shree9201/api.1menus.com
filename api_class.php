@@ -1929,11 +1929,11 @@ public function getOutletServices($return=false){
 	}
 	$responseArray = array();
 		if($status){
-			$sql = "select * from room_service_my_service where userId=".$outletId." and status='YES' ";
+			$sql = "select rsms.*,rs.icon,rs.aksDateTime from room_service_my_service rsms left join room_services rs on rsms.serviceId = rs.id where rsms.userId=".$outletId." and rsms.status='YES' ";
 			if($id!=""){
-				$sql .= " and id=".$id;
+				$sql .= " and rsms.id=".$id;
 			}
-			$sql .= " order by sq ASC";
+			$sql .= " order by rsms.sq ASC";
 			$room_service_my_service = $this->db->select($sql);
 			$responseArray = array(
 				'status' => $status,
@@ -1978,7 +1978,7 @@ public function getOutletServices($return=false){
 	}
 
 	// function for get room service request list for outlet
-	public function getRoomRequest(){
+	public function getRoomRequests(){
 	$responseArray = array();
 	$limit = isset($_REQUEST['limit'])?$_REQUEST['limit']:" 0 ,100";
 	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
@@ -2019,6 +2019,15 @@ public function getOutletServices($return=false){
 						$requestId = $request->id;
 					}
 					if ($requestId !== null) {
+
+					// logic for adding service details to each request if needed
+					$serviceId = $request->serviceId ?? null;
+					if ($serviceId !== null) {
+					$sql = "select rsms.*,rs.icon,rs.aksDateTime from room_service_my_service rsms , room_services rs where rsms.serviceId = rs.id and rsms.userId=".$outletId." and rsms.status='YES' and rsms.id=".$serviceId." order by rsms.sq ASC";
+					$room_service_my_service = $this->db->select($sql);
+					$request->serviceDetails = $room_service_my_service;
+					}
+					// logic for matrix
 						$timeMetrics = $this->getRequestTimeMetrics($requestId, $outletId);
 						if (is_array($request)) {
 							$request['timeMetrics'] = $timeMetrics;
@@ -2026,6 +2035,7 @@ public function getOutletServices($return=false){
 							$request->timeMetrics = $timeMetrics;
 						}
 					}
+					
 				}
 				unset($request);
 			}
