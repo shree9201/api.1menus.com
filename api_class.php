@@ -58,6 +58,8 @@ class api_class {
 	var $staffTypes;
 	var $departments;
 	var $message;
+	var $fontAwasomeIconList;
+	
 	public function __construct(){
 		$this->post = $_POST;
 		$this->get = $_GET;
@@ -81,10 +83,13 @@ class api_class {
 		$this->departments = [['key' => 'STAFF','value' => 'Staff'],['key'=>'MANAGER','value'=>'Manager'],['key'=>'HR','value'=>'HR']];
 		// jwt_token authentication for API access validation can be implemented here if needed for all API calls
 		$this->getBodyJsonData();
+		//$this->loadFontAwasoneIcons();
 		if($_REQUEST['action'] !== 'getJwtToken'){ // skip token validation for getJwtToken API to allow clients to obtain token
 			 $this->getAndValidateHeaderTokenForJWT();
 			 
 		}
+		$GLOBALS['fontAwesomeUnicodeMapping'] = null;
+
 	}
 
 	public function getBodyJsonData(){
@@ -1669,7 +1674,7 @@ print_r($em);
 	}
 	// secttion API endpoint for android app for 1menus private project
 	public function staffLogin(){
-		//$this->getBodyJsonData();
+		$this->getBodyJsonData();
 		$outletId = $this->optionalParametterValidate($_REQUEST['outletId'], 'outletId');
 		$userType = $this->optionalParametterValidate($_REQUEST['userType'], 'userType');
 		$username = $this->optionalParametterValidate($_REQUEST['username'], 'username');
@@ -1712,68 +1717,68 @@ print_r($em);
 						}
 						$deviceIdList = $this->db->select("select deviceType,deviceId,last_login from staff_devices where staffId=".$staffInfo->id." order by last_login DESC");
 					}
+					$this->db->update("update staff set online='YES' where id=".$staffInfo->id);
 					$this->staffAttendance($outletId, $staffInfo->id, 'LOGIN');
 					$responseArray =  array('status' => 'true','value' =>$staffInfo,'devices'=>$deviceIdList);
 				}
-		
+			}
+			$this->displayOutputJson($responseArray);
 		}
+	}
+
+	public function staffAttendance($outletId, $staffId, $attendanceType) {
+		if (!in_array($attendanceType, array('LOGIN','LOGOUT'), true)) {
+			$responseArray = array('status' => 'false', 'value' => 'Invalid attendanceType value; use LOGIN or LOGOUT');
 			$this->displayOutputJson($responseArray);
 		}
 
-public function staffAttendance($outletId, $staffId, $attendanceType) {
-	
-	if (!in_array($attendanceType, array('LOGIN','LOGOUT'), true)) {
-		$responseArray = array('status' => 'false', 'value' => 'Invalid attendanceType value; use LOGIN or LOGOUT');
-		$this->displayOutputJson($responseArray);
-	}
-	$activityBy = $this->getClientIP();
-	$date = date('Y-m-d');
-	$currentDateTime = date('Y-m-d H:i:s');
+		$activityBy = $this->getClientIP();
+		$date = date('Y-m-d');
+		$currentDateTime = date('Y-m-d H:i:s');
 
-	if ($attendanceType === 'LOGIN') {
-		$insertData = array(
-			'title' => 'L',
-			'userId' => $outletId,
-			'staffId' => $staffId,
-			'date' => $date,
-			'activity_by' => $activityBy,
-			'status' => 'LOGIN',
-			'login_date_time' => $currentDateTime,
-			'created_date' => $currentDateTime,
-			'updated_date' => $currentDateTime,
-		);
-		$insertId = $this->db->insert($insertData, 'staff_attendance');
-		if ($insertId > 0) {
-			$responseArray = array('status' => 'true', 'value' => 'Attendance login recorded', 'attendanceId' => $insertId, 'statusType' => 'LOGIN');
+		if ($attendanceType === 'LOGIN') {
+			$insertData = array(
+				'title' => 'L',
+				'userId' => $outletId,
+				'staffId' => $staffId,
+				'date' => $date,
+				'activity_by' => $activityBy,
+				'status' => 'LOGIN',
+				'login_date_time' => $currentDateTime,
+				'created_date' => $currentDateTime,
+				'updated_date' => $currentDateTime,
+			);
+			$insertId = $this->db->insert($insertData, 'staff_attendance');
+			if ($insertId > 0) {
+				$responseArray = array('status' => 'true', 'value' => 'Attendance login recorded', 'attendanceId' => $insertId, 'statusType' => 'LOGIN');
+			} else {
+				$responseArray = array('status' => 'false', 'value' => 'Unable to record login attendance');
+			}
 		} else {
-			$responseArray = array('status' => 'false', 'value' => 'Unable to record login attendance');
+			$attendanceRecord = $this->db->select("select * from staff_attendance where userId='".$outletId."' and staffId='".$staffId."' and status='LOGIN' and logout_date_time IS NULL order by id DESC limit 1");
+			if (count($attendanceRecord) === 0) {
+				$responseArray = array('status' => 'false', 'value' => 'No active login record found for logout');
+			} else {
+				$attendanceId = $attendanceRecord[0]->id;
+				$this->db->update("update staff_attendance set status='LOGOUT', title='O', logout_date_time='".$currentDateTime."', activity_by='".addslashes($activityBy)."', updated_date='".$currentDateTime."' where id=".$attendanceId);
+				$responseArray = array('status' => 'true', 'value' => 'Attendance logout recorded', 'attendanceId' => $attendanceId, 'statusType' => 'LOGOUT');
+			}
 		}
-	} else {
-		$attendanceRecord = $this->db->select("select * from staff_attendance where userId='".$outletId."' and staffId='".$staffId."' and status='LOGIN' and logout_date_time IS NULL order by id DESC limit 1");
-		if (count($attendanceRecord) === 0) {
-			$responseArray = array('status' => 'false', 'value' => 'No active login record found for logout');
-		} else {
-			$attendanceId = $attendanceRecord[0]->id;
-			$this->db->update("update staff_attendance set status='LOGOUT', title='O', logout_date_time='".$currentDateTime."', activity_by='".addslashes($activityBy)."', updated_date='".$currentDateTime."' where id=".$attendanceId);
-			$responseArray = array('status' => 'true', 'value' => 'Attendance logout recorded', 'attendanceId' => $attendanceId, 'statusType' => 'LOGOUT');
-		}
+		return $responseArray;
 	}
-	return $responseArray;
-}
+
 public function getDeviceIds(){
-	
-	$this->getBodyJsonData();
-	$staffId = $this->optionalParametterValidate($_REQUEST['staffId'], 'staffId');
-	if($this->db->selectCount("select count(*) as count from staff_devices where staffId=".$staffId)==0){
-		$responseArray =  array('status' => 'false','value' =>'Invalid Staff Id');
-		$this->displayOutputJson($responseArray);
-	}else{
-		
-	$deviceIdList = $this->db->select("select deviceType,deviceId,last_login from staff_devices where staffId=".$staffId." order by last_login DESC");
-	$responseArray =  array('status' => 'true','value' =>$deviceIdList);
-	$this->displayOutputJson($responseArray);
+		$this->getBodyJsonData();
+		$staffId = $this->optionalParametterValidate($_REQUEST['staffId'], 'staffId');
+		if($this->db->selectCount("select count(*) as count from staff_devices where staffId=".$staffId)==0){
+			$responseArray =  array('status' => 'false','value' =>'Invalid Staff Id');
+			$this->displayOutputJson($responseArray);
+		}else{
+			$deviceIdList = $this->db->select("select deviceType,deviceId,last_login from staff_devices where staffId=".$staffId." order by last_login DESC");
+			$responseArray =  array('status' => 'true','value' =>$deviceIdList);
+			$this->displayOutputJson($responseArray);
+		}
 	}
-}
 // function for sending push notification to staff devices
 public function oldMethodNotification($argStaffId="", $argTitle="", $argMessage=""){
 	try {
@@ -2098,7 +2103,29 @@ public function validateOutlet($outletId){
 	}
 	return $responseArray;
 }
+public function loadFontAwasoneIcons(){
+	$fontAwasomeIconList = array();
+		$fontAwasomeIconList = file_get_contents('service/fontAwasomeUnicodeMapping.json');
+		$fontAwasomeIconList = json_decode($fontAwasomeIconList, true);	
+	$this->fontAwasomeIconList = $fontAwasomeIconList;
+	return $this->fontAwasomeIconList;
+}
 
+public function fontAwasomeIconList($icon=null){
+	$iconList = is_array($this->fontAwasomeIconList) ? $this->fontAwasomeIconList : array();
+	if ($icon === null) {
+		return $iconList;
+	}
+	$icon = strtolower($icon);
+	// Regex matches any class name starting with "fa-"
+	if (preg_match('/(fa-[\w-]+)/', $icon, $matches)) {
+		$icon = $matches[1];
+	}
+	if (isset($iconList[$icon])) {
+		return $iconList[$icon];
+	}
+	return null;
+}
 // function for get room service my services list for outlet
 public function getOutletServices($return=false){
 	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
@@ -2110,6 +2137,7 @@ public function getOutletServices($return=false){
 	if(is_string($status)) {
 	$status = ($status === 'true') ? true : false;
 	}
+	$iconsList = $this->loadFontAwasoneIcons();
 	$responseArray = array();
 		if($status){
 			$sql = "select rsms.*,rs.icon,rs.aksDateTime from room_service_my_service rsms left join room_services rs on rsms.serviceId = rs.id where rsms.userId=".$outletId." and rsms.status='YES' ";
@@ -2118,6 +2146,29 @@ public function getOutletServices($return=false){
 			}
 			$sql .= " order by rsms.sq ASC";
 			$room_service_my_service = $this->db->select($sql);
+			//logic for adding font awesome unicode to each service
+			if(is_array($room_service_my_service) && count($room_service_my_service)>0){
+				foreach($room_service_my_service as &$service){
+					$iconValue = null;
+					if (is_object($service) && isset($service->icon) && $service->icon !== "") {
+						$iconValue = $service->icon;
+					} elseif (is_array($service) && isset($service['icon']) && $service['icon'] !== "") {
+						$iconValue = $service['icon'];
+					}
+
+					$iconUnicode = null;
+					if ($iconValue !== null) {
+						$iconUnicode = $this->fontAwasomeIconList($iconValue);
+					}
+
+					if (is_object($service)) {
+						$service->iconUnicode = $iconUnicode;
+					} elseif (is_array($service)) {
+						$service['iconUnicode'] = $iconUnicode;
+					}
+				}
+				unset($service);
+			}
 			$responseArray = array(
 				'status' => $status,
 				'value' => 'result found',
@@ -2191,7 +2242,7 @@ public function getOutletServices($return=false){
 				$sql .= " limit ".$limit;
 			}
 			$roomRequest = $this->db->select($sql);
-			
+			$this->loadFontAwasoneIcons();
 			// Add time tracking metrics to each request
 			if (is_array($roomRequest) && count($roomRequest) > 0) {
 				foreach ($roomRequest as &$request) {
@@ -2208,6 +2259,29 @@ public function getOutletServices($return=false){
 					if ($serviceId !== null) {
 					$sql = "select rsms.*,rs.icon,rs.aksDateTime from room_service_my_service rsms , room_services rs where rsms.serviceId = rs.id and rsms.userId=".$outletId." and rsms.status='YES' and rsms.id=".$serviceId." order by rsms.sq ASC";
 					$room_service_my_service = $this->db->select($sql);
+					//logic for adding font awesome unicode to each service
+					if(is_array($room_service_my_service) && count($room_service_my_service)>0){
+						foreach($room_service_my_service as &$service){
+							$iconValue = null;
+							if (is_object($service) && isset($service->icon) && $service->icon !== "") {
+								$iconValue = $service->icon;
+							} elseif (is_array($service) && isset($service['icon']) && $service['icon'] !== "") {
+								$iconValue = $service['icon'];
+							}
+
+							$iconUnicode = null;
+							if ($iconValue !== null) {
+								$iconUnicode = $this->fontAwasomeIconList($iconValue);
+							}
+
+							if (is_object($service)) {
+								$service->iconUnicode = $iconUnicode;
+							} elseif (is_array($service)) {
+								$service['iconUnicode'] = $iconUnicode;
+							}
+						}
+						unset($service);
+					}
 					$request->serviceDetails = $room_service_my_service;
 					}
 					// logic for matrix
@@ -2748,7 +2822,7 @@ public function logout(){
 	$this->db->delete("delete from staff_devices where staffId=".$staffId);
 	$this->db->update("update staff set online='NO' where id=".$staffId." and userId='".$outletId."'");
 	$responseArray = array('status' => 'true','value' =>'Logout successfully');	
-	$this->$this->staffAttendance($outletId, $staffInfo->id, 'LOGOUT');
+	$this->staffAttendance($outletId, $staffId, 'LOGOUT');
 	$this->displayOutputJson($responseArray);
 }
 

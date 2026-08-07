@@ -16,7 +16,6 @@ header('Content-Type: application/json; charset=utf-8');
 
 // object create
 require_once 'api_class.php';
-
 $defaultContentType = 'text/html; charset=utf-8';
 // If a clean API action path is used (e.g. /app/API/outletInfo) detect it and treat as API call
 $detectedAction = "";
