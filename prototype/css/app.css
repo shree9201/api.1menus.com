@@ -915,6 +915,111 @@ button { border: none; background: none; }
 .analytics-row .val { font-size: 18px; font-weight: 700; margin-top: 6px; }
 .analytics-row .lbl { font-size: 9px; color: var(--muted); margin-top: 4px; }
 
+.attendance-chart {
+  padding: 16px;
+  border-radius: var(--radius);
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.attendance-calendar-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+.attendance-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+.attendance-calendar-cell {
+  min-height: 80px;
+  border-radius: 16px;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #f8fafc;
+}
+.attendance-calendar-cell.present {
+  background: linear-gradient(180deg, #ecfdf5, #d1fae5);
+  border-color: #6ee7b7;
+}
+.attendance-calendar-cell.half {
+  background: linear-gradient(180deg, #fef9c3, #fde68a);
+  border-color: #facc15;
+}
+.attendance-calendar-cell.absent {
+  background: linear-gradient(180deg, #fee2e2, #fecaca);
+  border-color: #f87171;
+}
+.attendance-calendar-cell .cell-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.attendance-calendar-cell .cell-top span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111827;
+}
+.attendance-calendar-cell .cell-detail {
+  font-size: 11px;
+  color: #4b5563;
+  line-height: 1.4;
+}
+.attendance-calendar-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  font-size: 12px;
+  color: #4b5563;
+}
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.legend-dot.present { background: #10b981; }
+.legend-dot.half { background: #f59e0b; }
+.legend-dot.absent { background: #ef4444; }
+
+.form-select {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%236b7280' d='M5.5 7.5l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px 14px;
+  font-size: 14px;
+  color: #111827;
+  line-height: 1.4;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  min-height: 48px;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
 .training-card {
   background: #ecfdf5;
   padding: 16px;

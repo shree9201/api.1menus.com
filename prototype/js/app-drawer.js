@@ -32,6 +32,7 @@
         { nav: 'hod/dashboard', icon: '▦', label: 'Dashboard' },
         { nav: 'hod/notifications', icon: '🔔', label: 'Notifications' },
         { nav: 'hod/tasks-tab', icon: '📋', label: 'Tasks' },
+        { nav: 'hod/attendance', icon: '📅', label: 'Staff Attendance' },
         { nav: 'hod/staff', icon: '👥', label: 'Staff' },
         { nav: 'hod/performance', icon: '🏆', label: 'Performance' },
         { nav: 'hod/analytics', icon: '📊', label: 'Analytics' },
@@ -49,6 +50,7 @@
       items: [
         { nav: 'staff/home', icon: '🏠', label: 'Home' },
         { nav: 'staff/tasks-tab', icon: '📋', label: 'Tasks' },
+        { nav: 'staff/attendance', icon: '📅', label: 'My Attendance' },
         { nav: 'staff/profile-tab', icon: '👤', label: 'Profile' },
         { nav: 'staff/rewards', icon: '🏆', label: 'Leaderboard' },
         { nav: 'staff/settings', icon: '⚙️', label: 'Settings' },
@@ -67,6 +69,7 @@
         { nav: 'hr/dashboard', icon: '▦', label: 'Dashboard' },
         { nav: 'hr/notifications', icon: '🔔', label: 'Notifications' },
         { nav: 'hr/employees', icon: '👥', label: 'Employees' },
+        { nav: 'hr/attendance', icon: '📅', label: 'Staff Attendance' },
         { nav: 'hr/performance-tab', icon: '📈', label: 'Performance' },
         { nav: 'hr/training', icon: '🎓', label: 'Training' },
         { nav: 'hr/profile', icon: '👤', label: 'Profile' },
