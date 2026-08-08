@@ -14,6 +14,7 @@ $apiNamesArray =array(
 				'getRoomRequests'	=>'Get Room Request',
 				'getRequestDetails'=>'Get Request Details',
 				'updateRequest'	=>'Update Request',
+				'staffAttendances'	=>'Staff Attendances',
 				'setOnDutyFlag'	=>'Set On Duty Flag',
 				'logout'	=>'Logout',
                 );
