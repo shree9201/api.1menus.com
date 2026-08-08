@@ -2852,6 +2852,36 @@ public function setOnDutyFlag(){
 	$this->displayOutputJson($responseArray);
 
 }
-}
 
-?>
+// function for get a staff attendance details for outlet
+public function staffAttendances(){
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$staffId = isset($_REQUEST['staffId'])?$_REQUEST['staffId']:"";
+	$sql = "select staffId, date,date_time,login_date_time,logout_date_time,created_date,updated_date from staff_attendance where userId=".$outletId." and status='LOGOUT' ";
+	if($staffId!=""){
+		$sql .= " and staffId=".$staffId;
+	}
+	$sql .= " order by date DESC";
+	$attendanceDetails = $this->db->select($sql);
+	// also append total working hrous in hours and minutes for each attendance record
+	if(is_array($attendanceDetails) && count($attendanceDetails)>0){
+		foreach($attendanceDetails as &$attendance){
+			$loginTime = isset($attendance->login_date_time) ? strtotime($attendance->login_date_time) : null;
+			$logoutTime = isset($attendance->logout_date_time) ? strtotime($attendance->logout_date_time) : null;
+			if($loginTime && $logoutTime){
+				$diffSeconds = $logoutTime - $loginTime;
+				$hours = floor($diffSeconds / 3600);
+				$minutes = floor(($diffSeconds % 3600) / 60);
+				$attendance->totalWorkingHours = $hours . "h " . $minutes . "m";
+				$attendance->totalWorkingMinutes = round($diffSeconds / 60, 2);
+			}else{
+				$attendance->totalWorkingHours = "0h 0m";
+				$attendance->totalWorkingMinutes = 0;
+			}
+		}
+		unset($attendance);
+	}
+	$responseArray = array('status' => 'true','value' =>'result found', 'count' => is_array($attendanceDetails) ? count($attendanceDetails) : 0, 'attendanceDetails' => is_array($attendanceDetails) ? $attendanceDetails : array());
+	$this->displayOutputJson($responseArray);	
+}
+}
