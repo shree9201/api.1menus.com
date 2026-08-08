@@ -411,7 +411,7 @@
         <div class="grid-2">
           <button class="card metric-card metric-card--full" data-nav="hod/performance"><div class="icon">🏆</div><h5>Department Performance</h5><div class="value">4.3 ⭐ Avg. Rating</div></button>
           <button class="card metric-card" data-nav="hod/staff"><div class="icon">👥</div><h5>Staff Availability</h5><div class="sub"><span class="green">8 Available</span> · <span class="orange">2 Busy</span></div></button>
-          <button class="card metric-card" data-nav="hod/analytics"><div class="icon">📊</div><h5>Task Analytics</h5><div class="value" style="font-size:13px">Avg. 14m 25s</div></button>
+          <button class="card metric-card" data-nav="hod/attendance"><div class="icon">📅</div><h5>Staff Attendance</h5><div class="value" style="font-size:13px">Monthly report</div></button>
           <button class="card metric-card" data-nav="hod/attention"><div class="icon">⚠️</div><h5>Attention Needed</h5><div class="sub"><span class="red">3 Delayed</span><br><span class="red">2 Not Accepted</span></div></button>
         </div>
       </section>
@@ -495,6 +495,64 @@
         <div class="page-header"><div><h1>Reports</h1><p class="subtitle">Manager</p></div></div>
         <button class="card list-item"><div><h4>Shift Summary</h4><p>Today · PDF</p></div><span>↓</span></button>
         <button class="card list-item"><div><h4>Staff Performance</h4><p>Weekly</p></div><span>↓</span></button>
+      </section>
+
+      <section class="page" id="page-hod-attendance" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Staff Attendance</h2></div>
+        <div class="card" style="padding:16px;margin-bottom:12px">
+          <label for="hod-attendance-month" style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:8px">Select month</label>
+          <select id="hod-attendance-month" class="form-select">
+            <option value="August 2026">August 2026</option>
+            <option value="July 2026">July 2026</option>
+            <option value="June 2026">June 2026</option>
+          </select>
+        </div>
+        <div class="card info-list">
+          <div class="info-row"><span>Month</span><span data-attendance-summary="hod-month">August 2026</span></div>
+          <div class="info-row"><span>Team Present</span><span data-attendance-summary="hod-present">98%</span></div>
+          <div class="info-row"><span>Late Arrivals</span><span data-attendance-summary="hod-late">4</span></div>
+        </div>
+        <div class="section-title"><span>Attendance by staff</span></div>
+        <button class="card list-item" data-nav="attendance-detail" data-param-id="emp-ravi"><div><h4>Ravi Kumar</h4><p>Housekeeping · Present 27/30 days · 1 Absent · 2 Late</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="attendance-detail" data-param-id="emp-anita"><div><h4>Anita Singh</h4><p>Housekeeping · Present 28/30 days · 0 Absent · 1 Late</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="attendance-detail" data-param-id="emp-mohit"><div><h4>Mohit Sharma</h4><p>Maintenance · Present 26/30 days · 2 Absent · 1 Late</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="attendance-detail" data-param-id="emp-suresh"><div><h4>Suresh Yadav</h4><p>Maintenance · Present 29/30 days · 0 Absent · 1 Late</p></div><span>›</span></button>
+      </section>
+
+      <section class="page" id="page-hr-attendance" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Staff Attendance</h2></div>
+        <div class="card" style="padding:16px;margin-bottom:12px">
+          <label for="hr-attendance-month" style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:8px">Select month</label>
+          <select id="hr-attendance-month" class="form-select">
+            <option value="August 2026">August 2026</option>
+            <option value="July 2026">July 2026</option>
+            <option value="June 2026">June 2026</option>
+          </select>
+        </div>
+        <div class="card info-list">
+          <div class="info-row"><span>Month</span><span data-attendance-summary="hr-month">August 2026</span></div>
+          <div class="info-row"><span>Total Staff</span><span>124</span></div>
+          <div class="info-row"><span>Present Today</span><span>98</span></div>
+        </div>
+        <div class="section-title"><span>Attendance by staff</span></div>
+        <button class="card list-item" data-nav="attendance-detail" data-param-id="emp-ravi"><div><h4>Ravi Kumar</h4><p>Housekeeping · Present 27/30 days · 1 Absent · 2 Late</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="attendance-detail" data-param-id="emp-anita"><div><h4>Anita Singh</h4><p>Housekeeping · Present 28/30 days · 0 Absent · 1 Late</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="attendance-detail" data-param-id="emp-mohit"><div><h4>Mohit Sharma</h4><p>Maintenance · Present 26/30 days · 2 Absent · 1 Late</p></div><span>›</span></button>
+        <button class="card list-item" data-nav="attendance-detail" data-param-id="emp-suresh"><div><h4>Suresh Yadav</h4><p>Maintenance · Present 29/30 days · 0 Absent · 1 Late</p></div><span>›</span></button>
+      </section>
+
+      <section class="page" id="page-attendance-detail" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Attendance Details</h2></div>
+        <div class="card info-list">
+          <div class="info-row"><span>Name</span><span data-attendance-detail="name">—</span></div>
+          <div class="info-row"><span>Department</span><span data-attendance-detail="dept">—</span></div>
+          <div class="info-row"><span>Month</span><span data-attendance-detail="month">—</span></div>
+          <div class="info-row"><span>Present</span><span data-attendance-detail="present">—</span></div>
+          <div class="info-row"><span>Late</span><span data-attendance-detail="late">—</span></div>
+          <div class="info-row"><span>Absent</span><span data-attendance-detail="absent">—</span></div>
+        </div>
+        <div class="section-title"><span>Daily attendance</span></div>
+        <div id="attendance-detail-day-list"></div>
       </section>
 
       <section class="page" id="page-hod-more" data-tab="more">
@@ -1137,6 +1195,47 @@
         <div class="card list-item"><div><h4>Room 205 — Mini Bar</h4><p>Completed · 2 days ago</p></div><span>✅</span></div>
       </section>
 
+      <section class="page" id="page-staff-attendance" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>My Attendance</h2></div>
+        <div class="card" style="padding:16px;margin-bottom:12px">
+          <label for="staff-attendance-month" style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:8px">Select month</label>
+          <select id="staff-attendance-month" class="form-select">
+            <option value="August 2026">August 2026</option>
+            <option value="July 2026">July 2026</option>
+            <option value="June 2026">June 2026</option>
+            <option value="May 2026">May 2026</option>
+          </select>
+        </div>
+
+        <div class="analytics-row attendance-summary" style="margin-top:0">
+          <div class="card"><div class="lbl">Days Present</div><div class="val" data-attendance-summary="daysPresent">24/26</div></div>
+          <div class="card"><div class="lbl">Worked Hours</div><div class="val" data-attendance-summary="workedHours">192h</div></div>
+          <div class="card"><div class="lbl">Late Arrivals</div><div class="val" data-attendance-summary="lateArrivals">2</div></div>
+        </div>
+
+        <div class="section-title" style="margin-top:16px"><span>Attendance calendar</span></div>
+        <div class="card attendance-calendar-card" id="staff-attendance-chart">
+          <div class="attendance-calendar-header">
+            <span>Sun</span>
+            <span>Mon</span>
+            <span>Tue</span>
+            <span>Wed</span>
+            <span>Thu</span>
+            <span>Fri</span>
+            <span>Sat</span>
+          </div>
+          <div class="attendance-calendar-grid" id="staff-attendance-calendar"></div>
+          <div class="attendance-calendar-legend">
+            <div><span class="legend-dot present"></span> Present</div>
+            <div><span class="legend-dot half"></span> Half Day</div>
+            <div><span class="legend-dot absent"></span> Absent</div>
+          </div>
+        </div>
+
+        <div class="section-title"><span>Daily attendance</span></div>
+        <div id="staff-attendance-day-list"></div>
+      </section>
+
       <section class="page" id="page-staff-profile-tab" data-tab="profile">
         <div class="portfolio-header-actions" style="justify-content:flex-end;margin-bottom:4px">
           <button class="icon-btn" data-nav="staff/settings" aria-label="Settings">⚙️</button>
@@ -1272,6 +1371,7 @@
             <div><div class="num">98</div><div class="lbl">Present Today</div></div>
           </div>
         </button>
+        <button class="card list-item" data-nav="hr/attendance"><div><h4>Workforce Attendance</h4><p>View monthly attendance for all staff</p></div><span>›</span></button>
         <div class="section-title">
           <span>Employee Performance</span>
           <button class="link-btn" data-nav="hr/employees">View All</button>

@@ -25,6 +25,195 @@
     return null;
   }
 
+  const STAFF_ATTENDANCE_DATA = {
+    'August 2026': {
+      summary: { daysPresent: '24/26', workedHours: '192h', lateArrivals: '2' },
+      daily: [
+        { day: '01', status: 'present', detail: '09:00 – 18:00' },
+        { day: '02', status: 'present', detail: '09:05 – 18:00' },
+        { day: '03', status: 'present', detail: '09:00 – 18:10' },
+        { day: '04', status: 'absent', detail: 'Absent' },
+        { day: '05', status: 'present', detail: '09:00 – 18:00' },
+        { day: '06', status: 'present', detail: '09:00 – 18:00' },
+        { day: '07', status: 'present', detail: '09:00 – 18:00' },
+      ],
+    },
+    'July 2026': {
+      summary: { daysPresent: '23/31', workedHours: '184h', lateArrivals: '3' },
+      daily: [
+        { day: '01', status: 'present', detail: '09:00 – 18:00' },
+        { day: '05', status: 'present', detail: '09:10 – 18:00' },
+        { day: '08', status: 'present', detail: '09:00 – 18:00' },
+        { day: '10', status: 'absent', detail: 'Absent' },
+        { day: '13', status: 'present', detail: '09:00 – 18:05' },
+        { day: '20', status: 'half', detail: '09:00 – 14:00' },
+        { day: '28', status: 'present', detail: '09:00 – 18:00' },
+      ],
+    },
+    'June 2026': {
+      summary: { daysPresent: '25/30', workedHours: '200h', lateArrivals: '1' },
+      daily: [
+        { day: '02', status: 'present', detail: '09:00 – 18:00' },
+        { day: '05', status: 'present', detail: '09:00 – 18:00' },
+        { day: '11', status: 'present', detail: '09:00 – 18:00' },
+        { day: '14', status: 'half', detail: '09:00 – 14:00' },
+        { day: '18', status: 'present', detail: '09:00 – 18:00' },
+        { day: '23', status: 'present', detail: '09:00 – 18:00' },
+        { day: '30', status: 'present', detail: '09:00 – 18:00' },
+      ],
+    },
+    'May 2026': {
+      summary: { daysPresent: '26/31', workedHours: '208h', lateArrivals: '4' },
+      daily: [
+        { day: '03', status: 'present', detail: '09:00 – 18:00' },
+        { day: '07', status: 'present', detail: '09:10 – 18:00' },
+        { day: '12', status: 'half', detail: '09:00 – 14:30' },
+        { day: '15', status: 'present', detail: '09:00 – 18:00' },
+        { day: '19', status: 'present', detail: '09:00 – 18:00' },
+        { day: '24', status: 'absent', detail: 'Absent' },
+        { day: '29', status: 'present', detail: '09:00 – 18:00' },
+      ],
+    },
+  };
+
+  const ATTENDANCE_REPORTS = {
+    hod: {
+      'August 2026': { month: 'August 2026', present: '98%', late: '4' },
+      'July 2026': { month: 'July 2026', present: '96%', late: '5' },
+      'June 2026': { month: 'June 2026', present: '97%', late: '3' },
+    },
+    hr: {
+      'August 2026': { month: 'August 2026', present: '98%', late: '4' },
+      'July 2026': { month: 'July 2026', present: '96%', late: '5' },
+      'June 2026': { month: 'June 2026', present: '97%', late: '3' },
+    },
+  };
+
+  const EMPLOYEE_ATTENDANCE_DATA = {
+    'emp-ravi': {
+      name: 'Ravi Kumar',
+      dept: 'Housekeeping',
+      attendance: {
+        'August 2026': {
+          present: '27/30',
+          late: '2',
+          absent: '1',
+          daily: [
+            { day: '01', status: 'present', detail: '09:00 – 18:00' },
+            { day: '02', status: 'present', detail: '09:05 – 18:00' },
+            { day: '03', status: 'present', detail: '09:00 – 18:10' },
+            { day: '04', status: 'absent', detail: 'Absent' },
+            { day: '05', status: 'present', detail: '09:00 – 18:00' },
+            { day: '28', status: 'late', detail: '09:15 – 18:00' },
+            { day: '30', status: 'present', detail: '09:00 – 18:00' },
+          ],
+        },
+        'July 2026': {
+          present: '25/31',
+          late: '3',
+          absent: '2',
+          daily: [
+            { day: '02', status: 'present', detail: '09:00 – 18:00' },
+            { day: '08', status: 'late', detail: '09:20 – 18:00' },
+            { day: '10', status: 'absent', detail: 'Absent' },
+            { day: '17', status: 'present', detail: '09:00 – 18:00' },
+            { day: '25', status: 'present', detail: '09:00 – 18:00' },
+          ],
+        },
+        'June 2026': {
+          present: '26/30',
+          late: '1',
+          absent: '1',
+          daily: [
+            { day: '05', status: 'present', detail: '09:00 – 18:00' },
+            { day: '11', status: 'present', detail: '09:00 – 18:00' },
+            { day: '14', status: 'half', detail: '09:00 – 14:00' },
+            { day: '18', status: 'late', detail: '09:10 – 18:00' },
+            { day: '23', status: 'present', detail: '09:00 – 18:00' },
+          ],
+        },
+      },
+    },
+    'emp-anita': {
+      name: 'Anita Singh',
+      dept: 'Housekeeping',
+      attendance: {
+        'August 2026': {
+          present: '28/30',
+          late: '1',
+          absent: '0',
+          daily: [
+            { day: '01', status: 'present', detail: '09:00 – 18:00' },
+            { day: '05', status: 'present', detail: '09:05 – 18:00' },
+            { day: '12', status: 'present', detail: '09:00 – 18:00' },
+            { day: '20', status: 'late', detail: '09:20 – 18:00' },
+            { day: '27', status: 'present', detail: '09:00 – 18:00' },
+          ],
+        },
+        'July 2026': {
+          present: '27/31',
+          late: '2',
+          absent: '1',
+          daily: [
+            { day: '03', status: 'present', detail: '09:00 – 18:00' },
+            { day: '09', status: 'present', detail: '09:10 – 18:00' },
+            { day: '13', status: 'absent', detail: 'Absent' },
+            { day: '21', status: 'present', detail: '09:00 – 18:00' },
+            { day: '29', status: 'present', detail: '09:00 – 18:00' },
+          ],
+        },
+        'June 2026': {
+          present: '28/30',
+          late: '0',
+          absent: '0',
+          daily: [
+            { day: '02', status: 'present', detail: '09:00 – 18:00' },
+            { day: '08', status: 'present', detail: '09:00 – 18:00' },
+            { day: '15', status: 'present', detail: '09:00 – 18:00' },
+            { day: '22', status: 'present', detail: '09:00 – 18:00' },
+            { day: '29', status: 'present', detail: '09:00 – 18:00' },
+          ],
+        },
+      },
+    },
+    'emp-mohit': {
+      name: 'Mohit Sharma',
+      dept: 'Maintenance',
+      attendance: {
+        'August 2026': {
+          present: '26/30',
+          late: '1',
+          absent: '2',
+          daily: [
+            { day: '04', status: 'absent', detail: 'Absent' },
+            { day: '11', status: 'present', detail: '09:00 – 18:00' },
+            { day: '16', status: 'present', detail: '09:00 – 18:00' },
+            { day: '22', status: 'late', detail: '09:10 – 18:00' },
+            { day: '30', status: 'present', detail: '09:00 – 18:00' },
+          ],
+        },
+      },
+    },
+    'emp-suresh': {
+      name: 'Suresh Yadav',
+      dept: 'Maintenance',
+      attendance: {
+        'August 2026': {
+          present: '29/30',
+          late: '1',
+          absent: '0',
+          daily: [
+            { day: '01', status: 'present', detail: '09:00 – 18:00' },
+            { day: '10', status: 'present', detail: '09:00 – 18:00' },
+            { day: '18', status: 'present', detail: '09:00 – 18:00' },
+            { day: '24', status: 'present', detail: '09:00 – 18:00' },
+            { day: '30', status: 'present', detail: '09:00 – 18:00' },
+          ],
+        },
+      },
+    },
+  };
+
   const FOOTER_CONFIGS = {
     staff: [
       { nav: 'staff/home', label: 'Home', icon: '🏠' },
@@ -164,6 +353,18 @@
         el.dataset.paramId = params.id;
       });
     }
+    if (pageId === 'staff-attendance') {
+      renderStaffAttendance();
+    }
+    if (pageId === 'hod-attendance') {
+      renderRoleAttendanceSummary('hod');
+    }
+    if (pageId === 'hr-attendance') {
+      renderRoleAttendanceSummary('hr');
+    }
+    if (pageId === 'attendance-detail') {
+      renderAttendanceDetail(params);
+    }
   }
 
   function applyPageParams(page, params) {
@@ -202,6 +403,136 @@
         page.querySelector('[data-metric-trend]').textContent = m.trend;
         metricEl.textContent = m.title;
       }
+    }
+  }
+
+  function renderStaffAttendance() {
+    const monthSelect = document.getElementById('staff-attendance-month');
+    const summaryEls = {
+      daysPresent: document.querySelector('[data-attendance-summary="daysPresent"]'),
+      workedHours: document.querySelector('[data-attendance-summary="workedHours"]'),
+      lateArrivals: document.querySelector('[data-attendance-summary="lateArrivals"]'),
+    };
+    const calendarContainer = document.getElementById('staff-attendance-calendar');
+    const dayList = document.getElementById('staff-attendance-day-list');
+
+    function updateAttendance(month) {
+      const data = STAFF_ATTENDANCE_DATA[month] || STAFF_ATTENDANCE_DATA['August 2026'];
+      if (!data) return;
+      if (summaryEls.daysPresent) summaryEls.daysPresent.textContent = data.summary.daysPresent;
+      if (summaryEls.workedHours) summaryEls.workedHours.textContent = data.summary.workedHours;
+      if (summaryEls.lateArrivals) summaryEls.lateArrivals.textContent = data.summary.lateArrivals;
+
+      if (calendarContainer) {
+        calendarContainer.innerHTML = data.daily
+          .map((item) => {
+            const statusClass = item.status === 'half' ? 'half' : item.status === 'absent' ? 'absent' : 'present';
+            return `
+              <div class="attendance-calendar-cell ${statusClass}">
+                <div class="cell-top"><span>${item.day}</span><span>${item.status === 'present' ? item.detail.split(' ')[0] : item.status === 'half' ? '½' : '✕'}</span></div>
+                <div class="cell-detail">${item.status === 'present' ? item.detail : item.status === 'half' ? item.detail : 'Absent'}</div>
+              </div>
+            `;
+          })
+          .join('');
+      }
+
+      if (dayList) {
+        dayList.innerHTML = data.daily
+          .map((item) => {
+            const statusLabel = item.status === 'present' ? 'Present' : item.status === 'half' ? 'Half Day' : 'Absent';
+            return `
+              <button type="button" class="card list-item">
+                <div>
+                  <h4>${item.day} ${month.split(' ')[0]}</h4>
+                  <p>${statusLabel} · ${item.detail}</p>
+                </div>
+              </button>
+            `;
+          })
+          .join('');
+      }
+    }
+
+    if (monthSelect) {
+      monthSelect.removeEventListener('change', handleMonthChange);
+      monthSelect.addEventListener('change', handleMonthChange);
+    }
+
+    function handleMonthChange(event) {
+      const selectedMonth = event.target.value;
+      updateAttendance(selectedMonth);
+    }
+
+    const initialMonth = (monthSelect && monthSelect.value) || 'August 2026';
+    updateAttendance(initialMonth);
+  }
+
+  function renderRoleAttendanceSummary(role) {
+    const monthSelect = document.getElementById(`${role}-attendance-month`);
+    const monthLabel = document.querySelector(`[data-attendance-summary="${role}-month"]`);
+    const presentLabel = document.querySelector(`[data-attendance-summary="${role}-present"]`);
+    const lateLabel = document.querySelector(`[data-attendance-summary="${role}-late"]`);
+    const attendanceButtons = document.querySelectorAll(`#page-${role}-attendance .card.list-item[data-nav="attendance-detail"]`);
+
+    function updateRoleSummary(month) {
+      const report = ATTENDANCE_REPORTS[role]?.[month] || ATTENDANCE_REPORTS[role]?.['August 2026'];
+      if (!report) return;
+      if (monthLabel) monthLabel.textContent = report.month;
+      if (presentLabel) presentLabel.textContent = report.present;
+      if (lateLabel) lateLabel.textContent = report.late;
+      attendanceButtons.forEach((button) => {
+        if (button.dataset.paramId) {
+          button.dataset.paramMonth = month;
+        }
+      });
+    }
+
+    if (!monthSelect) return;
+    monthSelect.removeEventListener('change', handleMonthChange);
+    monthSelect.addEventListener('change', handleMonthChange);
+    function handleMonthChange(event) {
+      updateRoleSummary(event.target.value);
+    }
+    updateRoleSummary(monthSelect.value || 'August 2026');
+  }
+
+  function renderAttendanceDetail(params) {
+    const empId = params.id;
+    const month = params.month || 'August 2026';
+    const employee = EMPLOYEE_ATTENDANCE_DATA[empId];
+    const detail = employee?.attendance?.[month] || employee?.attendance?.['August 2026'];
+    if (!employee || !detail) return;
+
+    const nameEl = document.querySelector('[data-attendance-detail="name"]');
+    const deptEl = document.querySelector('[data-attendance-detail="dept"]');
+    const monthEl = document.querySelector('[data-attendance-detail="month"]');
+    const presentEl = document.querySelector('[data-attendance-detail="present"]');
+    const lateEl = document.querySelector('[data-attendance-detail="late"]');
+    const absentEl = document.querySelector('[data-attendance-detail="absent"]');
+    const dayList = document.getElementById('attendance-detail-day-list');
+
+    if (nameEl) nameEl.textContent = employee.name;
+    if (deptEl) deptEl.textContent = employee.dept;
+    if (monthEl) monthEl.textContent = month;
+    if (presentEl) presentEl.textContent = detail.present;
+    if (lateEl) lateEl.textContent = detail.late;
+    if (absentEl) absentEl.textContent = detail.absent;
+
+    if (dayList) {
+      dayList.innerHTML = detail.daily
+        .map((item) => {
+          const statusLabel = item.status === 'present' ? 'Present' : item.status === 'half' ? 'Half Day' : item.status === 'absent' ? 'Absent' : 'Late';
+          return `
+            <button type="button" class="card list-item">
+              <div>
+                <h4>${item.day} ${month.split(' ')[0]}</h4>
+                <p>${statusLabel} · ${item.detail}</p>
+              </div>
+            </button>
+          `;
+        })
+        .join('');
     }
   }
 
