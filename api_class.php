@@ -2237,7 +2237,7 @@ public function getOutletServices($return=false){
 	}
 	$responseArray = array();
 		if($status){
-			$sql = "select * from room_service_request where userId=".$outletId." ".$filterBySqlString." order by id DESC";
+			$sql = "select rsr.id, rsr.reqCode, rsr.title, rsr.userId, r.title as roomId, rsr.serviceId, rsr.assigned, rsr.start_time, rsr.end_time, rsr.date, rsr.ip, rsr.additionalField, rsr.audio, rsr.note, rsr.status, rsr.escalated_by, rsr.created_date, rsr.updated_date, rsr.guestId, rsr.guestName, rsr.guestMobile, rsr.guestCode, rsr.points  from room_service_request rsr , room_service_rooms r where rsr.userId=".$outletId." ".$filterBySqlString." and rsr.status!='CLOSE' and r.id=rsr.roomId order by rsr.id DESC";
 			if($limit!=""){
 				$sql .= " limit ".$limit;
 			}
@@ -2331,7 +2331,8 @@ public function getRequestDetails(){
 	$this->displayOutputJson($responseArray);
 }
 public function getRequestDetailsById($outletId, $requestId){
-	$requestDetails = $this->db->select("select * from room_service_request where userId=".$outletId." and id=".$requestId);
+$sql = "select rsr.id, rsr.reqCode, rsr.title, rsr.userId, r.title as roomId, rsr.serviceId, rsr.assigned, rsr.start_time, rsr.end_time, rsr.date, rsr.ip, rsr.additionalField, rsr.audio, rsr.note, rsr.status, rsr.escalated_by, rsr.created_date, rsr.updated_date, rsr.guestId, rsr.guestName, rsr.guestMobile, rsr.guestCode, rsr.points  from room_service_request rsr , room_service_rooms r where rsr.userId=".$outletId." and rsr.id=".$requestId." and rsr.status!='CLOSE' and r.id=rsr.roomId ";	
+$requestDetails = $this->db->select($sql);
 	if(count($requestDetails)==0){
 		return array('status' => 'false','value' =>'No request found for this request id');
 	}else{
@@ -2884,4 +2885,79 @@ public function staffAttendances(){
 	$responseArray = array('status' => 'true','value' =>'result found', 'count' => is_array($attendanceDetails) ? count($attendanceDetails) : 0, 'attendanceDetails' => is_array($attendanceDetails) ? $attendanceDetails : array());
 	$this->displayOutputJson($responseArray);	
 }
+
+//  change Password for staff
+public function changePassword(){
+	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
+	$staffId = isset($_REQUEST['staffId'])?$_REQUEST['staffId']:"";
+	$oldPassword = isset($_REQUEST['oldPassword'])?$_REQUEST['oldPassword']:"";
+	$newPassword = isset($_REQUEST['newPassword'])?$_REQUEST['newPassword']:"";
+	if($outletId!="" && $staffId!="" && $oldPassword!="" && $newPassword!=""){
+			if($this->db->selectCount("select count(*) as count from staff where id=".$staffId." and userId=".$outletId)!=0){
+				if($this->db->selectCount("select count(*) as count from staff where id=".$staffId." and userId=".$outletId." and password='".$oldPassword."'")!=0){
+					$this->db->update("update staff set password='".$newPassword."' where id=".$staffId." and userId=".$outletId);
+					$responseArray = array('status' => 'true','value' =>'Password changed successfully');
+
+				}else{
+					$responseArray = array('status' => 'false','value' =>'The old Password does not match.');
+				}
+			}else{
+				$responseArray = array('status' => 'false','value' =>'Outlet Id or Staff Id is not valid');
+			}
+	}else{
+		$responseArray = array('status' => 'false','value' =>'change Password required paramiter are not correct');
+
+	}
+	$this->displayOutputJson($responseArray);	
+}
+public function updateProfile()
+{
+    $outletId = isset($_REQUEST['outletId']) ? $_REQUEST['outletId'] : "";
+    $staffId  = isset($_REQUEST['staffId']) ? $_REQUEST['staffId'] : "";
+
+    $responseArray = array(
+        'status' => 'false',
+        'value'  => 'Something went wrong'
+    );
+
+    if ($outletId != "" && $staffId != "") {
+
+        $staffCount = $this->db->selectCount(
+            "SELECT COUNT(*) AS count 
+             FROM staff 
+             WHERE id=" . (int)$staffId . " 
+             AND userId=" . (int)$outletId
+        );
+
+        if ($staffCount != 0) {
+
+            $name = isset($_REQUEST['name']) ? trim($_REQUEST['name']) : "";
+            $email = isset($_REQUEST['email']) ? trim($_REQUEST['email']) : "";
+            $mobile = isset($_REQUEST['mobile']) ? trim($_REQUEST['mobile']) : "";
+            $username = isset($_REQUEST['username']) ? trim($_REQUEST['username']) : "";
+            $customised_position = isset($_REQUEST['customised_position'])? trim($_REQUEST['customised_position']) : "";
+            if ($name != "" && $email != "" && $mobile != "" && $username != "") {
+                $sql = "UPDATE staff SET 
+                            name='" . addslashes($name) . "',
+                            email='" . addslashes($email) . "',
+                            mobile='" . addslashes($mobile) . "',
+                            username='" . addslashes($username) . "',
+                            customised_position='" . addslashes($customised_position) . "'
+                        WHERE id=" . (int)$staffId . " 
+                        AND userId=" . (int)$outletId;
+                $this->db->update($sql);
+                $responseArray = array('status' => 'true','value'  => 'Profile updated successfully');
+            } else {
+                $responseArray = array('status' => 'false','value'  => 'Mandatory fields: Name, Mobile, Email, Username');
+            }
+        } else {
+            $responseArray = array('status' => 'false','value'  => 'Outlet Id or Staff Id is not valid');
+        }
+    } else {
+        $responseArray = array('status' => 'false','value'  => 'Outlet Id and Staff Id are required');
+    }
+    $this->displayOutputJson($responseArray);
+}
+
+
 }
