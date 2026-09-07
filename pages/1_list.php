@@ -18,6 +18,7 @@ $apiNamesArray =array(
 				'setOnDutyFlag'	=>'Set On Duty Flag',
 				'updateProfile'=>"Update Profile",
 				"changePassword"=>"Change Pasword",
+				"staff"=>'Staff Operations',
 				'logout'	=>'Logout',
                 );
 $keys = array_keys($apiNamesArray);

@@ -59,6 +59,7 @@ class api_class {
 	var $departments;
 	var $message;
 	var $fontAwasomeIconList;
+	var $staffTypesRS;
 	
 	public function __construct(){
 		$this->post = $_POST;
@@ -89,7 +90,18 @@ class api_class {
 			 
 		}
 		$GLOBALS['fontAwesomeUnicodeMapping'] = null;
-
+			$this->staffTypesRS = array(
+				'FOMGR'=>'Front Office Manager',
+				'FOSU'=>'Front Office Supervisor',
+				'FO'=>'Front Office Executive',
+				'HKMGR'=>"House Keeping Manager",
+				'HKSU'=>'House Keeping Supervisor',
+				'HK'=>"House Keeping Executive",
+				'MTNS'=>"Maintenance",
+				'SPA'=>"Spa",
+				'HR'=>"HR",
+				"OWNER"=>"Owner"
+		);
 	}
 
 	public function getBodyJsonData(){
@@ -1890,8 +1902,8 @@ public function oldMethodNotification($argStaffId="", $argTitle="", $argMessage=
 public function sendFcm($deviceToken, $title, $message){
 		$content = [
     'app_id'          => 'e417d7b6-972d-4c33-9f70-3838e1fa17da',
-    'contents'        => ['en' => $title],
-    'headings'        => ['en' => $message],
+    'contents'        => ['en' => $message],
+    'headings'        => ['en' => $title],
     'include_subscription_ids' => [$deviceToken],
     'target_channel'  => 'push',
 ];
@@ -1902,7 +1914,7 @@ curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_HTTPHEADER     => [
         'Content-Type: application/json',
-        'Authorization: os_v2_app_4ql5pnuxfvgdhh3qha4od6qx3lphjotpoc5u7wur73uvqzmnld5jt4owy43ktpranalzs4324vosway6ugawtnxzbik5uzzdtjb2qgq',
+        'Authorization: os_v2_app_4ql5pnuxfvgdhh3qha4od6qx3ib56lygwfpu74uqvgpl7baswrv2dcg47c3ykj7w6225hmrvbathiu46fiq4ylujox4fjygsyh5ox2y',
 		'Cookie: __cf_bm=zwK4QnegG.pP4vMM82uIlcvTu5.2dcLzduBZC8RkxQo-1785251723.869693-1.0.1.1-6yhXwTP0dTOUAp1hL2JuQT4hssAYG6giJvACHnCaX5Z66peZvAwJvpf7C67vvCe5TwNn1HiQKpFxJcrbNNwJTFpMZ0RKgImWQ.iLYKxd7jkGIrrAPYlo8iO0oNUPtqXK'
     ],
     CURLOPT_POSTFIELDS     => json_encode($content),
@@ -2073,7 +2085,7 @@ $response = json_encode($responseArray);
 
 // function for get master data for 1menus private project
 public function masterData(){
-	$responseArray =  array('status' => 'true', 'value' => 'Master data retrieved successfully', 'staffTypes' =>$this->staffTypes,'departments'=>$this->departments,'statusList'=>$this->statusList);
+	$responseArray =  array('status' => 'true', 'value' => 'Master data retrieved successfully', 'staffTypes' =>$this->staffTypes,'departments'=>$this->departments,'statusList'=>$this->statusList,'staffTypes'=>$this->staffTypesRS,'staffDepartments'=>array("STAFF","MANAGER","HR"));
 	$this->displayOutputJson($responseArray);
 }
 
@@ -2224,7 +2236,7 @@ public function getOutletServices($return=false){
 	if (count($filterBy) > 0) {
 		for ($f = 0; $f < count($filterBy); $f++) {
 			if (isset($filterBy[$f]['key']) && isset($filterBy[$f]['value'])) {
-				$filterBySqlString .= " and " . $filterBy[$f]['key'] . "='" . $filterBy[$f]['value'] . "'";
+				$filterBySqlString .= " and rsr." . $filterBy[$f]['key'] . "='" . $filterBy[$f]['value'] . "'";
 			}
 		}
 	}
@@ -2237,7 +2249,7 @@ public function getOutletServices($return=false){
 	}
 	$responseArray = array();
 		if($status){
-			$sql = "select rsr.id, rsr.reqCode, rsr.title, rsr.userId, r.title as roomId, rsr.serviceId, rsr.assigned, rsr.start_time, rsr.end_time, rsr.date, rsr.ip, rsr.additionalField, rsr.audio, rsr.note, rsr.status, rsr.escalated_by, rsr.created_date, rsr.updated_date, rsr.guestId, rsr.guestName, rsr.guestMobile, rsr.guestCode, rsr.points  from room_service_request rsr , room_service_rooms r where rsr.userId=".$outletId." ".$filterBySqlString." and rsr.status!='CLOSE' and r.id=rsr.roomId order by rsr.id DESC";
+			$sql = "select rsr.id, rsr.reqCode, rsr.title, rsr.userId, r.title as roomId, rsr.serviceId, rsr.assigned, rsr.start_time, rsr.end_time, rsr.date, rsr.ip, rsr.additionalField, rsr.audio, rsr.note, rsr.status, rsr.escalated_by, rsr.created_date, rsr.updated_date, rsr.guestId, rsr.guestName, rsr.guestMobile, rsr.guestCode, rsr.points  from room_service_request rsr , room_service_rooms r where rsr.userId=".$outletId." ".$filterBySqlString." and r.id=rsr.roomId order by rsr.id DESC";
 			if($limit!=""){
 				$sql .= " limit ".$limit;
 			}
@@ -2314,7 +2326,12 @@ public function getOutletServices($return=false){
 public function serviceStatusCount(){
 	$myRoomServiceRequestCountByStatus = array();
 	$outletId = isset($_REQUEST['outletId'])?$_REQUEST['outletId']:"";
-	$sql = "select status, count(*) as count from room_service_request where userId=".$outletId." group by status";
+	$assigned = isset($_REQUEST['assigned'])?$_REQUEST['assigned']:"";
+	$assignedSql = "";
+	if($assigned!=""){
+		$assignedSql = " and assigned='".$assigned."'";
+	}
+	$sql = "select status, count(*) as count from room_service_request where userId=".$outletId." ".$assignedSql." group by status";
 	$myRoomServiceRequestCountByStatus = $this->db->select($sql);
 	$responseArray = array(
 		'status' => true,
@@ -2426,7 +2443,7 @@ public function updateRequest(){
 			'created_date' => date("Y-m-d H:i:s")
 		);
 		$this->db->insert($activityArray, "room_service_request_activity");
-		$notificationDetails = $this->sendPushNotification($assignedTo, "Room Service Status: " . $status, "You have been assigned to a new room service request (Code: $reqCode) for Room ID: $roomId. Please check the app for details.");
+		$notificationDetails = $this->sendPushNotification($assignedTo, "Room (" . $roomId . ") Service status Update: " . $status, "The room service request (Code: $reqCode) for Room ID: $roomId. changed status to $status. Please check the app for details.");
 			$_REQUEST['outletId'] = $outletId;
 			$_REQUEST['requestId'] = $requestId;
 		$updatedDetails = $this->getRequestDetailsById($outletId, $requestId);
@@ -2959,5 +2976,151 @@ public function updateProfile()
     $this->displayOutputJson($responseArray);
 }
 
+public function staff()
+{
+	$operation = strtolower(isset($_REQUEST['data']) ? $_REQUEST['data'] : 'list');
+	$key = isset($_REQUEST['key']) ? $_REQUEST['key'] : '';
 
+	switch ($operation) {
+		case 'view':
+			$this->getStaff($key);
+			break;
+		case 'add':
+			$this->addStaff();
+			break;
+		case 'update':
+			$this->editStaff();
+			break;
+		case 'delete':
+			$this->deleteStaff();
+			break;
+		default:
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'Invalid operation. Use list, view, add, edit, or delete'));
+	}
+}
+
+private function staffOutletId()
+{
+	$outletId = isset($_REQUEST['outletId']) ? (int)$_REQUEST['outletId'] : 0;
+	if ($outletId <= 0) {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'Outlet Id is required'));
+	}
+	return $outletId;
+}
+
+public function getStaff($id = '')
+{
+	$outletId = $this->staffOutletId();
+	$sql = "SELECT id, userId, name, email, mobile, username, department, customised_position, online, status " .
+	       "FROM staff WHERE userId=" . $outletId;
+	if ($id !== '') {
+		$keyEscaped = addslashes($id);
+		$sql .= " AND id=".$id;
+	}
+	$staffList = $this->db->select($sql);
+
+	$this->displayOutputJson(array(
+		'status' => 'true',
+		'value' => 'Staff list fetched successfully',
+		'count' => is_array($staffList) ? count($staffList) : 0,
+		'staffList' => is_array($staffList) ? $staffList : array()
+	));
+}
+public function viewStaffDetails()
+{
+	$outletId = $this->staffOutletId();
+	$staffId  = isset($_REQUEST['staffId']) ? (int)$_REQUEST['staffId'] : 0;
+
+	if ($staffId <= 0) {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'Staff Id is required'));
+	}
+
+	$staffDetails = $this->db->select(
+		"SELECT id, userId, name, email, mobile, username, department, customised_position, online, status " .
+		"FROM staff WHERE id=" . $staffId . " AND userId=" . $outletId
+	);
+	if (count($staffDetails) === 0) {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'No staff found for this ID'));
+	}
+
+	$this->displayOutputJson(array('status' => 'true', 'value' => 'Staff details found', 'staffDetails' => $staffDetails[0]));
+}
+public function addStaff(){
+	$outletId = $this->staffOutletId();
+	$name = isset($_REQUEST['name']) ? trim($_REQUEST['name']) : '';
+	$email = isset($_REQUEST['email']) ? trim($_REQUEST['email']) : '';
+	$mobile = isset($_REQUEST['mobile']) ? trim($_REQUEST['mobile']) : '';
+	$username = isset($_REQUEST['username']) ? trim($_REQUEST['username']) : '';
+	$password = isset($_REQUEST['password']) ? trim($_REQUEST['password']) : '';
+	$department = isset($_REQUEST['department']) ? trim($_REQUEST['department']) : 'STAFF';
+	$type = isset($_REQUEST['type']) ? trim($_REQUEST['type']) : '';
+	$position = isset($_REQUEST['customised_position']) ? trim($_REQUEST['customised_position']) : '';
+
+	if ($name === '' || $email === '' || $mobile === '' || $username === '' || $password === '' || $department === '' || $type === '') {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'Name, email, mobile, username, password, department, and type are required'));
+	}
+	if ($this->db->selectCount("SELECT COUNT(*) AS count FROM staff WHERE userId=" . $outletId . " AND username='" . addslashes($username) . "'") > 0) {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'A staff member with this username already exists'));
+	}
+
+	$staffId = $this->db->insert(array(
+		'userId' => $outletId,
+		'name' => $name,
+		'email' => $email,
+		'mobile' => $mobile,
+		'username' => $username,
+		'password' => $password,
+		'department' => $department,
+		'type' => $type,
+		'customised_position' => $position,
+		'status' => 'YES',
+		'online' => 'NO'
+	), 'staff');
+
+	$this->displayOutputJson(array('status' => 'true', 'value' => 'Staff added successfully', 'staffId' => $staffId));
+}
+
+public function editStaff()
+{
+	$outletId = $this->staffOutletId();
+	$staffId = isset($_REQUEST['staffId']) ? (int)$_REQUEST['staffId'] : 0;
+	if ($staffId <= 0) {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'Staff Id is required'));
+	}
+
+	$fields = array('name', 'email', 'mobile', 'username', 'department', 'type', 'customised_position', 'status', 'online');
+	$updates = array();
+	foreach ($fields as $field) {
+		if (isset($_REQUEST[$field])) {
+			$updates[] = $field . "='" . addslashes(trim($_REQUEST[$field])) . "'";
+		}
+	}
+	if (isset($_REQUEST['password']) && trim($_REQUEST['password']) !== '') {
+		$updates[] = "password='" . addslashes(trim($_REQUEST['password'])) . "'";
+	}
+	if (count($updates) === 0) {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'No staff fields supplied for update'));
+	}
+	if ($this->db->selectCount("SELECT COUNT(*) AS count FROM staff WHERE id=" . $staffId . " AND userId=" . $outletId) === 0) {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'No staff found for this ID'));
+	}
+
+	$this->db->update("UPDATE staff SET " . implode(', ', $updates) . " WHERE id=" . $staffId . " AND userId=" . $outletId);
+	$this->displayOutputJson(array('status' => 'true', 'value' => 'Staff updated successfully', 'staffId' => $staffId));
+}
+
+public function deleteStaff()
+{
+	$outletId = $this->staffOutletId();
+	$staffId = isset($_REQUEST['staffId']) ? (int)$_REQUEST['staffId'] : 0;
+	if ($staffId <= 0) {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'Staff Id is required'));
+	}
+	if ($this->db->selectCount("SELECT COUNT(*) AS count FROM staff WHERE id=" . $staffId . " AND userId=" . $outletId) === 0) {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'No staff found for this ID'));
+	}
+
+	$this->db->delete("DELETE FROM staff WHERE id=" . $staffId . " AND userId=" . $outletId);
+	$this->displayOutputJson(array('status' => 'true', 'value' => 'Staff deleted successfully', 'staffId' => $staffId));
+}
 }
