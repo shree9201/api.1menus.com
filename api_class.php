@@ -81,7 +81,7 @@ class api_class {
 		$this->statusList = array('NEW'=>'NEW' , 'ACCEPT'=>'ACCEPT','ASSIGN' => 'ASSIGN' , 'START'=>'START','HOLD'=>'HOLD','END'=>'END','DONE'=>'DONE','CLOSE'=>'CLOSE','REJECT'=>'REJECT','REOPEN'=>'REOPEN');
 		$this->hotelWebsiteThemes = array("HotWebTheme-1"=>'HotWebTheme-1');
 		$this->staffTypes = [['key' => 'FOMGR','value' => 'Front Office Manager'],['key' => 'FOSU','value' => 'Front Office Supervisor'],['key' => 'FO','value' => 'Front Office Executive'],['key' => 'HKMGR','value' => 'House Keeping Manager'],['key' => 'HKSU','value' => 'House Keeping Supervisor'],['key' => 'HK','value' => 'House Keeping Executive'],['key' => 'MTNS','value' => 'Maintenance'],['key' => 'SPA','value' => 'Spa'],['key' => 'WAITER-STAFF','value' => 'Waiter/Staff'],['key' => 'KITCHEN','value' => 'Kitchen']];
-		$this->departments = [['key' => 'STAFF','value' => 'Staff'],['key'=>'MANAGER','value'=>'Manager'],['key'=>'HR','value'=>'HR']];
+		$this->departments = [['key' => 'STAFF','value' => 'Executive'],['key' => 'SUPERVISOR','value' => 'Supervisor'],['key'=>'MANAGER','value'=>'Manager'],['key'=>'HR','value'=>'HR']];
 		// jwt_token authentication for API access validation can be implemented here if needed for all API calls
 		$this->getBodyJsonData();
 		//$this->loadFontAwasoneIcons();
@@ -2085,7 +2085,7 @@ $response = json_encode($responseArray);
 
 // function for get master data for 1menus private project
 public function masterData(){
-	$responseArray =  array('status' => 'true', 'value' => 'Master data retrieved successfully', 'staffTypes' =>$this->staffTypes,'departments'=>$this->departments,'statusList'=>$this->statusList,'staffTypes'=>$this->staffTypesRS,'staffDepartments'=>array("STAFF","MANAGER","HR"));
+	$responseArray =  array('status' => 'true', 'value' => 'Master data retrieved successfully', 'staffTypes' =>$this->staffTypes,'departments'=>$this->departments,'statusList'=>$this->statusList,'staffTypes'=>$this->staffTypesRS,'staffDepartments'=>array("STAFF","SUPERVISOR","MANAGER","HR"));
 	$this->displayOutputJson($responseArray);
 }
 
@@ -3122,5 +3122,40 @@ public function deleteStaff()
 
 	$this->db->delete("DELETE FROM staff WHERE id=" . $staffId . " AND userId=" . $outletId);
 	$this->displayOutputJson(array('status' => 'true', 'value' => 'Staff deleted successfully', 'staffId' => $staffId));
+}
+
+public function getActivityList()
+{
+	$outletId = isset($_REQUEST['outletId']) ? (int)$_REQUEST['outletId'] : 0;
+	$staffId = isset($_REQUEST['staffId']) ? (int)$_REQUEST['staffId'] : 0;
+	if ($outletId <= 0) {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'Outlet Id is required'));
+	}
+	$staffInfo = $this->db->select(
+		"SELECT * FROM staff WHERE id=" . $staffId ." AND userId=" . $outletId . " AND department='STAFF'"
+	);
+	$isStaff = is_array($staffInfo) && count($staffInfo) > 0;
+	if(count($staffInfo) > 0 ) {
+		if(isset($staffInfo[0]->department) && $staffInfo[0]->department === 'STAFF') {
+			$isStaff = true;
+		}else{
+			$isStaff = false;
+		}
+		$sql = "SELECT a.id,a.roomId,r.title as roomTitle,a.userId,u.title as userName,a.dateTime,a.status,a.comment,a.created_date FROM room_service_request_activity a , users u, room_service_rooms r WHERE  a.userId=" . $outletId . " AND a.userId=u.id AND a.roomId=r.id";
+	if ($isStaff!=0) {
+		$sql .= " AND a.assigned=" . $staffId;
+	}
+	$sql .= " ORDER BY a.id DESC";
+	$activityList = $this->db->select($sql);
+	$this->displayOutputJson(array(
+		'status' => 'true',
+		'value' => 'Activity list fetched successfully',
+		'count' => is_array($activityList) ? count($activityList) : 0,
+		'activityList' => is_array($activityList) ? $activityList : array()
+	));
+	} else {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'Staff Id is not valid for this outlet'));
+	}
+	
 }
 }

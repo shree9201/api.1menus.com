@@ -19,6 +19,7 @@ $apiNamesArray =array(
 				'updateProfile'=>"Update Profile",
 				"changePassword"=>"Change Pasword",
 				"staff"=>'Staff Operations',
+				"getActivityList"=>'Get Activity List',
 				'logout'	=>'Logout',
                 );
 $keys = array_keys($apiNamesArray);
