@@ -3158,4 +3158,110 @@ public function getActivityList()
 	}
 	
 }
+public function isUserHasAccess($access){
+	$outletId = isset($_REQUEST['outletId']) ? (int)$_REQUEST['outletId'] : 0;
+	$staffId = isset($_REQUEST['staffId']) ? (int)$_REQUEST['staffId'] : 0;
+	$accessCheck = "";
+	if($access == 'MGR'){
+		$accessCheck = " AND type like '%MGR'";
+	}		
+	if ($outletId <= 0 || $staffId <= 0 || $access === '') {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'Outlet Id, Staff Id, and Access Key are required'));
+	}
+
+	$hasAccess = $this->db->selectCount("SELECT COUNT(*) AS count FROM staff WHERE userId=" . $outletId . " AND id=" . $staffId . " " . $accessCheck);
+
+	if ($hasAccess > 0)
+		return true;
+	else
+		$this->displayOutputJson(array('statud'=>'false','value'=>'You do not have access for this Operations'));
+}
+public function services(){
+	$operation = strtolower(isset($_REQUEST['data']) ? $_REQUEST['data'] : 'list');
+	$key = isset($_REQUEST['key']) ? $_REQUEST['key'] : '';
+
+	switch ($operation) {
+		case 'view':
+			$this->getServices();
+			break;
+		case 'category':
+			$this->getServiceCategory();
+			break;
+		case 'update':
+			$this->updateService();	
+		default:
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'Invalid operation. Use list, view, add, edit, or delete'));
+	}
+}
+public function getServices(){
+	$outletId = isset($_REQUEST['outletId']) ? (int)$_REQUEST['outletId'] : 0;
+	$id = isset($_REQUEST['key']) ? (int)$_REQUEST['key'] : 0;
+	if ($outletId <= 0) {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'Outlet Id is required'));
+	}
+	if($this->isUserHasAccess('MGR')){
+		$idSql = "";
+		if($id!=0 && $id!=""){
+			$idSql = " AND s.id=".$id." ";
+		}
+		$sql = "SELECT s.*, b.title as category FROM room_service_my_service s LEFT JOIN room_service_my_category b ON s.boxId = b.id WHERE s.userId=" . $outletId." $idSql ORDER BY s.sq ASC";
+		$servicesList = $this->db->select($sql);
+		$this->displayOutputJson(array(
+			'status' => 'true',
+			'value' => 'Services list fetched successfully',
+			'count' => is_array($servicesList) ? count($servicesList) : 0,
+			'servicesList' => is_array($servicesList) ? $servicesList : array()
+		));
+	}
+}
+public function getServiceCategory(){
+	$outletId = isset($_REQUEST['outletId']) ? (int)$_REQUEST['outletId'] : 0;
+	$id = isset($_REQUEST['key']) ? (int)$_REQUEST['key'] : 0;
+	if ($outletId <= 0) {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'Outlet Id is required'));
+	}
+	if($this->isUserHasAccess('MGR')){
+	$idSql = "";	
+	if($id!=0 && $id!=""){
+			$idSql = " AND id=".$id." ";
+		}
+	$sql = "SELECT * FROM room_service_my_category WHERE userId=" . $outletId." $idSql ORDER BY sq ASC";
+	$categoryList = $this->db->select($sql);
+
+	$this->displayOutputJson(array(
+		'status' => 'true',
+		'value' => 'Service categories fetched successfully',
+		'count' => is_array($categoryList) ? count($categoryList) : 0,
+		'categoryList' => is_array($categoryList) ? $categoryList : array()
+	));	
+	}
+}
+
+public function updateService(){
+	$outletId = isset($_REQUEST['outletId']) ? (int)$_REQUEST['outletId'] : 0;
+	if ($outletId <= 0) {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'Outlet Id is required'));
+	}
+	if($this->isUserHasAccess('MGR')){
+		$outletId = isset($_REQUEST['outletId']) ? (int)$_REQUEST['outletId'] : 0;
+		$id = isset($_REQUEST['id']) ? (int)$_REQUEST['id'] : 0;
+		$title = isset($_REQUEST['title']) ? (int)$_REQUEST['title'] : 0;
+		$actionBy = isset($_REQUEST['actionBy']) ? (int)$_REQUEST['actionBy'] : 0;
+		$aksDateTime = isset($_REQUEST['aksDateTime']) ? (int)$_REQUEST['aksDateTime'] : 0;
+		$information = isset($_REQUEST['information']) ? (int)$_REQUEST['information'] : 0;
+		$reminderTime = isset($_REQUEST['reminderTime']) ? (int)$_REQUEST['reminderTime'] : 0;
+		$escalationTime = isset($_REQUEST['escalationTime']) ? (int)$_REQUEST['escalationTime'] : 0;
+		$priority= isset($_REQUEST['priority']) ? (int)$_REQUEST['priority'] : 0;
+		$points= isset($_REQUEST['points']) ? (int)$_REQUEST['points'] : 0;
+		$onHoldOption= isset($_REQUEST['onHoldOption']) ? (int)$_REQUEST['onHoldOption'] : 0;
+		$status= isset($_REQUEST['status']) ? (int)$_REQUEST['status'] : 0;
+		if($id!=""){
+			$responseArray = array('status' => 'true', 'value' => 'Service updated');	
+		}else{
+			$responseArray = array('status' => 'false', 'value' => 'Service Id is required');
+		}
+		$this->displayOutputJson($responseArray);
+	}
+}
+
 }
