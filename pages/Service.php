@@ -87,22 +87,22 @@ APIInfoPageStart($pageName, "Retrieves all available device IDs against staff id
             <tr><td>Method</td><td><strong>POST</strong></td></tr>
             <tr><td>Request</td><td><details><summary><strong>Sample Request</strong></summary>
 <pre>
-
 {
   "outletId":5,
-  "staffId":19,
- "title": "SPA",
- "actionBy": "FO",
-   "aksDateTime": "NO",
-    "information": "",
-     "reminderTime": "0",
-     "escalationTime": "0",
- "points": "1",
-      "priority": "Medium",
-      "onHoldOption": "YES",
-           "status": "YES",
+  "staffId":20,
+   "id":283,
+   "title":"SPA",
+   "boxId": "6",
+   "actionBy":"FOMGR",
+   "aksDateTime":"NO",
+   "information":"HELLO",
+   "reminderTime":0,
+   "escalationTime":0,
+   "priority":"Medium",
+   "points":1,
+   "onHoldOption":"NO",
+   "status":"YES"
 }
-
 </pre>
         </details></td></tr>
             <tr><td>Response</td><td><details><summary><strong>Sample response</strong></summary>
@@ -110,7 +110,11 @@ APIInfoPageStart($pageName, "Retrieves all available device IDs against staff id
 {
     "status": "true",
     "value": "Service updated successfully",
-    "staffId": 19
+    "id": 283,
+    "updated": true,
+    "updatedFields": [
+        "title='SPA1'"
+    ]
 }
 </pre></details></td>
             

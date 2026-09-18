@@ -60,7 +60,15 @@ class api_class {
 	var $message;
 	var $fontAwasomeIconList;
 	var $staffTypesRS;
-	
+	var $reminderTime;
+	var $escalationTime;
+	var $RSFacilities;
+	var $floor;
+	var $points;
+	var $priority;
+	var $numbersSet;
+	var $numbersSetWith0;
+
 	public function __construct(){
 		$this->post = $_POST;
 		$this->get = $_GET;
@@ -81,7 +89,15 @@ class api_class {
 		$this->statusList = array('NEW'=>'NEW' , 'ACCEPT'=>'ACCEPT','ASSIGN' => 'ASSIGN' , 'START'=>'START','HOLD'=>'HOLD','END'=>'END','DONE'=>'DONE','CLOSE'=>'CLOSE','REJECT'=>'REJECT','REOPEN'=>'REOPEN');
 		$this->hotelWebsiteThemes = array("HotWebTheme-1"=>'HotWebTheme-1');
 		$this->staffTypes = [['key' => 'FOMGR','value' => 'Front Office Manager'],['key' => 'FOSU','value' => 'Front Office Supervisor'],['key' => 'FO','value' => 'Front Office Executive'],['key' => 'HKMGR','value' => 'House Keeping Manager'],['key' => 'HKSU','value' => 'House Keeping Supervisor'],['key' => 'HK','value' => 'House Keeping Executive'],['key' => 'MTNS','value' => 'Maintenance'],['key' => 'SPA','value' => 'Spa'],['key' => 'WAITER-STAFF','value' => 'Waiter/Staff'],['key' => 'KITCHEN','value' => 'Kitchen']];
-		$this->departments = [['key' => 'STAFF','value' => 'Executive'],['key' => 'SUPERVISOR','value' => 'Supervisor'],['key'=>'MANAGER','value'=>'Manager'],['key'=>'HR','value'=>'HR']];
+		$this->departments = array('EXECUTIVE'=>'EXECUTIVE',"SUPERVISOR"=>"SUPERVISOR",'MANAGER'=>'MANAGER','HR'=>'HR');
+		$this->reminderTime = array("0"=>'Not Required', "3"=>'3 Min',"5"=>'5 Min',"10"=>'10 Min',"15"=>'15 Min',"20"=>'20 Min',"30"=>'30 Min',"45"=>'45 Min',"60"=>'60 Min');
+		$this->escalationTime = array("0"=>'Not Required', "3"=>'3 Min',"5"=>'5 Min',"10"=>'10 Min',"15"=>'15 Min',"20"=>'20 Min',"30"=>'30 Min',"45"=>'45 Min',"60"=>'60 Min');
+		$this->RSFacilities = array("OF"=>'Order Food',"RS"=>'Room Supplies',"HK"=>'Housekeeping',"FD"=>'Front Desk');
+		$this->floor = array('0'=>'Ground','1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5','6'=>'6','7'=>'7','8'=>'8','9'=>'9','10'=>'10');
+		$this->points = array('0'=>'0','1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5','6'=>'6','7'=>'7','8'=>'8','9'=>'9','10'=>'10');
+		$this->priority = array('Urgent'=>'Urgent','High'=>'High','Medium'=>'Medium','Low'=>'Low');
+		$this->numbersSet = array('1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5','6'=>'6','7'=>'7','8'=>'8','9'=>'9','10'=>'10','11'=>'11','12'=>'12','13'=>'13','14'=>'14','15'=>'15','16'=>'16','17'=>'17','18'=>'18','19'=>'19','20'=>'20');
+		$this->numbersSetWith0 = array('0'=>'0','1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5','6'=>'6','7'=>'7','8'=>'8','9'=>'9','10'=>'10','11'=>'11','12'=>'12','13'=>'13','14'=>'14','15'=>'15','16'=>'16','17'=>'17','18'=>'18','19'=>'19','20'=>'20');
 		// jwt_token authentication for API access validation can be implemented here if needed for all API calls
 		$this->getBodyJsonData();
 		//$this->loadFontAwasoneIcons();
@@ -2085,7 +2101,23 @@ $response = json_encode($responseArray);
 
 // function for get master data for 1menus private project
 public function masterData(){
-	$responseArray =  array('status' => 'true', 'value' => 'Master data retrieved successfully', 'staffTypes' =>$this->staffTypes,'departments'=>$this->departments,'statusList'=>$this->statusList,'staffTypes'=>$this->staffTypesRS,'staffDepartments'=>array("STAFF","SUPERVISOR","MANAGER","HR"));
+	$responseArray =  array(
+		'status' => 'true',
+		'value' => 'Master data retrieved successfully',
+		'staffTypes' => $this->staffTypes,
+		'departments' => $this->departments,
+		'statusList' => $this->statusList,
+		'staffTypesRS' => $this->staffTypesRS,
+		'staffDepartments' => array("STAFF","SUPERVISOR","MANAGER","HR"),
+		'reminderTime' => $this->reminderTime,
+		'escalationTime' => $this->escalationTime,
+		'RSFacilities' => $this->RSFacilities,
+		'floor' => $this->floor,
+		'points' => $this->points,
+		'priority' => $this->priority,
+		'numbersSet' => $this->numbersSet,
+		'numbersSetWith0' => $this->numbersSetWith0
+	);
 	$this->displayOutputJson($responseArray);
 }
 
@@ -3158,6 +3190,17 @@ public function getActivityList()
 	}
 	
 }
+public function isValidIetm($table,$id){
+	if($id!="" && $table!=""){
+		if($this->db->selectCount("select count(*) as count from ".$table." where id=".$id." and status='YES'")==0){
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'Itemd does not exist or not in active mode'));
+			}else{
+				return true;
+				}
+				}else{
+					$this->displayOutputJson(array('status' => 'false', 'value' => 'Table name and Id required'));
+				}
+}
 public function isUserHasAccess($access){
 	$outletId = isset($_REQUEST['outletId']) ? (int)$_REQUEST['outletId'] : 0;
 	$staffId = isset($_REQUEST['staffId']) ? (int)$_REQUEST['staffId'] : 0;
@@ -3189,6 +3232,9 @@ public function services(){
 			break;
 		case 'update':
 			$this->updateService();	
+		case 'delete':
+			$this->deleteService();
+			break;
 		default:
 			$this->displayOutputJson(array('status' => 'false', 'value' => 'Invalid operation. Use list, view, add, edit, or delete'));
 	}
@@ -3242,25 +3288,87 @@ public function updateService(){
 	if ($outletId <= 0) {
 		$this->displayOutputJson(array('status' => 'false', 'value' => 'Outlet Id is required'));
 	}
-	if($this->isUserHasAccess('MGR')){
-		$outletId = isset($_REQUEST['outletId']) ? (int)$_REQUEST['outletId'] : 0;
+	if($this->isUserHasAccess('MGR') && $this->isValidIetm('users', $outletId)){
 		$id = isset($_REQUEST['id']) ? (int)$_REQUEST['id'] : 0;
-		$title = isset($_REQUEST['title']) ? (int)$_REQUEST['title'] : 0;
-		$actionBy = isset($_REQUEST['actionBy']) ? (int)$_REQUEST['actionBy'] : 0;
-		$aksDateTime = isset($_REQUEST['aksDateTime']) ? (int)$_REQUEST['aksDateTime'] : 0;
-		$information = isset($_REQUEST['information']) ? (int)$_REQUEST['information'] : 0;
-		$reminderTime = isset($_REQUEST['reminderTime']) ? (int)$_REQUEST['reminderTime'] : 0;
-		$escalationTime = isset($_REQUEST['escalationTime']) ? (int)$_REQUEST['escalationTime'] : 0;
-		$priority= isset($_REQUEST['priority']) ? (int)$_REQUEST['priority'] : 0;
-		$points= isset($_REQUEST['points']) ? (int)$_REQUEST['points'] : 0;
-		$onHoldOption= isset($_REQUEST['onHoldOption']) ? (int)$_REQUEST['onHoldOption'] : 0;
-		$status= isset($_REQUEST['status']) ? (int)$_REQUEST['status'] : 0;
-		if($id!=""){
-			$responseArray = array('status' => 'true', 'value' => 'Service updated');	
-		}else{
-			$responseArray = array('status' => 'false', 'value' => 'Service Id is required');
+		if ($id <= 0) {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'Service Id is required'));
 		}
-		$this->displayOutputJson($responseArray);
+		if (!$this->isValidIetm('room_service_my_service', $id)) {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'No service found for this id'));
+		}
+
+		$existingData = $this->db->selectSingleRowData('room_service_my_service', $id);
+		if (!$existingData || !isset($existingData->userId) || (int)$existingData->userId !== $outletId) {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'Invalid service record for this outlet'));
+		}
+
+		$allowedFields = array(
+			'title', 'actionBy', 'aksDateTime', 'information', 'reminderTime',
+			'escalationTime', 'priority', 'points', 'onHoldOption', 'status', 'sq', 'userId'
+		);
+		$updates = array();
+
+		foreach ($_REQUEST as $column => $value) {
+			if (!in_array($column, $allowedFields, true)) {
+				continue;
+			}
+			if ($column === 'id' || $column === 'outletId') {
+				continue;
+			}
+			if (is_array($value) || is_object($value)) {
+				continue;
+			}
+			if (!isset($existingData->$column)) {
+				continue;
+			}
+			if ($existingData->$column == $value) {
+				continue;
+			}
+			$formattedValue = is_numeric($value) ? $value : "'" . addslashes((string)$value) . "'";
+			$updates[] = $column . "=" . $formattedValue;
+		}
+
+		if (count($updates) === 0) {
+			$this->displayOutputJson(array('status' => 'true', 'value' => 'No changes found, service is already up to date', 'updated' => false));
+		}
+
+		$sql = "UPDATE room_service_my_service SET " . implode(', ', $updates) . " WHERE id=" . $id . " AND userId=" . $outletId;
+		$this->db->update($sql);
+		$this->displayOutputJson(array(
+			'status' => 'true',
+			'value' => 'Service updated successfully',
+			'id' => $id,
+			'updated' => true,
+			'updatedFields' => $updates
+		));
+	}
+}
+
+public function deleteService(){
+	$outletId = isset($_REQUEST['outletId']) ? (int)$_REQUEST['outletId'] : 0;
+	if ($outletId <= 0) {
+		$this->displayOutputJson(array('status' => 'false', 'value' => 'Outlet Id is required'));
+	}
+	if($this->isUserHasAccess('MGR') && $this->isValidIetm('users', $outletId)){
+		$id = isset($_REQUEST['id']) ? (int)$_REQUEST['id'] : 0;
+		if ($id <= 0) {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'Service Id is required'));
+		}
+		if (!$this->isValidIetm('room_service_my_service', $id)) {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'No service found for this id'));
+		}
+
+		$existingData = $this->db->selectSingleRowData('room_service_my_service', $id);
+		if (!$existingData || !isset($existingData->userId) || (int)$existingData->userId !== $outletId) {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'Invalid service record for this outlet'));
+		}
+
+		$this->db->delete("DELETE FROM room_service_my_service WHERE id=" . $id . " AND userId=" . $outletId);
+		$this->displayOutputJson(array(
+			'status' => 'true',
+			'value' => 'Service deleted successfully',
+			'id' => $id
+		));
 	}
 }
 
