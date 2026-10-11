@@ -1,13 +1,17 @@
-<IfModule mod_rewrite.c> 
+<IfModule mod_rewrite.c>
 
-Options +FollowSymlinks
-RewriteEngine on
-RewriteCond %{REQUEST_FILENAME} !-f 
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME} !-l
-RewriteCond %{REQUEST_URI} !-f
-RewriteCond %{REQUEST_URI} !-d
-RewriteCond %{REQUEST_URI} !-l
-RewriteRule ^([a-zA-Z_-]*)/?([a-zA-Z0-9_-]*)?/?([a-zA-Z0-9_-]*)?/?([a-zA-Z0-9_-]*)/?([a-zA-Z0-9_-]*)$ index.php?action=$1&data=$2&key=$3&value=$4&param=$5 [NC,L]
+    Options +FollowSymlinks
+    RewriteEngine On
+
+    # Force HTTPS
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+    # API routing
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-l
+
+    RewriteRule ^([a-zA-Z_-]*)/?([a-zA-Z0-9_-]*)?/?([a-zA-Z0-9_-]*)?/?([a-zA-Z0-9_-]*)?/?([a-zA-Z0-9_-]*)$ index.php?action=$1&data=$2&key=$3&value=$4&param=$5 [NC,L]
 
 </IfModule>
