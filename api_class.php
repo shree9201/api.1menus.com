@@ -183,12 +183,20 @@ class api_class
 	// function to get translated message from translation JSON file
 	public function getTranslatedMessage($translationKey, $replacements = array())
 	{
-		$translate = file_get_contents('../service/translate/en.json');
-		$lg = (object)json_decode($translate, true);
+		$translationFile = __DIR__ . '/service/translate/en.json';
+		if (!is_readable($translationFile)) {
+			return $translationKey;
+		}
+
+		$translate = file_get_contents($translationFile);
+		$lg = json_decode($translate, true);
+		if (!is_array($lg)) {
+			return $translationKey;
+		}
 
 		$keys = explode('.', $translationKey);
 		if (count($keys) === 2) {
-			$section = $lg->{$keys[0]};
+			$section = isset($lg[$keys[0]]) && is_array($lg[$keys[0]]) ? $lg[$keys[0]] : array();
 			$message = isset($section[$keys[1]]) ? $section[$keys[1]] : $translationKey;
 
 			// Replace placeholders with actual values
@@ -245,9 +253,12 @@ class api_class
 	// function for throw error message
 	public	function displayOutputJson($arrayName)
 	{
+		$action = isset($_REQUEST['action']) ? $_REQUEST['action'] : '';
 		$status = isset($arrayName['status']) ? $arrayName['status'] : 200;
 		if ($status === false ||  $status === 'false' || (is_string($status) && strtolower($status) === 'false')) {
-			http_response_code(500);
+			if ($action != 'validateGuestBooking' && $action != "getAccountInfo") {
+				http_response_code(500); // Internal Server Error for other failures
+			}
 		}
 		$arrayName = array($arrayName);
 		$this->APIAccessLogs($arrayName); // log API access with response
@@ -266,6 +277,128 @@ class api_class
 		curl_close($ch);
 
 		return $data;
+	}
+	public function sendWhatsappMessage($numbers, $template, $dataArray)
+	{
+		$apiKey = 'sghwa_f89DtRASSgqNrexBtBbmLUtcnYRV2Z0BitlGUuGH';
+		if ($apiKey === false || trim($apiKey) === '') {
+			return array('status' => false, 'value' => 'SMS Gateway Hub API key is not configured.', 'results' => array());
+		}
+		if (!is_string($template) || trim($template) === '') {
+			return array('status' => false, 'value' => 'A WhatsApp template is required.', 'results' => array());
+		}
+		if (!is_array($dataArray)) {
+			return array('status' => false, 'value' => 'Template data must be an array.', 'results' => array());
+		}
+
+		$numbers = is_array($numbers) ? $numbers : array($numbers);
+		if (count($numbers) === 0) {
+			return array('status' => false, 'value' => 'At least one phone number is required.', 'results' => array());
+		}
+
+		$templateData = array(
+			'language' => 'en',
+			'variables' => $dataArray,
+		);
+		if (array_key_exists('variables', $dataArray)) {
+			$templateData['variables'] = $dataArray['variables'];
+			if (isset($dataArray['language'])) {
+				$templateData['language'] = $dataArray['language'];
+			}
+			if (isset($dataArray['header'])) {
+				$templateData['header'] = $dataArray['header'];
+			}
+			if (isset($dataArray['ref'])) {
+				$templateData['ref'] = $dataArray['ref'];
+			}
+		}
+		if (!is_array($templateData['variables']) || !is_string($templateData['language']) || trim($templateData['language']) === '') {
+			return array('status' => false, 'value' => 'Template variables and language must be valid arrays/strings.', 'results' => array());
+		}
+
+		$results = array();
+		$sentCount = 0;
+		foreach ($numbers as $number) {
+			$number = is_string($number) || is_numeric($number) ? trim((string)$number) : '';
+			if (!preg_match('/^\+?[0-9]{7,15}$/', $number)) {
+				$results[] = array('to' => $number, 'status' => false, 'value' => 'Invalid phone number.');
+				continue;
+			}
+
+			$payload = array(
+				'to' => ltrim($number, '+'),
+				'template' => trim($template),
+				'language' => $templateData['language'],
+				'variables' => $templateData['variables'],
+			);
+			if (isset($templateData['header'])) {
+				$payload['header'] = $templateData['header'];
+			}
+			if (isset($templateData['ref'])) {
+				$payload['ref'] = $templateData['ref'];
+			}
+
+			$requestBody = json_encode($payload);
+			if ($requestBody === false) {
+				$results[] = array('to' => $number, 'status' => false, 'value' => 'Unable to encode WhatsApp message data.');
+				continue;
+			}
+
+			$ch = curl_init('https://www.smsgatewayhub.com/cpaas/whatsapp/api.ashx?action=send');
+			curl_setopt_array($ch, array(
+				CURLOPT_POST => true,
+				CURLOPT_POSTFIELDS => $requestBody,
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_CONNECTTIMEOUT => 10,
+				CURLOPT_TIMEOUT => 30,
+				CURLOPT_HTTPHEADER => array(
+					'Authorization: Bearer ' . $apiKey,
+					'Content-Type: application/json',
+				),
+			));
+
+			$responseBody = curl_exec($ch);
+			$curlError = curl_error($ch);
+			$httpStatus = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+			curl_close($ch);
+
+			$sent = $responseBody !== false && $httpStatus >= 200 && $httpStatus < 300;
+			if ($sent) {
+				$sentCount++;
+			}
+			$result = array(
+				'to' => $payload['to'],
+				'status' => $sent,
+				'http_status' => $httpStatus,
+				'response' => $responseBody !== false ? $responseBody : $curlError,
+			);
+			if ($sent) {
+				$historyId = $this->db->insert(array(
+					'channel' => 'whatsapp',
+					'recipient' => $payload['to'],
+					'message' => $requestBody,
+					'triggered_by' => 'api',
+					'delivery_status' => 'submitted',
+					'provider_response' => is_string($responseBody) ? $responseBody : '',
+					'userId' => isset($_SERVER['HTTP_ID']) ? (int)$_SERVER['HTTP_ID'] : (int)$this->loginUserId,
+				), 'message_history');
+				if ($historyId) {
+					$result['history_id'] = $historyId;
+					$result['history_status'] = true;
+				} else {
+					error_log('Unable to record WhatsApp message history.');
+					$result['history_status'] = false;
+				}
+			}
+			$results[] = $result;
+		}
+
+		return array(
+			'status' => $sentCount === count($numbers),
+			'sent' => $sentCount,
+			'failed' => count($numbers) - $sentCount,
+			'results' => $results,
+		);
 	}
 	public function getAuthorizationHeader()
 	{
@@ -464,15 +597,26 @@ class api_class
 				$responseArray =  array('status' => false, 'value' => 'Missing Account id for legacy token validation');
 				$this->displayOutputJson($responseArray);
 			}
-			$count = $this->db->selectCount("select count(*) as count from jwt_tokens_user where id=" . $id . " and token='" . addslashes($token) . "'");
-			if ($count == 0) {
-				$responseArray =  array('status' => false, 'value' => 'Invalid legacy token or account id, Please contact to support team');
-				// return API response code is 500
+			$escapedToken = addslashes($token);
+			$tokenCount = $this->db->selectCount("select count(*) as count from jwt_tokens_user where id=" . $id . " and jwt_token='" . $escapedToken . "'");
+			if ($tokenCount == 0) {
 				http_response_code(500);
-				$this->displayOutputJson($responseArray);
-			} else {
-				return true;
+				$this->displayOutputJson(array('status' => false, 'value' => 'Invalid token or account id'));
 			}
+
+			$statusCount = $this->db->selectCount("select count(*) as count from jwt_tokens_user where id=" . $id . " and jwt_token='" . $escapedToken . "' and status='YES'");
+			if ($statusCount == 0) {
+				http_response_code(500);
+				$this->displayOutputJson(array('status' => false, 'value' => 'Token is inactive or disabled'));
+			}
+
+			$expiryCount = $this->db->selectCount("select count(*) as count from jwt_tokens_user where id=" . $id . " and jwt_token='" . $escapedToken . "' and jwt_expires_at >= CURRENT_DATE");
+			if ($expiryCount == 0) {
+				http_response_code(500);
+				$this->displayOutputJson(array('status' => false, 'value' => 'Token has expired or has no valid expiration date'));
+			}
+
+			return true;
 		}
 		$responseArray =  array('status' => false, 'value' => 'Missing Data for Token or Account id');
 		$this->displayOutputJson($responseArray);
@@ -484,7 +628,7 @@ class api_class
 		if (!$payload || !is_array($payload)) {
 			return false;
 		}
-		if (!isset($payload['exp']) || time() > intval($payload['exp'])) {
+		if (!isset($payload['exp']) || time() >= intval($payload['exp'])) {
 			return false;
 		}
 		if (!isset($payload['sub'])) {
@@ -494,7 +638,7 @@ class api_class
 		if ($userId <= 0) {
 			return false;
 		}
-		$count = $this->db->selectCount("select count(*) as count from jwt_tokens_user where id=" . $userId . " and jwt_token='" . addslashes($token) . "' and jwt_expires_at >= NOW()");
+		$count = $this->db->selectCount("select count(*) as count from jwt_tokens_user where id=" . $userId . " and jwt_token='" . addslashes($token) . "' and jwt_expires_at >= CURRENT_DATE");
 		if ($count == 0) {
 			return false;
 		}
@@ -514,7 +658,7 @@ class api_class
 			'userId' => $userId
 		);
 		$jwt = JWTHandler::encode($payload, JWT_SECRET_KEY, JWT_ALGORITHM);
-		$expiresAtSql = date('Y-m-d H:i:s', $expiresAt);
+		$expiresAtSql = date('Y-m-d', $expiresAt);
 
 		// Store JWT in the dedicated jwt_tokens_user table to match validation logic.
 		if ($this->db->selectCount("select count(*) as count from jwt_tokens_user where id=" . $userId) == 0) {
@@ -710,33 +854,6 @@ class api_class
 		}
 
 		$this->displayOutputJson($responseArray);
-	}
-	public function getBanners()
-	{
-		$id 		= isset($_REQUEST['id']) ? $_REQUEST['id'] : "";
-		$token 	= isset($_REQUEST['token']) ? $_REQUEST['token'] : "";
-		$this->optionalParametterValidate($_REQUEST['id'], 'id');
-		$this->APIIsValidToken($token, $id);
-		$banners = $this->db->select("select * from banner where userId=" . $id . " and status='YES' order by sq asc ");
-		$returnData = array();
-		for ($b = 0; $b < count($banners); $b++) {
-			$bannerInnerObject = $banners[$b];
-			//$bannerInnerObject->photo = $this->imgSourceReturn($bannerInnerObject->photo);
-			$duration = $bannerInnerObject->duration;
-			if ($duration == 'all' || $duration == "" || $duration == null) {
-				array_push($returnData, $bannerInnerObject);
-			} else {
-				$dates = $bannerInnerObject->dates;
-				$dates = explode(' - ', $dates);
-				$startDate =  date("Y-m-d", strtotime($dates[0]));
-				$endDate =  date("Y-m-d", strtotime($dates[1]));
-				$currentDate = date("Y-m-d");
-				if ($currentDate >= $startDate && $currentDate <= $endDate) {
-					array_push($returnData, $bannerInnerObject);
-				}
-			}
-		}
-		$this->APIReturnListData($returnData);
 	}
 	public function getReviews()
 	{
@@ -1858,6 +1975,170 @@ class api_class
 			$this->displayOutputJson($responseArray);
 		}
 	}
+	public function notificationTrigger()
+	{
+		$type = isset($_REQUEST['type']) && is_string($_REQUEST['type']) ? strtolower(trim($_REQUEST['type'])) : '';
+		$message = isset($_REQUEST['body']) && is_string($_REQUEST['body']) ? trim($_REQUEST['body']) : '';
+		$subject = isset($_REQUEST['subject']) && is_string($_REQUEST['subject']) ? trim($_REQUEST['subject']) : '';
+		$templateId = isset($_REQUEST['templateId']) && is_scalar($_REQUEST['templateId']) ? trim((string)$_REQUEST['templateId']) : '';
+		$templateName = isset($_REQUEST['templateName']) && is_string($_REQUEST['templateName']) ? trim($_REQUEST['templateName']) : '';
+		$triggeredBy = isset($_REQUEST['triggered_by']) && is_string($_REQUEST['triggered_by']) && trim($_REQUEST['triggered_by']) !== ''
+			? trim($_REQUEST['triggered_by'])
+			: 'API';
+
+		if (!in_array($type, array('sms', 'email', 'whatsapp'), true)) {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'type must be sms, email, or whatsapp.'));
+		}
+		if ($message === '') {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'body is required.'));
+		}
+		if ($type === 'email' && $subject === '') {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'subject is required for email.'));
+		}
+		if (!isset($_REQUEST['recipients'])) {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'recipients is required.'));
+		}
+
+		$recipientInput = $_REQUEST['recipients'];
+		if (is_string($recipientInput)) {
+			$recipients = preg_split('/[,;\r\n]+/', $recipientInput);
+		} elseif (is_array($recipientInput)) {
+			$recipients = $recipientInput;
+		} else {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'recipients must be a string or an array.'));
+		}
+		$recipients = array_values(array_unique(array_filter(array_map(function ($recipient) {
+			return is_string($recipient) || is_numeric($recipient) ? trim((string)$recipient) : '';
+		}, $recipients))));
+		if (count($recipients) === 0) {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'Enter at least one valid recipient.'));
+		}
+		if (count($recipients) > 100) {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'Send to a maximum of 100 recipients at a time.'));
+		}
+		if ($type === 'whatsapp' && (count($recipients) !== 1 || !preg_match('/^\+?[0-9]{7,15}$/', $recipients[0]))) {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'WhatsApp supports one phone number at a time, using 7 to 15 digits.'));
+		}
+		if ($type === 'email' && (empty($this->config) || !isset($this->config->email_from) || $this->config->email_from === '')) {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'Email sending is not configured: sender address is missing.'));
+		}
+
+		$sentCount = 0;
+		$failedRecipients = array();
+		$results = array();
+		$userId = isset($_SERVER['HTTP_ID']) ? (int)$_SERVER['HTTP_ID'] : (int)$this->loginUserId;
+
+		foreach ($recipients as $recipient) {
+			$providerResponse = '';
+			$sent = false;
+			$historyRecipient = $recipient;
+
+			if ($type === 'sms') {
+				if (!preg_match('/^\+?[0-9]{7,15}$/', $recipient)) {
+					$providerResponse = 'Invalid phone number.';
+				} elseif (defined('IS_SMS_NOTIFICATION') && IS_SMS_NOTIFICATION !== 'YES') {
+					$providerResponse = 'SMS sending is disabled.';
+				} else {
+					$providerResponse = Send_SMS($recipient, $message);
+					$sent = $providerResponse === true;
+				}
+			} elseif ($type === 'email') {
+				if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
+					$providerResponse = 'Invalid email address.';
+				} else {
+					$mailer = new emailDrop();
+					$mailer->from($this->config->email_from);
+					$mailer->to($recipient);
+					$mailer->emailType('notification');
+					$mailer->subject($subject);
+					$mailer->body($message);
+					$mailer->content($message);
+					$providerResponse = $mailer->send();
+					$sent = $providerResponse !== false;
+				}
+			} else {
+				$phone = ltrim($recipient, '+');
+				$historyRecipient = $phone;
+				$accessToken = getenv('WHATSAPP_ACCESS_TOKEN');
+				$phoneNumberId = getenv('WHATSAPP_PHONE_NUMBER_ID');
+				$graphApiVersion = getenv('WHATSAPP_GRAPH_API_VERSION');
+				if (
+					$accessToken === false || $accessToken === '' || $phoneNumberId === false || $phoneNumberId === '' ||
+					$graphApiVersion === false || !preg_match('/^v[0-9]+\.[0-9]+$/', $graphApiVersion)
+				) {
+					$providerResponse = 'Meta WhatsApp Cloud API configuration is missing or invalid.';
+				} else {
+					$payload = json_encode(array(
+						'messaging_product' => 'whatsapp',
+						'recipient_type' => 'individual',
+						'to' => $phone,
+						'type' => 'text',
+						'text' => array('preview_url' => false, 'body' => $message),
+					));
+					$ch = curl_init('https://graph.facebook.com/' . $graphApiVersion . '/' . rawurlencode($phoneNumberId) . '/messages');
+					curl_setopt($ch, CURLOPT_POST, true);
+					curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+					curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+					curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+					curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+						'Authorization: Bearer ' . $accessToken,
+						'Content-Type: application/json',
+					));
+					$responseBody = curl_exec($ch);
+					$curlError = curl_error($ch);
+					$httpStatus = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+					curl_close($ch);
+
+					$decodedResponse = is_string($responseBody) ? json_decode($responseBody, true) : null;
+					$sent = $responseBody !== false && $httpStatus >= 200 && $httpStatus < 300 &&
+						isset($decodedResponse['messages'][0]['id']);
+					$providerResponse = $responseBody === false
+						? 'WhatsApp API transport error: ' . $curlError
+						: $responseBody;
+				}
+			}
+
+			$historyId = $this->db->insert(array(
+				'channel' => $type,
+				'recipient' => $historyRecipient,
+				'subject' => $type === 'email' ? $subject : '',
+				'message' => $message,
+				'triggered_by' => $triggeredBy,
+				'delivery_status' => $sent ? 'submitted' : 'failed',
+				'provider_response' => is_scalar($providerResponse) ? (string)$providerResponse : '',
+				'userId' => $userId,
+			), 'message_history');
+			if (!$historyId) {
+				error_log('Unable to record notification trigger history.');
+			}
+
+			if ($sent) {
+				$sentCount++;
+			} else {
+				$failedRecipients[] = $recipient;
+			}
+			$results[] = array(
+				'recipient' => $recipient,
+				'status' => $sent ? 'submitted' : 'failed',
+				'provider_response' => is_scalar($providerResponse) ? (string)$providerResponse : '',
+			);
+		}
+
+		$response = array(
+			'status' => count($failedRecipients) === 0 ? 'true' : 'false',
+			'value' => count($failedRecipients) === 0
+				? $sentCount . ' message(s) submitted to the provider.'
+				: $sentCount . ' message(s) submitted; ' . count($failedRecipients) . ' failed: ' . implode(', ', $failedRecipients),
+			'sent' => $sentCount,
+			'failed' => count($failedRecipients),
+			'templateId' => $templateId,
+			'templateName' => $templateName,
+			'results' => $results,
+		);
+		$this->displayOutputJson($response);
+	}
+
 	// function for sending push notification to staff devices
 	public function oldMethodNotification($argStaffId = "", $argTitle = "", $argMessage = "")
 	{
@@ -1969,11 +2250,18 @@ class api_class
 	public function sendFcm($deviceToken, $title, $message)
 	{
 		$content = [
-			'app_id'          => 'e417d7b6-972d-4c33-9f70-3838e1fa17da',
+			"app_id"		  => "e417d7b6-972d-4c33-9f70-3838e1fa17da",
 			'contents'        => ['en' => $message],
 			'headings'        => ['en' => $title],
 			'include_subscription_ids' => [$deviceToken],
 			'target_channel'  => 'push',
+			'big_picture'     => 'https://1menus.com/media/config/logo_120222150201.png',
+			'small_icon'      => 'https://1menus.com/media/config/logo_120222150201.png',
+			'large_icon'      => 'https://1menus.com/media/config/logo_120222150201.png',
+			'ios_badgeType'   => 'Increase',
+			'ios_badgeCount'  => 1,
+			'android_accent_color' => 'FF0000',
+			'data'            => ['title' => $title, 'message' => $message]
 		];
 
 		$ch = curl_init('https://api.onesignal.com/notifications');
@@ -1982,53 +2270,46 @@ class api_class
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_HTTPHEADER     => [
 				'Content-Type: application/json',
-				'Authorization: os_v2_app_4ql5pnuxfvgdhh3qha4od6qx3ib56lygwfpu74uqvgpl7baswrv2dcg47c3ykj7w6225hmrvbathiu46fiq4ylujox4fjygsyh5ox2y',
+				'Authorization: os_v2_app_4ql5pnuxfvgdhh3qha4od6qx3ikkxnusbpju4bvvgljzyivjx6bmutc62u2svw7z7zcr7coaicairgn6qtelzoop3amg6mfkx4kbgba',
 				'Cookie: __cf_bm=zwK4QnegG.pP4vMM82uIlcvTu5.2dcLzduBZC8RkxQo-1785251723.869693-1.0.1.1-6yhXwTP0dTOUAp1hL2JuQT4hssAYG6giJvACHnCaX5Z66peZvAwJvpf7C67vvCe5TwNn1HiQKpFxJcrbNNwJTFpMZ0RKgImWQ.iLYKxd7jkGIrrAPYlo8iO0oNUPtqXK'
 			],
 			CURLOPT_POSTFIELDS     => json_encode($content),
 		]);
 
 		$response = curl_exec($ch);
+		$httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		$curlError = curl_error($ch);
 		curl_close($ch);
 
-		echo $response;
+		return array($httpCode, $response !== false ? $response : $curlError);
 	}
 	// function for sending push notification to staff devices
 	public function sendPushNotification($argStaffId = "", $argTitle = "", $argMessage = "")
 	{
 		try {
-
-
 			$this->getBodyJsonData();
-			if ($argStaffId != "") {
-				$_REQUEST['staffId'] = $argStaffId;
-				$staffId = $argStaffId;
+			$staffId = $argStaffId !== "" ? $argStaffId : (isset($_REQUEST['staffId']) ? $_REQUEST['staffId'] : "");
+			$title = $argTitle !== "" ? $argTitle : (isset($_REQUEST['title']) ? $_REQUEST['title'] : "");
+			$message = $argMessage !== "" ? $argMessage : (isset($_REQUEST['message']) ? $_REQUEST['message'] : "");
+			if (!is_scalar($staffId) || !ctype_digit(trim((string)$staffId)) || (int)$staffId <= 0) {
+				return array('status' => false, 'value' => 'A valid staff ID is required', 'sent' => 0, 'failed' => 0, 'totalDevices' => 0, 'response' => array());
 			}
-			$staffId = $this->optionalParametterValidate($_REQUEST['staffId'], 'staffId');
+			$staffId = (int)$staffId;
+			if (!is_scalar($title) || !is_scalar($message) || trim((string)$title) === '' || trim((string)$message) === '') {
+				return array('status' => false, 'value' => 'Title and message are required', 'sent' => 0, 'failed' => 0, 'totalDevices' => 0, 'response' => array());
+			}
+			$title = trim((string)$title);
+			$message = trim((string)$message);
 
 			// Validate staff has devices
 			$deviceCount = $this->db->selectCount("select count(*) as count from staff_devices where staffId=" . $staffId);
 			if ($deviceCount == 0) {
-				$this->displayOutputJson(array('status' => false, 'value' => 'No device found for this staff'));
-				return;
+				return array('status' => false, 'value' => 'No device found for this staff', 'sent' => 0, 'failed' => 0, 'totalDevices' => 0, 'response' => array());
 			}
 
-			if ($argTitle != "") {
-				$_REQUEST['title'] = $argTitle;
-				$title = $argTitle;
-			}
-			if ($argMessage != "") {
-				$_REQUEST['message'] = $argMessage;
-				$message = $argMessage;
-			}
 			$deviceIdList = $this->db->select("select deviceType,deviceId from staff_devices where staffId=" . $staffId . " order by last_login DESC");
-			$title = $this->optionalParametterValidate($_REQUEST['title'], 'title');
-			$message = $this->optionalParametterValidate($_REQUEST['message'], 'message');
-
-			// Validate inputs
-			if (empty($title) || empty($message)) {
-				$this->displayOutputJson(array('status' => false, 'value' => 'Title and message are required'));
-				return;
+			if (!is_array($deviceIdList)) {
+				$deviceIdList = array();
 			}
 
 			$responseArraySet = array();
@@ -2052,7 +2333,7 @@ class api_class
 					if (is_array($notification) && isset($notification[0])) {
 						if ($notification[0] >= 200 && $notification[0] < 300) {
 							$successCount++;
-							array_push($responseArraySet, array('deviceId' => $deviceToken, 'status' => 'sent', 'httpCode' => $notification[0]));
+							array_push($responseArraySet, array('deviceId' => $deviceToken, 'status' => 'sent', 'httpCode' => $notification[0], 'data' => json_decode($notification[1], true)));
 						} else {
 							$failureCount++;
 							array_push($responseArraySet, array('deviceId' => $deviceToken, 'status' => 'failed', 'httpCode' => $notification[0], 'error' => isset($notification[1]) ? $notification[1] : 'Unknown error'));
@@ -2074,19 +2355,18 @@ class api_class
 				'totalDevices' => count($deviceIdList),
 				'response' => $responseArraySet
 			);
-			if ($argStaffId != "" && $argTitle != "" && $argMessage != "") {
-				return $rteunArrayObject;
-			} else {
-				return $this->displayOutputJson($rteunArrayObject);
-			}
+			return $rteunArrayObject;
 		} catch (Exception $e) {
-			$this->displayOutputJson(array(
+			$rteunArrayObject = array(
 				'status' => false,
 				'value' => 'Error sending notifications',
 				'error' => $e->getMessage(),
-				'file' => $e->getFile(),
-				'line' => $e->getLine()
-			));
+				'sent' => 0,
+				'failed' => 0,
+				'totalDevices' => 0,
+				'response' => array()
+			);
+			return $rteunArrayObject;
 		}
 	}
 
@@ -2105,11 +2385,10 @@ class api_class
 	}
 	public function getAndValidateHeaderTokenForJWT()
 	{
-		// Fetch all headers into an associative array
-		$headers = getallheaders();
-		// Target key (Note: header names are case-insensitive, but arrays are case-sensitive)
-		$token = isset($headers['Token']) ? $headers['Token'] : null;
-		$id = isset($headers['Id']) ? $headers['Id'] : null;
+		$headers = function_exists('getallheaders') ? getallheaders() : array();
+		$headers = is_array($headers) ? array_change_key_case($headers, CASE_LOWER) : array();
+		$token = isset($headers['token']) ? trim($headers['token']) : (isset($_SERVER['HTTP_TOKEN']) ? trim($_SERVER['HTTP_TOKEN']) : null);
+		$id = isset($headers['id']) ? trim($headers['id']) : (isset($_SERVER['HTTP_ID']) ? trim($_SERVER['HTTP_ID']) : null);
 
 		if ($token == null || $id == null) {
 			$responseArray =  array('status' => 'false', 'value' => "Token and Id headers are required");
@@ -2122,17 +2401,23 @@ class api_class
 	// function for log API access for JWT token based authentication for 1menus private project
 	public function APIAccessLogs($responseArray)
 	{
-		$headers = getallheaders();
+		$headers = function_exists('getallheaders') ? getallheaders() : array();
+		$headers = is_array($headers) ? array_change_key_case($headers, CASE_LOWER) : array();
 		$json = file_get_contents('php://input');
-		$requestBody = json_decode($json, true);
-		$requestMethod = $_SERVER['REQUEST_METHOD'];
-		// Target key (Note: header names are case-insensitive, but arrays are case-sensitive)
-		$token = isset($headers['Token']) ? $headers['Token'] : null;
-		$id = isset($headers['Id']) ? $headers['Id'] : null;
-		$title = $this->db->getMyRecordValue('jwt_tokens_user', $id, 'title');
+		$requestMethod = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : '';
+		$token = isset($headers['token']) ? trim($headers['token']) : (isset($_SERVER['HTTP_TOKEN']) ? trim($_SERVER['HTTP_TOKEN']) : '');
+		$id = isset($headers['id']) ? trim($headers['id']) : (isset($_SERVER['HTTP_ID']) ? trim($_SERVER['HTTP_ID']) : '');
+		if ($token === '' || !ctype_digit((string)$id) || (int)$id <= 0) {
+			return;
+		}
+		$id = (int)$id;
+		$token = addslashes($token);
+		$titleRows = $this->db->select("select title from jwt_tokens_user where id=" . $id . " limit 1");
+		$title = is_array($titleRows) && isset($titleRows[0]->title) ? $titleRows[0]->title : '';
 		$date = date("Y-m-d");
-		$request = $json;
+		$request = addslashes($json === false ? '' : $json);
 		$response = json_encode($responseArray);
+		$requestMethod = addslashes($requestMethod);
 		$existingTokenCount = $this->db->selectCount("select count(*) as count from jwt_tokens_log where date = '" . $date . "' and jwt_tokens_user=" . $id . " and jwt_token='" . $token . "' and method='" . $requestMethod . "' and request='" . $request . "'");
 		if ($existingTokenCount != 0) {
 			// update date_time and count+1
@@ -2230,8 +2515,12 @@ class api_class
 	// function for get room service my services list for outlet
 	public function getOutletServices($return = false)
 	{
+		$serviceReqId = isset($_REQUEST['data']) ? $_REQUEST['data'] : "";
 		$outletId = isset($_REQUEST['outletId']) ? $_REQUEST['outletId'] : "";
 		$id = isset($_REQUEST['id']) ? $_REQUEST['id'] : "";
+		$boxId = isset($_REQUEST['boxId']) ? $_REQUEST['boxId'] : "";
+		$roomIdValue = isset($_REQUEST['roomId']) && is_scalar($_REQUEST['roomId']) ? trim((string)$_REQUEST['roomId']) : '';
+		$roomId = ctype_digit($roomIdValue) ? (int)$roomIdValue : 0;
 		$outletValidatedResponse = $this->validateOutlet($outletId);
 		$value = $outletValidatedResponse['value'];
 		$status = $outletValidatedResponse['status'];
@@ -2242,12 +2531,34 @@ class api_class
 		$iconsList = $this->loadFontAwasoneIcons();
 		$responseArray = array();
 		if ($status) {
-			$sql = "select rsms.*,rs.icon,rs.aksDateTime from room_service_my_service rsms left join room_services rs on rsms.serviceId = rs.id where rsms.userId=" . $outletId . " and rsms.status='YES' ";
+			$isServiceItems = array();
+			$totalRate = 0;
+			$sql = "select rsms.*,rs.icon,rs.aksDateTime,rs.code from room_service_my_service rsms left join room_services rs on rsms.serviceId = rs.id where rsms.userId=" . $outletId . " and rsms.status='YES' ";
 			if ($id != "") {
 				$sql .= " and rsms.id=" . $id;
 			}
+			if ($boxId != "") {
+				$sql .= " and rsms.boxId=" . $boxId;
+			}
+			if ($serviceReqId != "") {
+				$sql .= " and rsms.id=" . $serviceReqId;
+				$isServiceItems = $this->db->select("select * from room_service_my_service_items where userId=" . $outletId . " and serviceId=" . $serviceReqId . " and status='YES' order by sq ASC");
+				$isRate = $this->db->selectCount("select sum(rate) as count from room_service_my_service_items where userId=" . $outletId . " and serviceId=" . $serviceReqId . " and status='YES' ");
+				$totalRate = is_array($isRate) && isset($isRate[0]->count) ? (float)$isRate[0]->count : 0;
+			}
 			$sql .= " order by rsms.sq ASC";
 			$room_service_my_service = $this->db->select($sql);
+			$activeRequestsByService = array();
+			if ($roomId > 0) {
+				$activeRequests = $this->db->select("SELECT id, reqCode, serviceId, status FROM room_service_request WHERE userId=" . (int)$outletId . " AND roomId=" . $roomId . " AND date='" . date('Y-m-d') . "' AND status IN ('NEW', 'OPEN', 'START') ORDER BY id DESC");
+				if (is_array($activeRequests)) {
+					foreach ($activeRequests as $activeRequest) {
+						if (!isset($activeRequestsByService[$activeRequest->serviceId])) {
+							$activeRequestsByService[$activeRequest->serviceId] = $activeRequest;
+						}
+					}
+				}
+			}
 			//logic for adding font awesome unicode to each service
 			if (is_array($room_service_my_service) && count($room_service_my_service) > 0) {
 				foreach ($room_service_my_service as &$service) {
@@ -2268,6 +2579,23 @@ class api_class
 					} elseif (is_array($service)) {
 						$service['iconUnicode'] = $iconUnicode;
 					}
+
+					$serviceId = is_object($service) ? (int)$service->id : (isset($service['id']) ? (int)$service['id'] : 0);
+					$activeRequest = isset($activeRequestsByService[$serviceId]) ? $activeRequestsByService[$serviceId] : null;
+					$requestState = array(
+						'hasActiveRequest' => $activeRequest !== null,
+						'requestId' => $activeRequest !== null ? $activeRequest->id : null,
+						'requestCode' => $activeRequest !== null ? $activeRequest->reqCode : null,
+						'requestStatus' => $activeRequest !== null ? $activeRequest->status : null,
+						'requestAction' => $activeRequest !== null ? 'details' : 'newRequest'
+					);
+					foreach ($requestState as $key => $value) {
+						if (is_object($service)) {
+							$service->$key = $value;
+						} elseif (is_array($service)) {
+							$service[$key] = $value;
+						}
+					}
 				}
 				unset($service);
 			}
@@ -2275,7 +2603,9 @@ class api_class
 				'status' => $status,
 				'value' => 'result found',
 				'count' => is_array($room_service_my_service) ? count($room_service_my_service) : 0,
-				'services' => is_array($room_service_my_service) ? $room_service_my_service : array()
+				'services' => is_array($room_service_my_service) ? $room_service_my_service : array(),
+				'serviceItems' => is_array($isServiceItems) ? $isServiceItems : array(),
+				'totalRate' => $totalRate
 			);
 		} else {
 			$responseArray =  array('status' => $status, 'value' => $value);
@@ -2325,9 +2655,16 @@ class api_class
 		}
 		$filterBySqlString = "";
 		if (count($filterBy) > 0) {
+			$allowedFilterColumns = array('id', 'reqCode', 'title', 'serviceId', 'assigned', 'start_time', 'end_time', 'date', 'ip', 'additionalField', 'audio', 'note', 'status', 'escalated_by', 'created_date', 'updated_date', 'guestId', 'guestName', 'guestMobile', 'guestCode', 'points');
 			for ($f = 0; $f < count($filterBy); $f++) {
-				if (isset($filterBy[$f]['key']) && isset($filterBy[$f]['value'])) {
-					$filterBySqlString .= " and rsr." . $filterBy[$f]['key'] . "='" . $filterBy[$f]['value'] . "'";
+				if (isset($filterBy[$f]['key']) && isset($filterBy[$f]['value']) && is_scalar($filterBy[$f]['key']) && is_scalar($filterBy[$f]['value'])) {
+					$filterColumn = trim((string)$filterBy[$f]['key']);
+					if ($filterColumn === 'mobile') {
+						$filterColumn = 'guestMobile';
+					}
+					if (in_array($filterColumn, $allowedFilterColumns, true)) {
+						$filterBySqlString .= " and rsr." . $filterColumn . "='" . addslashes((string)$filterBy[$f]['value']) . "'";
+					}
 				}
 			}
 		}
@@ -2344,6 +2681,7 @@ class api_class
 			if ($limit != "") {
 				$sql .= " limit " . $limit;
 			}
+			//			echo $sql;
 			$roomRequest = $this->db->select($sql);
 			$this->loadFontAwasoneIcons();
 			// Add time tracking metrics to each request
@@ -2440,7 +2778,7 @@ class api_class
 	}
 	public function getRequestDetailsById($outletId, $requestId)
 	{
-		$sql = "select rsr.id, rsr.reqCode, rsr.title, rsr.userId, r.title as roomId, rsr.serviceId, rsr.assigned, rsr.start_time, rsr.end_time, rsr.date, rsr.ip, rsr.additionalField, rsr.audio, rsr.note, rsr.status, rsr.escalated_by, rsr.created_date, rsr.updated_date, rsr.guestId, rsr.guestName, rsr.guestMobile, rsr.guestCode, rsr.points  from room_service_request rsr , room_service_rooms r where rsr.userId=" . $outletId . " and rsr.id=" . $requestId . " and rsr.status!='CLOSE' and r.id=rsr.roomId ";
+		$sql = "select rsr.id, rsr.reqCode, rsr.title, rsr.userId, r.title as roomId, rsr.serviceId, rsr.assigned, rsr.start_time, rsr.end_time, rsr.date, rsr.ip, rsr.additionalField, rsr.audio, rsr.note, rsr.status, rsr.escalated_by, rsr.created_date, rsr.updated_date, rsr.guestId, rsr.guestName, rsr.guestMobile, rsr.guestCode, rsr.points  from room_service_request rsr , room_service_rooms r where rsr.userId=" . $outletId . " and rsr.id=" . $requestId . " and r.id=rsr.roomId ";
 		$requestDetails = $this->db->select($sql);
 		if (count($requestDetails) == 0) {
 			return array('status' => 'false', 'value' => 'No request found for this request id');
@@ -2779,7 +3117,7 @@ class api_class
 			'created_date' => date('Y-m-d H:i:s')
 		);
 
-		$insertResult = $this->db->insert('room_service_request_staff_time_track', $insertData);
+		$insertResult = $this->db->insert($insertData, 'room_service_request_staff_time_track');
 
 		if ($insertResult) {
 			$responseArray = array(
@@ -3455,5 +3793,535 @@ class api_class
 				'id' => $id
 			));
 		}
+	}
+
+	public function getAccountInfo()
+	{
+		$city 		= isset($_REQUEST['city']) ? $_REQUEST['city'] : "";
+		$username 	= isset($_REQUEST['username']) ? $_REQUEST['username'] : "";
+		$room 	= isset($_REQUEST['room']) ? $_REQUEST['room'] : "";
+		//$this->APIIsValidToken($token, $id);
+		if ($this->db->selectCount("select count(*) as count from users where city='" . $city . "' and username='" . $username . "'") == 0) {
+			$responseArray =  array('status' => 'false', 'value' => 'Invalid Details for fetch data for outlets');
+		} else {
+
+
+
+
+			$accountInfo = $this->db->select("select * from users where city='" . $city . "' and username='" . $username . "' order by id DESC LIMIT 0,1");
+			$accountInfo = $accountInfo[0] ? $accountInfo[0] : "";
+			$IP = isset($_SERVER['REMOTE_ADDR']) ? trim($_SERVER['REMOTE_ADDR']) : '';
+			$isSameIPExist = $IP !== '' ? $this->db->selectCount("select count(*) as count from staff_devices where ip='" . addslashes($IP) . "' and outletId='" . (int)$accountInfo->id . "'") : 0;
+			if ($isSameIPExist > 0) {
+				$responseArray = array('status' => false, 'value' => 'Access Denied. This IP address is assigned to a staff user for this outlet.');
+			} elseif ($accountInfo->status == 'NO') {
+				$responseArray =  array('status' => false, 'value' => $this->getTranslatedMessage('MAIN.ERROR_ACC_DISABLED'));
+			} else {
+				$checkSubscriptions = $this->db->select("select * from client_subscription where userId=" . $accountInfo->id . " order by created_date DESC LIMIT 0,1");
+				if (count($checkSubscriptions) == 0) {
+					$responseArray =  array('status' => false, 'value' => $this->getTranslatedMessage('MAIN.ERROR_NO_ACTIVE_SUBSCRIPTION'));
+				} else {
+					$subscriptionInfo = $checkSubscriptions[0];
+					$package_status = $subscriptionInfo->package_status ? $subscriptionInfo->package_status : '';
+					$end_date = $subscriptionInfo->end_date ? $subscriptionInfo->end_date : '';
+					if ($package_status === 'DEACTIVE' || $package_status === 'EXPIRED') {
+						$message = $this->getTranslatedMessage('MAIN.ERROR_SUBSCRIPTION_STATUS', array('status' => $package_status, 'date' => $subscriptionInfo->end_date));
+						$responseArray =  array('status' => 'false', 'value' => $message);
+					} else {
+						$packageId = $subscriptionInfo->pid;
+						$packageInfo = array();
+						if ($packageId != '') {
+							$packageInfo = $this->db->selectSingleRowData("packages", $packageId);
+						}
+						$currentDate = strtotime(date('Y-m-d h:i:s'));
+						$end_date = strtotime($end_date . "" . " 23:59:59");
+						if ($end_date <= $currentDate) {
+							$message = $this->getTranslatedMessage('MAIN.ERROR_SUBSCRIPTION_EXPIRED', array('date' => $subscriptionInfo->end_date));
+							$responseArray = array('status' => 'false', 'value' => $message);
+						} else {
+							$_REQUEST['page'] = 'menu';
+							$_REQUEST['data'] = $city;
+							$_REQUEST['key'] = $username;
+							$_REQUEST['value'] = $room;
+							//$this->db->pageTrack();
+							$tableInfo = [];
+							$roomList = [];
+							$selectedRoomDetails = [];
+							$roomBaseUrl = 'https://stay.1menus.com/' . rawurlencode((string)$city) . '/' . rawurlencode((string)$username);
+							$rooms = $this->db->select("select * from room_service_rooms where userId=" . $accountInfo->id . " and status='YES' order by title ASC");
+							foreach ($rooms as $roomItem) {
+								$roomList[] = array(
+									'id' => $roomItem->id,
+									'title' => $roomItem->title,
+									'url' => $roomBaseUrl . '/' . rawurlencode((string)$roomItem->title)
+								);
+								if ($roomItem->title == $room) {
+									$selectedRoomDetails = $roomItem;
+								}
+							}
+							$hasSelectedRoom = !empty($selectedRoomDetails);
+							$redirectUrl = $hasSelectedRoom ? $roomBaseUrl . '/' . rawurlencode((string)$selectedRoomDetails->title) : null;
+							$toastMessage = $hasSelectedRoom
+								? 'A warm welcome to ' . $accountInfo->title . '. We are delighted to have you as our guest in Hotel Room #' . $selectedRoomDetails->title . '.'
+								: null;
+							$responseArray = array(
+								'status' => true,
+								'value' => 'Account validated successfully',
+								'accountInfo' => $accountInfo,
+								'tableInfo' => $tableInfo,
+								'subscriptionInfo' => $subscriptionInfo,
+								'packageInfo' => $packageInfo,
+								'roomList' => $roomList,
+								'selectedRoomDetails' => $selectedRoomDetails,
+								'roomSelectionRequired' => !$hasSelectedRoom,
+								'roomSelectionUrl' => $hasSelectedRoom ? null : $roomBaseUrl,
+								'redirectUrl' => $redirectUrl,
+								'toastMessage' => $toastMessage
+							);
+						}
+					}
+				}
+			}
+		}
+		$this->displayOutputJson($responseArray);
+	}
+	// get guest booking
+	public function validateGuestBooking($userId = "", $roomId = "", $guestMobile = "", $return = false)
+	{
+		$outletId = isset($_REQUEST['outletId']) ? trim((string)$_REQUEST['outletId']) : '';
+		$roomId = isset($_REQUEST['roomId']) ? trim((string)$_REQUEST['roomId']) : '';
+		$mobileNumber = isset($_REQUEST['mobileNumber']) ? trim((string)$_REQUEST['mobileNumber']) : '';
+		if ($userId !== '') {
+			$outletId = $userId;
+		}
+		if ($roomId !== '') {
+			$roomId = $roomId;
+		}
+		if ($guestMobile !== '') {
+			$mobileNumber = $guestMobile;
+		}
+		if ($outletId === '' || !ctype_digit($outletId) || $roomId === '' || $mobileNumber === '') {
+
+			$responseArray = array('status' => false, 'guestValidation' => false, 'value' => 'Missing or invalid required parameters: outletId, roomId, and mobileNumber are required.');
+		}
+
+		$bookingInfo = $this->db->select("SELECT * FROM room_booking WHERE userId=" . (int)$outletId . " AND roomId='" . addslashes($roomId) . "' AND mobile='" . addslashes($mobileNumber) . "' ORDER BY checkin DESC, id DESC");
+		if (!is_array($bookingInfo) || count($bookingInfo) === 0) {
+			$responseArray = array('status' => false, 'guestValidation' => false, 'bookingStatus' => 'NOT_FOUND', 'value' => 'No booking found for the provided room and mobile number.');
+		}
+
+		$currentTime = time();
+		$latestBooking = null;
+		$checkedInBooking = null;
+		foreach ($bookingInfo as $booking) {
+			if (isset($booking->archive) && strtoupper($booking->archive) === 'YES') {
+				continue;
+			}
+			if ($latestBooking === null) {
+				$latestBooking = $booking;
+			}
+
+			$checkinTime = isset($booking->checkin) ? strtotime($booking->checkin) : false;
+			$checkoutTime = isset($booking->checkout) ? strtotime($booking->checkout) : false;
+			if (isset($booking->status) && strtoupper($booking->status) === 'YES' && $checkinTime !== false && $checkoutTime !== false && $currentTime >= $checkinTime && $currentTime <= $checkoutTime) {
+				$checkedInBooking = $booking;
+				break;
+			}
+		}
+
+		if ($checkedInBooking !== null) {
+			$message =  "";
+			// message should be Good morning, Good afternoon, Good evening based on the time of the day, Mr. / Ms. Guest Name. Welcome to Room #Room Number. We hope you have a pleasant stay with us.
+			$guestName = isset($checkedInBooking->title) ? trim((string)$checkedInBooking->title) : '';
+			$roomNumber = isset($checkedInBooking->roomId) ? trim((string)$checkedInBooking->roomId) : '';
+			$currentHour = (int)date('H');
+			if ($currentHour >= 5 && $currentHour < 12) {
+				$message = 'Good morning, ' . $guestName . '. Welcome to Room #' . $roomNumber . '. We hope you have a pleasant stay with us.';
+			} elseif ($currentHour >= 12 && $currentHour < 17) {
+				$message = 'Good afternoon, ' . $guestName . '. Welcome to Room #' . $roomNumber . '. We hope you have a pleasant stay with us.';
+			} elseif ($currentHour >= 17 && $currentHour < 21) {
+				$message = 'Good evening, ' . $guestName . '. Welcome to Room #' . $roomNumber . '. We hope you have a pleasant stay with us.';
+			} else {
+				$message = 'Hello, ' . $guestName . '. Welcome to Room #' . $roomNumber . '. We hope you have a pleasant stay with us.';
+			}
+			$responseArray = array('status' => true, 'guestValidation' => true, 'bookingStatus' => 'CHECKED_IN', 'value' => $message, 'bookingInfo' => $checkedInBooking);
+		}
+
+		if ($latestBooking === null) {
+			$responseArray = array('status' => false, 'guestValidation' => false, 'bookingStatus' => 'NOT_FOUND', 'value' => 'No active booking found for the provided details.');
+		}
+
+		if (!isset($latestBooking->status) || strtoupper($latestBooking->status) !== 'YES') {
+			$bookingStatus = 'INACTIVE';
+			$message = 'This booking is inactive. Please contact the hotel front desk.';
+		} else {
+			$checkinTime = isset($latestBooking->checkin) ? strtotime($latestBooking->checkin) : false;
+			$checkoutTime = isset($latestBooking->checkout) ? strtotime($latestBooking->checkout) : false;
+			if ($checkinTime === false || $checkoutTime === false || $checkoutTime < $checkinTime) {
+				$bookingStatus = 'INVALID_DATES';
+				$message = 'The booking dates are incomplete or invalid. Please contact the hotel front desk.';
+			} elseif ($currentTime < $checkinTime) {
+				$bookingStatus = 'NOT_CHECKED_IN';
+				$message = 'Your check-in time has not started yet.';
+			} else {
+				$bookingStatus = 'CHECKED_OUT';
+				$message = 'This booking has checked out. Please contact the hotel front desk if you need assistance.';
+			}
+		}
+
+		if ($return) {
+			return $responseArray;
+		} else {
+			$this->displayOutputJson($responseArray);
+		}
+	}
+
+	public function getBanners()
+	{
+		$outletId 		= isset($_REQUEST['outletId']) ? $_REQUEST['outletId'] : "";
+		$this->optionalParametterValidate($_REQUEST['outletId'], 'outletId', 'Outlet Id is required');
+		$banners = $this->db->select("select * from banner where userId=" . $outletId . " and status='YES' order by sq asc ");
+		$returnData = array();
+		for ($b = 0; $b < count($banners); $b++) {
+			$bannerInnerObject = $banners[$b];
+			//$bannerInnerObject->photo = $this->imgSourceReturn($bannerInnerObject->photo);
+			$duration = $bannerInnerObject->duration;
+			if ($duration == 'all' || $duration == "" || $duration == null) {
+				array_push($returnData, $bannerInnerObject);
+			} else {
+				$dates = $bannerInnerObject->dates;
+				$dates = explode(' - ', $dates);
+				$startDate =  date("Y-m-d", strtotime($dates[0]));
+				$endDate =  date("Y-m-d", strtotime($dates[1]));
+				$currentDate = date("Y-m-d");
+				if ($currentDate >= $startDate && $currentDate <= $endDate) {
+					array_push($returnData, $bannerInnerObject);
+				}
+			}
+		}
+		$this->APIReturnListData($returnData);
+	}
+	// method for submit room service request by guest/stay person
+	// endpoint /roomServiceRequestSubmit
+	// payload: {  "userId": "5",  "roomId": "22",  "serviceId": "113",  "name": "Send Luggage Boy",  "code": "SLB",  "guestId": "",  "additionalField": "2026-10-29T06:35",  "note": "123123"}
+	public function roomServiceRequestSubmit()
+	{
+		$userId = isset($_REQUEST['userId']) && is_scalar($_REQUEST['userId']) ? trim((string)$_REQUEST['userId']) : '';
+		$roomId = isset($_REQUEST['roomId']) && is_scalar($_REQUEST['roomId']) ? trim((string)$_REQUEST['roomId']) : '';
+		$serviceId = isset($_REQUEST['serviceId']) && is_scalar($_REQUEST['serviceId']) ? trim((string)$_REQUEST['serviceId']) : '';
+		$guestMobile = isset($_REQUEST['guestMobile']) && is_scalar($_REQUEST['guestMobile']) ? trim((string)$_REQUEST['guestMobile']) : '';
+		$guestName = isset($_REQUEST['guestName']) && is_scalar($_REQUEST['guestName']) ? trim((string)$_REQUEST['guestName']) : '';
+		$name = isset($_REQUEST['name']) && is_scalar($_REQUEST['name']) ? trim((string)$_REQUEST['name']) : '';
+		$guestId = isset($_REQUEST['guestId']) && is_scalar($_REQUEST['guestId']) ? trim((string)$_REQUEST['guestId']) : '';
+		$additionalField = isset($_REQUEST['additionalField']) && is_scalar($_REQUEST['additionalField']) ? trim((string)$_REQUEST['additionalField']) : '';
+		$note = isset($_REQUEST['note']) && is_scalar($_REQUEST['note']) ? trim((string)$_REQUEST['note']) : '';
+
+		// logic for check guest mobile number booking is in chekin status and not chekout by status or date time
+		// or use and send relevent request param for checking validateGuestBooking
+		if ($guestMobile !== '') {
+			$bookingValidationResponse = $this->validateGuestBooking($userId, $roomId, $guestMobile, $return = true);
+			if (!$bookingValidationResponse['status']) {
+				$returnArray = array('status' => false, 'value' => $bookingValidationResponse['value']);
+			}
+		}
+		if (!ctype_digit($userId) || (int)$userId <= 0 || !ctype_digit($roomId) || (int)$roomId <= 0 || !ctype_digit($serviceId) || (int)$serviceId <= 0 || $name === '') {
+			$returnArray = array('status' => false, 'value' => 'userId, roomId, serviceId, and name are required and must be valid.');
+		}
+		if ($guestId !== '' && (!ctype_digit($guestId) || (int)$guestId <= 0)) {
+			$returnArray = array('status' => false, 'value' => 'guestId must be a valid positive integer.');
+		}
+
+		$userId = (int)$userId;
+		$roomId = (int)$roomId;
+		$serviceId = (int)$serviceId;
+		$roomRows = $this->db->select("SELECT id, title FROM room_service_rooms WHERE id=" . $roomId . " AND userId=" . $userId . " AND status='YES' LIMIT 1");
+		if (!is_array($roomRows) || count($roomRows) === 0) {
+			$returnArray = array('status' => false, 'value' => 'The selected room is not available for this outlet.');
+		}
+		$serviceRows = $this->db->select("SELECT id, title FROM room_service_my_service WHERE id=" . $serviceId . " AND userId=" . $userId . " AND status='YES' LIMIT 1");
+		if (!is_array($serviceRows) || count($serviceRows) === 0) {
+			$returnArray = array('status' => false, 'value' => 'The selected service is not available for this outlet.');
+		}
+
+		$guestInfo = null;
+		if ($guestId !== '') {
+			$guestRows = $this->db->select("SELECT id, title, mobile, code FROM room_service_guests WHERE id=" . (int)$guestId . " AND userId=" . $userId . " LIMIT 1");
+			if (!is_array($guestRows) || count($guestRows) === 0) {
+				$returnArray = array('status' => false, 'value' => 'The selected guest was not found for this outlet.');
+			}
+			$guestInfo = $guestRows[0];
+		}
+
+		$today = date('Y-m-d');
+		$existingRequest = $this->db->select("SELECT id FROM room_service_request WHERE userId=" . $userId . " AND roomId=" . $roomId . " AND serviceId=" . $serviceId . " AND date='" . $today . "' AND status IN ('NEW', 'OPEN', 'START') ORDER BY id DESC LIMIT 1");
+		if (is_array($existingRequest) && count($existingRequest) > 0) {
+			$returnArray = array('status' => false, 'value' => 'An active request already exists for this room and service.', 'id' => $existingRequest[0]->id, 'reqCode' => 'RSRQ-' . str_pad((string)$existingRequest[0]->id, 8, '0', STR_PAD_LEFT));
+		}
+
+		$ip = isset($_SERVER['REMOTE_ADDR']) ? trim($_SERVER['REMOTE_ADDR']) : '';
+		$dateTime = date('Y-m-d H:i:s');
+		$assignedId = 0;
+		$assignedId = $this->getAllocationForRequest($userId, $serviceId, $roomId);
+		$insertData = array(
+			'title' => $name,
+			'guestMobile' => $guestMobile,
+			'guestName' => $guestName,
+			'ip' => $ip,
+			'userId' => $userId,
+			'roomId' => $roomId,
+			'serviceId' => $serviceId,
+			'assigned' => $assignedId,
+			'date' => $today,
+			'note' => $note,
+			'additionalField' => $additionalField,
+			'status' => 'NEW'
+		);
+		if ($guestInfo !== null) {
+			$insertData['guestId'] = $guestInfo->id;
+			$insertData['guestName'] = isset($guestInfo->title) ? $guestInfo->title : '';
+			$insertData['guestMobile'] = isset($guestInfo->mobile) ? $guestInfo->mobile : '';
+			$insertData['guestCode'] = isset($guestInfo->code) ? $guestInfo->code : '';
+		}
+
+		$requestId = $this->db->insert($insertData, 'room_service_request');
+		if (!is_numeric($requestId) || (int)$requestId <= 0) {
+			$returnArray = array('status' => false, 'value' => 'Unable to create the room service request.');
+		}
+		$requestId = (int)$requestId;
+		$reqCode = 'RSRQ-' . str_pad((string)$requestId, 8, '0', STR_PAD_LEFT);
+		$this->db->update("UPDATE room_service_request SET reqCode='" . $reqCode . "' WHERE id=" . $requestId . " AND userId=" . $userId);
+
+		$roomNumber = isset($roomRows[0]->title) ? $roomRows[0]->title : (string)$roomId;
+		$activityMessage = 'New room service request: ' . $name . ' (Room-' . $roomNumber . ')';
+		$activityId = $this->db->insert(array(
+			'reqId' => $requestId,
+			'ip' => $ip,
+			'userId' => $userId,
+			'roomId' => $roomId,
+			'assigned' => $assignedId,
+			'dateTime' => $dateTime,
+			'comment' => $activityMessage,
+			'status' => 'NEW'
+		), 'room_service_request_activity');
+
+		$notifications = $this->sendPushNotification($assignedId, $activityMessage, "New Room (" . $roomNumber . ") Service Request", "roomServiceRequest");
+		$returnArray = array(
+			'status' => true,
+			'value' => 'Room service request submitted successfully.',
+			'action' => 'roomServiceRequestSubmit',
+			'id' => $requestId,
+			'reqCode' => $reqCode,
+			'msg' => $activityMessage,
+			'roomId' => $roomId,
+			'assignedStaffId' => null,
+			'activityLogged' => is_numeric($activityId) && (int)$activityId > 0,
+			'notificationDetails' => $notifications
+		);
+		// logic for sending whatsApp message to staff if assigned staff is not null and staff has whatsApp number
+		if (is_numeric($assignedId) && (int)$assignedId > 0) {
+			$staffInfo = $this->db->selectSingleRowData('staff', (int)$assignedId);
+			if ($staffInfo && isset($staffInfo->mobile) && trim((string)$staffInfo->mobile) !== '') {
+				$whatsAppMessage = "Hello " . (isset($staffInfo->name) ? $staffInfo->name : 'Staff') . ",\n\nYou have a new room service request:\n\n" . $activityMessage . "\n\nPlease check the app for details.";
+				$outletInfo = $this->db->selectSingleRowData('users', (int)$userId);
+				$username = isset($outletInfo->username) ? $outletInfo->username : '';
+				$city = isset($outletInfo->city) ? $outletInfo->city : '';
+				$roomNumber = isset($roomRows[0]->title) ? $roomRows[0]->title : '';
+				$reqCode = 'RSRQ-' . str_pad((string)$requestId, 8, '0', STR_PAD_LEFT);
+				$name = isset($serviceRows[0]->title) ? $serviceRows[0]->title : '';
+				$requrl = 'https://stay.1menus.com/' . $city . '/' . $username . '/' . rawurlencode((string)$roomNumber) . '/requests/' . $requestId;
+
+				// message to staff
+				$messageDataArray = array(isset($staffInfo->name) ? $staffInfo->name : 'Staff', $roomNumber, $name, $reqCode, $requrl);
+				$mobile = $staffInfo->mobile ? trim((string)$staffInfo->mobile) : '';
+				$mobile = preg_match('/^91\d{10}$/', $mobile) ? $mobile : (preg_match('/^\d{10}$/', $mobile) ? '91' . $mobile : '');
+				$whatsAppResponse = $this->sendWhatsappMessage($mobile, 'new_room_service_request', $messageDataArray);
+				$returnArray['whatsAppNotification']['staff'] = array(
+					'sent' => $whatsAppResponse['sent'] ?? false,
+					'response' => $whatsAppResponse['response'] ?? null
+				);
+
+				// message to guest
+				if ($guestMobile !== '') {
+					$guestMessageDataArray = array($guestName, $roomNumber, $name, $reqCode, $requrl);
+					$guestMobileFormatted = preg_match('/^91\d{10}$/', $guestMobile) ? $guestMobile : (preg_match('/^\d{10}$/', $guestMobile) ? '91' . $guestMobile : '');
+					$guestWhatsAppResponse = $this->sendWhatsappMessage($guestMobileFormatted, 'new_room_service_request_guest', $guestMessageDataArray);
+					$returnArray['whatsAppNotification']['guest'] = array(
+						'sent' => $guestWhatsAppResponse['sent'] ?? false,
+						'response' => $guestWhatsAppResponse['response'] ?? null
+					);
+				}
+			}
+			$this->displayOutputJson($returnArray);
+		}
+	}
+	public function getAllocationForRequest($profileId, $id, $roomId)
+	{
+		$serviceInfoAssignment = $this->db->select("select actionBy from room_service_my_service where userId=" . $profileId . " and id=" . $id);
+		$serviceInfoAssignment = isset($serviceInfoAssignment[0]->actionBy) ? $serviceInfoAssignment[0]->actionBy : '';
+		$staffList = $this->db->select("select * from staff where userId=" . $profileId . " and status='YES' and online='YES' order by type ASC");
+		$staffCollection = array('FOMGR' => '', 'FOSU' => '', 'FO' => '', 'HKMGR' => '', 'HKSU' => '', 'HK' => '', 'SPA' => '', 'MTNS' => '');
+		for ($s = 0; $s < count($staffList); $s++) {
+			$staffCollection[$staffList[$s]->type] = $staffList[$s]->id;
+		}
+		$respectiveStaffId = "";
+		$respectiveStaffId = isset($staffCollection[$serviceInfoAssignment]) ? $staffCollection[$serviceInfoAssignment] : '';
+
+		if ($serviceInfoAssignment == "FO" || $serviceInfoAssignment == "FOSU" || $serviceInfoAssignment == "FOMGR") {
+			if ($respectiveStaffId == "" && $staffCollection['FO'] != "") {
+				$respectiveStaffId = $staffCollection['FO'];
+			}
+			if ($respectiveStaffId == "" && $staffCollection['FOSU'] != "") {
+				$respectiveStaffId = $staffCollection['FOSU'];
+			}
+			if ($respectiveStaffId == "" && $staffCollection['FOMGR'] != "") {
+				$respectiveStaffId = $staffCollection['FOMGR'];
+			}
+		}
+		if ($serviceInfoAssignment == "HK" || $serviceInfoAssignment == "HKSU" || $serviceInfoAssignment == "HKMGR") {
+			if ($respectiveStaffId == "" && $staffCollection['HK'] != "") {
+				$respectiveStaffId = $staffCollection['HK'];
+			}
+			if ($respectiveStaffId == "" && $staffCollection['HKSU'] != "") {
+				$respectiveStaffId = $staffCollection['HKSU'];
+			}
+			if ($respectiveStaffId == "" && $staffCollection['HKMGR'] != "") {
+				$respectiveStaffId = $staffCollection['HKMGR'];
+			}
+		}
+		if ($serviceInfoAssignment == "SPA") {
+			if ($respectiveStaffId == "" && $staffCollection['SPA'] != "") {
+				$respectiveStaffId = $staffCollection['SPA'];
+			}
+			if ($respectiveStaffId == "" && $staffCollection['FOMGR'] != "") {
+				$respectiveStaffId = $staffCollection['FOMGR'];
+			}
+		}
+		if ($serviceInfoAssignment == "MTNS") {
+			if ($respectiveStaffId == "" && $staffCollection['MTNS'] != "") {
+				$respectiveStaffId = $staffCollection['MTNS'];
+			}
+			if ($respectiveStaffId == "" && $staffCollection['FOMGR'] != "") {
+				$respectiveStaffId = $staffCollection['FOMGR'];
+			}
+		}
+		if ($respectiveStaffId == "" && count($staffList) > 0) {
+			$respectiveStaffId = $staffList[0]->id;
+		}
+		return $respectiveStaffId !== '' ? $respectiveStaffId : 0;
+	}
+	public function myBookings()
+	{
+		$outletId = isset($_REQUEST['outletId']) ? (int)$_REQUEST['outletId'] : 0;
+		$mobile = isset($_REQUEST['mobile']) ? $_REQUEST['mobile'] : '';
+		//$id = isset($_REQUEST['data']) ? (int)$_REQUEST['data'] : 0;
+		if ($outletId <= 0 || $mobile === '') {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'Outlet Id and Mobile number are required'));
+		}
+		//$slq = "SELECT * FROM room_booking WHERE userId=" . $outletId . " AND mobile='" . addslashes($mobile) . "' ";
+		$sql = "select b.id,b.userId,b.title,b.mobile,b.bookingCode,b.roomId,b.checkin,b.checkout,b.bookingType,b.amount,b.finalRoomAmount,b.finalFoodAmount,b.finalTotalAmount,b.paidAmount,b.dueAmount,b.date,b.note,b.archive,b.status,b.created_date,b.updated_date from room_booking b where b.userId=" . $outletId . " and b.mobile='" . addslashes($mobile) . "' and b.status='YES' ";
+		// if ($id != 0 && $id != "") {
+		// 	$slq .= " AND id=" . $id . " ";
+		// }
+		$sql .= " ORDER BY b.checkin DESC, b.id DESC LIMIT 0,1";
+		$bookings = $this->db->select($sql);
+		$this->displayOutputJson(array(
+			'status' => 'true',
+			'value' => 'Bookings fetched successfully',
+			'count' => is_array($bookings) ? count($bookings) : 0,
+			'bookings' => is_array($bookings) ? $bookings : array()
+		));
+	}
+
+	// API for save Feedback from guest for room service request
+	public function submitRSRequestFeedback()
+	{
+		$ip = isset($_SERVER['REMOTE_ADDR']) ? trim($_SERVER['REMOTE_ADDR']) : '';
+		$outletId = isset($_REQUEST['outletId']) ? (int)$_REQUEST['outletId'] : 0;
+		$requestId = isset($_REQUEST['requestId']) ? (int)$_REQUEST['requestId'] : 0;
+		$overallRating = isset($_REQUEST['overallrating']) ? (int)$_REQUEST['overallrating'] : 5;
+		$staffrating = isset($_REQUEST['staffrating']) ? (int)$_REQUEST['staffrating'] : 5;
+		$comments = isset($_REQUEST['comments']) ? trim((string)$_REQUEST['comments']) : '';
+
+
+		if ($this->db->selectCount("SELECT COUNT(*) AS count FROM room_service_request_feedback WHERE outletId=" . $outletId . " AND requestId=" . $requestId) > 0) {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'Feedback has already been submitted for this request.'));
+		}
+
+		$insertData = array(
+			'outletId' => $outletId,
+			'requestId' => $requestId,
+			'overallrating' => $overallRating,
+			'staffrating' => $staffrating,
+			'comments' => $comments,
+			'ip' => $ip,
+			'status' => 'YES',
+			'created_date' => date('Y-m-d H:i:s')
+		);
+		$reqInfo = $this->db->select("SELECT assigned as staffId , reqCode FROM room_service_request WHERE id=" . $requestId . " AND userId=" . $outletId);
+		$assignedStaffId = isset($reqInfo[0]->staffId) ? (int)$reqInfo[0]->staffId : 0;
+		$reqCode = isset($reqInfo[0]->reqCode) ? (string)$reqInfo[0]->reqCode : '';
+
+		$feedbackId = $this->db->insert($insertData, 'room_service_request_feedback');
+		if (!is_numeric($feedbackId) || (int)$feedbackId <= 0) {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'Unable to submit feedback.'));
+		}
+		$notificationMessage = 'New feedback submitted for request ID: ' . $reqCode . '. Overall Rating: ' . $overallRating . ', Staff Rating: ' . $staffrating . " by Guest";
+		$notifications = $this->sendPushNotification($assignedStaffId, $notificationMessage, "New Feedback-" . $reqCode, "roomServiceFeedback");
+		$this->displayOutputJson(array(
+			'status' => 'true',
+			'value' => 'Feedback submitted successfully.',
+			'id' => (int)$feedbackId,
+			'notificationDetails' => $notifications
+		));
+	}
+	//getGuestSchedule
+	public function getGuestSchedule()
+	{
+		$outletId = isset($_REQUEST['outletId']) ? (int)$_REQUEST['outletId'] : 0;
+		if ($outletId <= 0) {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'Outlet Id is required'));
+		}
+		$sql = "SELECT * FROM hotel_guest_schedule WHERE outletId=" . $outletId . " ORDER BY priority DESC, schedule_date ASC, start_time ASC, id DESC";
+
+		$scheduleList = $this->db->select($sql);
+		$this->displayOutputJson(array(
+			'status' => 'true',
+			'value' => 'Guest schedule fetched successfully',
+			'count' => is_array($scheduleList) ? count($scheduleList) : 0,
+			'scheduleList' => is_array($scheduleList) ? $scheduleList : array()
+		));
+	}
+	// create a booking
+	public function createBooking()
+	{
+		$outletId = isset($_REQUEST['outletId']) ? (int)$_REQUEST['outletId'] : 0;
+		$name = isset($_REQUEST['name']) ? trim((string)$_REQUEST['name']) : '';
+		$mobile = isset($_REQUEST['mobile']) ? trim((string)$_REQUEST['mobile']) : '';
+		$email = isset($_REQUEST['email']) ? trim((string)$_REQUEST['email']) : '';
+		$checkin = isset($_REQUEST['checkin']) ? trim((string)$_REQUEST['checkin']) : '';
+		$checkout = isset($_REQUEST['checkout']) ? trim((string)$_REQUEST['checkout']) : '';
+		$adult = isset($_REQUEST['adult']) ? (int)$_REQUEST['adult'] : 1;
+		$child = isset($_REQUEST['child']) ? (int)$_REQUEST['child'] : 0;
+		// logic for checing is existing booking found with same details
+		if ($this->db->selectCount("SELECT COUNT(*) AS count FROM room_booking WHERE userId=" . $outletId . " AND email='" . addslashes($email) . "' AND mobile='" . addslashes($mobile) . "' AND checkin='" . addslashes($checkin) . "' AND checkout='" . addslashes($checkout) . "' AND bookingType='SELF_BOOK'") > 0) {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'A Self booking already exists for this room and time period.'));
+		} else {
+			$insertArray  = array(
+				'userId' => $outletId,
+				'title' => $name,
+				'mobile' => $mobile,
+				'email' => $email,
+				'checkin' => $checkin,
+				'checkout' => $checkout,
+				'bookingType' => 'SELF_BOOK',
+				'adult' => $adult,
+				'child' => $child,
+				'status' => 'NO',
+				'created_date' => date('Y-m-d H:i:s')
+			);
+			$id = $this->db->insert($insertArray, 'room_booking');
+			$bookingInfo = $this->db->selectSingleRowData('room_booking', $id);
+		}
+		$this->displayOutputJson(array('status' => 'true', 'value' => 'Booking created successfully', 'bookingInfo' => $bookingInfo));
 	}
 }

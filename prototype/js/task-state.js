@@ -134,10 +134,13 @@
 
   function renderTimelineHtml(taskId) {
     const task = ensureTask(taskId);
+    const taskData = typeof PAGE_DATA !== 'undefined' ? PAGE_DATA[taskId] : null;
+    const assignee = taskData?.assignee || 'Unassigned';
     const status = effectiveStatus(task);
     const statusIdx = STATUS_ORDER.indexOf(status);
     let html = '';
     let prevAt = null;
+    let prevStatus = null;
 
     STEP_DEFS.forEach((def, idx) => {
       const at = task[def.field];
@@ -146,7 +149,9 @@
       const isFuture = idx > statusIdx;
 
       if (at) {
-        const delta = prevAt ? '+' + formatDuration(at - prevAt) + ' from previous' : null;
+        const delta = prevAt
+          ? '+' + formatDuration(at - prevAt) + ' from ' + STATUS_LABELS[prevStatus] + ' (' + assignee + ')'
+          : null;
         const state = isCurrent ? 'current' : 'done';
         const dot = state === 'done' ? '✓' : '●';
         html += `
@@ -159,6 +164,7 @@
             </div>
           </div>`;
         prevAt = at;
+          prevStatus = def.key;
       } else if (isFuture || (isCurrent && !at)) {
         html += `
           <div class="timeline-step pending">
@@ -187,7 +193,7 @@
           <div class="step-body">
             <h5>Paused — Service on hold</h5>
             <p>${formatRelative(task.pausedAt)}</p>
-            ${prevAt ? `<p class="timeline-delta">+${formatDuration(task.pausedAt - prevAt)} from previous</p>` : ''}
+            ${prevAt ? `<p class="timeline-delta">+${formatDuration(task.pausedAt - prevAt)} from ${STATUS_LABELS[prevStatus]} (${assignee})</p>` : ''}
           </div>
         </div>`;
     }

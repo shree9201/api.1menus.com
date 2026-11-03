@@ -1,19 +1,36 @@
 <?php
 $pageName = basename(__FILE__, '.php');
-APIInfoPageStart($pageName, "Retrieves all available device IDs against staff id.");
+APIInfoPageStart($pageName, "Retrieves active room services. Pass roomId to include any active request and the next action for each service.");
 ?>
-        <tbody>
-            <tr><td>Endpoint</td><td><code><?php echo $pageName;?></code></td></tr>
-            <tr><td>Method</td><td><strong>POST</strong></td></tr>
-            <tr><td>Request</td><td><details><summary><strong>Sample Request</strong></summary>
-<pre>
+<tbody>
+    <tr>
+        <td>Endpoint</td>
+        <td><code><?php echo $pageName; ?></code></td>
+    </tr>
+    <tr>
+        <td>Method</td>
+        <td><strong>POST</strong></td>
+    </tr>
+    <tr>
+        <td>Request</td>
+        <td>
+            <details>
+                <summary><strong>Sample Request</strong></summary>
+                <pre>
 {
-  "outletId":5
+    "outletId":5,
+    "roomId":2
 }
 </pre>
-        </details></td></tr>
-            <tr><td>Response</td><td><details><summary><strong>Sample response</strong></summary>
-<pre>
+            </details>
+        </td>
+    </tr>
+    <tr>
+        <td>Response</td>
+        <td>
+            <details>
+                <summary><strong>Sample response</strong></summary>
+                <pre>
 [
     {
         "status": true,
@@ -22,6 +39,11 @@ APIInfoPageStart($pageName, "Retrieves all available device IDs against staff id
             {
                 "id": "68",
                 "title": "I want NewsPaper",
+                "hasActiveRequest": true,
+                "requestId": "123",
+                "requestCode": "RSRQ-00000123",
+                "requestStatus": "NEW",
+                "requestAction": "details",
                 "userId": "5",
                 "boxId": "3",
                 "serviceId": "32",
@@ -573,7 +595,9 @@ APIInfoPageStart($pageName, "Retrieves all available device IDs against staff id
         ]
     }
 ]
-</pre></details></td>
-            </tr>
-        </tbody>
+</pre>
+            </details>
+        </td>
+    </tr>
+</tbody>
 <?php APIInfoPageEnd(); ?>

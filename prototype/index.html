@@ -1155,11 +1155,7 @@
           <div data-request-timeline></div>
         </div>
 
-        <div class="card task-feedback-card" data-task-feedback>
-          <div class="rating-big">5.0 Excellent!</div>
-          <div class="feedback-stars">★★★★★</div>
-          <p style="font-size:13px;color:#92400e;margin-top:6px">Guest Rating · "Thank you for your service"</p>
-        </div>
+        <button type="button" class="btn-primary task-rating-button" onclick="StaffActions.openRating()">★ Rate this service</button>
 
         <div class="task-xp-reward" data-task-xp>
           <span class="xp-coin">🪙</span>
@@ -1167,6 +1163,36 @@
             <div class="xp-text">+20 XP</div>
             <div class="xp-sub">Earned for completing this task</div>
           </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-staff-task-rating" data-hide-nav="true">
+        <div class="back-header"><button onclick="goBack()">←</button><h2>Rate This Service</h2></div>
+        <div class="card task-rating-form">
+          <p class="task-rating-context">Room <span data-rating-room>—</span> · <span data-rating-staff>—</span></p>
+          <fieldset class="rating-fieldset">
+            <legend>Overall rating</legend>
+            <div class="rating-stars" role="group" aria-label="Overall rating" data-rating-group="overall">
+              <button type="button" aria-label="1 star" data-rating-value="1">★</button>
+              <button type="button" aria-label="2 stars" data-rating-value="2">★</button>
+              <button type="button" aria-label="3 stars" data-rating-value="3">★</button>
+              <button type="button" aria-label="4 stars" data-rating-value="4">★</button>
+              <button type="button" aria-label="5 stars" data-rating-value="5">★</button>
+            </div>
+          </fieldset>
+          <fieldset class="rating-fieldset">
+            <legend>Staff rating</legend>
+            <div class="rating-stars" role="group" aria-label="Staff rating" data-rating-group="staff">
+              <button type="button" aria-label="1 star" data-rating-value="1">★</button>
+              <button type="button" aria-label="2 stars" data-rating-value="2">★</button>
+              <button type="button" aria-label="3 stars" data-rating-value="3">★</button>
+              <button type="button" aria-label="4 stars" data-rating-value="4">★</button>
+              <button type="button" aria-label="5 stars" data-rating-value="5">★</button>
+            </div>
+          </fieldset>
+          <label class="rating-comment-label" for="task-rating-comment">Comment</label>
+          <textarea id="task-rating-comment" rows="4" placeholder="Share your feedback"></textarea>
+          <button type="button" class="btn-primary task-rating-submit" data-rating-submit>Submit feedback</button>
         </div>
       </section>
 
