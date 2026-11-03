@@ -4324,4 +4324,22 @@ class api_class
 		}
 		$this->displayOutputJson(array('status' => 'true', 'value' => 'Booking created successfully', 'bookingInfo' => $bookingInfo));
 	}
+
+	public function messageSend()
+	{
+		$numbers = isset($_REQUEST['numbers']) ? $_REQUEST['numbers'] : (isset($_REQUEST['mobile']) ? $_REQUEST['mobile'] : '');
+		$template = isset($_REQUEST['template']) ? $_REQUEST['template'] : '';
+		$type = isset($_REQUEST['type']) ? strtolower(trim((string)$_REQUEST['type'])) : 'whatsapp';
+		$param = isset($_REQUEST['param']) ? isset($_REQUEST['param']) : '';
+		$messageDataArray = array();
+		if ($type !== 'whatsapp') {
+			if ($param !== '') {
+				$messageDataArray = explode(',', $param);
+			}
+			$this->displayOutputJson(array('status' => false, 'value' => 'type must be whatsapp.'));
+		}
+
+		$response = $this->sendWhatsappMessage($numbers, $template, $messageDataArray);
+		$this->displayOutputJson($response);
+	}
 }
