@@ -1,138 +1,188 @@
-<?php 
+<?php
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, id, token');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
+// $allowedOrigin = 'https://stay.1menus.com';
+
+// if (isset($_SERVER['HTTP_ORIGIN']) && $_SERVER['HTTP_ORIGIN'] === $allowedOrigin) {
+//     header('Access-Control-Allow-Origin: ' . $allowedOrigin);
+//     header('Access-Control-Allow-Methods: POST, OPTIONS');
+//     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept');
+//     header('Vary: Origin');
+// }
+
+// Handle browser preflight request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
+
+//header('Content-Type: application/json; charset=UTF-8');
+
 require_once 'service/constant.php';
 
-$action 	= isset($_REQUEST ['action'])?$_REQUEST ['action']:"";
-if($action!=""){
-	require_once 'api.php';	
-}else{
+$action     = isset($_REQUEST['action']) ? $_REQUEST['action'] : "";
+if ($action != "") {
+    require_once 'api.php';
+} else {
 ?>
-<!DOCTYPE html>
-<head>
-    <title>API Documentation for the <?php echo SITE_TITLE;?> Application</title>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="">
-    <meta name="author" content="">    
-    <link rel="shortcut icon" href="favicon.ico">  
-    <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
-    <link rel="stylesheet" href="<?php echo API_THEME_PATH;?>plugins/bootstrap/css/bootstrap.min.css">   
-    <link rel="stylesheet" href="<?php echo API_THEME_PATH;?>plugins/font-awesome/css/font-awesome.css">
-    <link rel="stylesheet" href="<?php echo API_THEME_PATH;?>plugins/prism/prism.css">
-    <link rel="stylesheet" href="<?php echo API_THEME_PATH;?>plugins/elegant_font/css/style.css">
-    <link id="theme-style" rel="stylesheet" href="<?php echo API_THEME_PATH;?>css/styles.css">    
-</head> 
+    <!DOCTYPE html>
 
-<body class="body-green">
-    <div class="page-wrapper">
-        <!-- ******Header****** -->
-        <header id="header" class="header">
-            <div class="container">
-                <div class="branding">
-                    <h1 class="logo">
-                        <a href="index.html">
-                            <span aria-hidden="true" class="icon_documents_alt icon"></span>
-                            <span class="text-highlight">API </span><span class="text-bold"> Docs</span>
-                        </a>
-                    </h1>
-                </div><!--//branding-->
-                <ol class="breadcrumb">
-                    <li><a href="#">Home</a></li>
-                    <li class="active">API Details</li>
-                </ol>
-            </div><!--//container-->
-        </header><!--//header-->
-        <div class="doc-wrapper">
-            <div class="container">
-                <div id="doc-header" class="doc-header text-center">
-                    <h1 class="doc-title"><i class="icon fa fa-paper-plane"></i> <?php echo SITE_TITLE;?></h1>
-                    <div class="meta"><i class="fa fa-clock-o"></i> 
-                        <?php 
+    <head>
+        <title>API Documentation for the <?php echo SITE_TITLE; ?> Application</title>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="">
+        <meta name="author" content="">
+        <link rel="shortcut icon" href="favicon.ico">
+        <link
+            href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800'
+            rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="<?php echo API_THEME_PATH; ?>plugins/bootstrap/css/bootstrap.min.css">
+        <link rel="stylesheet" href="<?php echo API_THEME_PATH; ?>plugins/font-awesome/css/font-awesome.css">
+        <link rel="stylesheet" href="<?php echo API_THEME_PATH; ?>plugins/prism/prism.css">
+        <link rel="stylesheet" href="<?php echo API_THEME_PATH; ?>plugins/elegant_font/css/style.css">
+        <link id="theme-style" rel="stylesheet" href="<?php echo API_THEME_PATH; ?>css/styles.css">
+    </head>
+
+    <body class="body-green">
+        <div class="page-wrapper">
+            <!-- ******Header****** -->
+            <header id="header" class="header">
+                <div class="container">
+                    <div class="branding">
+                        <h1 class="logo">
+                            <a href="index.html">
+                                <span aria-hidden="true" class="icon_documents_alt icon"></span>
+                                <span class="text-highlight">API </span><span class="text-bold"> Docs</span>
+                            </a>
+                        </h1>
+                    </div>
+                    <!--//branding-->
+                    <ol class="breadcrumb">
+                        <li><a href="#">Home</a></li>
+                        <li class="active">API Details</li>
+                    </ol>
+                </div>
+                <!--//container-->
+            </header>
+            <!--//header-->
+            <div class="doc-wrapper">
+                <div class="container">
+                    <div id="doc-header" class="doc-header text-center">
+                        <h1 class="doc-title"><i class="icon fa fa-paper-plane"></i> <?php echo SITE_TITLE; ?></h1>
+                        <div class="meta"><i class="fa fa-clock-o"></i>
+                            <?php
                             $filename = 'index.php';
                             if (file_exists($filename)) {
-                                $latestupdated = date ("F d Y.", filemtime($filename));
+                                $latestupdated = date("F d Y.", filemtime($filename));
                                 echo "Last modified: " . $latestupdated;
                             }
-                        ?>
+                            ?>
+                        </div>
                     </div>
-                </div><!--//doc-header-->
-                <div class="doc-body">
-                    <div class="doc-content">
-                        <div class="content-inner">
-                            <?php
-                            require_once 'pages/1_list.php'; 
-                            $total =count($apiNamesArray);
-                                for($i=0;$i<$total;$i++){
-                                $sname = $keys[$i];
-                                $name = ucfirst($apiNamesArray[$sname]);
-                                $fileName = 'pages/'.$sname.".php";
-                            ?>
-                            <section id="<?php echo $keys[$i]; ?>-section" class="doc-section">
-                                <h2 class="section-title"><?php echo $name; ?></h2>
-                                <div class="section-block">
-                                    <?php 
-                                    include_once($fileName);
+                    <!--//doc-header-->
+                    <div class="doc-body">
+                        <div class="doc-content">
+                            <div class="content-inner">
+                                <?php
+                                require_once 'pages/1_list.php';
+                                $total = count($apiNamesArray);
+                                for ($i = 0; $i < $total; $i++) {
+                                    $sname = $keys[$i];
+                                    $name = ucfirst($apiNamesArray[$sname]);
+                                    $fileName = 'pages/' . $sname . ".php";
+                                ?>
+                                    <section id="<?php echo $keys[$i]; ?>-section" class="doc-section">
+                                        <h2 class="section-title"><?php echo $name; ?></h2>
+                                        <div class="section-block">
+                                            <?php
+                                            include_once($fileName);
+                                            ?>
+                                        </div>
+                                    </section>
+                                <?php } ?>
+                                </section>
+                                <!--//doc-section-->
+                            </div>
+                            <!--//content-inner-->
+                        </div>
+                        <!--//doc-content-->
+                        <div class="doc-sidebar hidden-xs">
+                            <nav id="doc-nav">
+                                <ul id="doc-menu" class="nav doc-menu" data-spy="affix">
+                                    <?php
+                                    $total = count($apiNamesArray);
+                                    for ($i = 0; $i < $total; $i++) {
+                                        $sname = $keys[$i];
+                                        $name = ucfirst($apiNamesArray[$sname]);
                                     ?>
-                                </div>
-                            </section>
-                            <?php } ?>
-                            </section><!--//doc-section-->
-                        </div><!--//content-inner-->
-                    </div><!--//doc-content-->
-                    <div class="doc-sidebar hidden-xs">
-                        <nav id="doc-nav">
-                            <ul id="doc-menu" class="nav doc-menu" data-spy="affix">
-                            <?php
-                                $total =count($apiNamesArray);
-                                for($i=0;$i<$total;$i++){
-                                $sname = $keys[$i];
-                                $name = ucfirst($apiNamesArray[$sname]);
-                            ?>
-                                <li><a class="scrollto" href="#<?php echo $sname;?>-section"><?php echo $name;?></a></li>
-                            <?php } ?>
-                            </ul><!--//doc-menu-->
-                        </nav>
-                    </div><!--//doc-sidebar-->
-                </div><!--//doc-body-->              
-            </div><!--//container-->
-        </div><!--//doc-wrapper-->
-        
-    </div><!--//page-wrapper-->
-    
-    <footer id="footer" class="footer text-center">
-        <div class="container">        
-            <small class="copyright">Designed with <i class="fa fa-star"></i> by <a href="http://droptech.in/" targe="_blank">Droptech IT Solution</a> for developers</small>
-            
-        </div><!--//container-->
-    </footer><!--//footer-->
-    
-     
-    <!-- Main Javascript -->          
-    <script type="text/javascript" src="<?php echo API_THEME_PATH;?>plugins/jquery-1.12.3.min.js"></script>
-    <script type="text/javascript" src="<?php echo API_THEME_PATH;?>plugins/bootstrap/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="<?php echo API_THEME_PATH;?>plugins/prism/prism.js"></script>    
-    <script type="text/javascript" src="<?php echo API_THEME_PATH;?>plugins/jquery-scrollTo/jquery.scrollTo.min.js"></script>                                                                
-    <script type="text/javascript" src="<?php echo API_THEME_PATH;?>plugins/jquery-match-height/jquery.matchHeight-min.js"></script>
-    <script type="text/javascript" src="<?php echo API_THEME_PATH;?>js/main.js"></script>
-    
-</body>
-</html> 
-<?php 
+                                        <li><a class="scrollto" href="#<?php echo $sname; ?>-section"><?php echo $name; ?></a>
+                                        </li>
+                                    <?php } ?>
+                                </ul>
+                                <!--//doc-menu-->
+                            </nav>
+                        </div>
+                        <!--//doc-sidebar-->
+                    </div>
+                    <!--//doc-body-->
+                </div>
+                <!--//container-->
+            </div>
+            <!--//doc-wrapper-->
+
+        </div>
+        <!--//page-wrapper-->
+
+        <footer id="footer" class="footer text-center">
+            <div class="container">
+                <small class="copyright">Designed with <i class="fa fa-star"></i> by <a href="http://droptech.in/"
+                        targe="_blank">Droptech IT Solution</a> for developers</small>
+
+            </div>
+            <!--//container-->
+        </footer>
+        <!--//footer-->
+
+
+        <!-- Main Javascript -->
+        <script type="text/javascript" src="<?php echo API_THEME_PATH; ?>plugins/jquery-1.12.3.min.js"></script>
+        <script type="text/javascript" src="<?php echo API_THEME_PATH; ?>plugins/bootstrap/js/bootstrap.min.js"></script>
+        <script type="text/javascript" src="<?php echo API_THEME_PATH; ?>plugins/prism/prism.js"></script>
+        <script type="text/javascript" src="<?php echo API_THEME_PATH; ?>plugins/jquery-scrollTo/jquery.scrollTo.min.js">
+        </script>
+        <script type="text/javascript"
+            src="<?php echo API_THEME_PATH; ?>plugins/jquery-match-height/jquery.matchHeight-min.js"></script>
+        <script type="text/javascript" src="<?php echo API_THEME_PATH; ?>js/main.js"></script>
+
+    </body>
+
+    </html>
+<?php
 }
-function APIInfoPageStart($pageName, $description){	
-	?>
-	<div class="code-block">
-        <p><?php echo $description;?></p>
-<pre class="language-css">
+function APIInfoPageStart($pageName, $description)
+{
+?>
+    <div class="code-block">
+        <p><?php echo $description; ?></p>
+        <pre class="language-css">
 <div class="table-responsive doc-table-responsive">
     <table class="table table-bordered">
-     <?php 
-}
-function APIInfoPageEnd(){
-	?></table>
+     <?php
+    }
+    function APIInfoPageEnd()
+    {
+        ?></table>
 </div>
 </pre>
-</div><?php 
-}
+    </div><?php
+        }
 
-?>
+            ?>

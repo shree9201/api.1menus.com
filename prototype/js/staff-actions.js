@@ -9,6 +9,25 @@
     return typeof PAGE_DATA !== 'undefined' ? PAGE_DATA[taskId] : null;
   }
 
+  function getCurrentRatings() {
+    const page = document.getElementById('page-staff-task-rating');
+    if (!page) return null;
+    return {
+      overall: Number(page.querySelector('[data-rating-group="overall"]')?.dataset.value || 0),
+      staff: Number(page.querySelector('[data-rating-group="staff"]')?.dataset.value || 0),
+      comment: page.querySelector('#task-rating-comment')?.value.trim() || '',
+    };
+  }
+
+  function setRating(group, value) {
+    group.dataset.value = value;
+    group.querySelectorAll('[data-rating-value]').forEach((button) => {
+      const isSelected = Number(button.dataset.ratingValue) <= value;
+      button.classList.toggle('selected', isSelected);
+      button.setAttribute('aria-pressed', String(Number(button.dataset.ratingValue) === value));
+    });
+  }
+
   function syncRequestPage(taskId) {
     const page = document.getElementById('page-staff-task-request');
     if (!page || !window.TaskState) return;
@@ -203,13 +222,52 @@
         if (timeEl) timeEl.textContent = data.time || '—';
       }
 
-      const feedback = page.querySelector('[data-task-feedback]');
       const xpReward = page.querySelector('[data-task-xp]');
       const isDone = status === 'done' || status === 'ended';
-      if (feedback) feedback.hidden = !isDone;
       if (xpReward) xpReward.hidden = !isDone;
     },
+
+    openRating(taskId) {
+      const currentTaskId = taskId || getTaskIdFromHash();
+      if (window.navigate) {
+        navigate('staff/task-rating', { id: currentTaskId }, true);
+      } else {
+        location.hash = 'staff/task-rating?id=' + encodeURIComponent(currentTaskId);
+      }
+    },
+
+    syncRatingPage(taskId) {
+      const page = document.getElementById('page-staff-task-rating');
+      if (!page) return;
+      const data = getTaskData(taskId);
+      page.querySelector('[data-rating-room]').textContent = data?.room || '—';
+      page.querySelector('[data-rating-staff]').textContent = data?.assignee || 'Staff member';
+      page.querySelector('[data-rating-submit]').dataset.taskId = taskId;
+    },
   };
+
+  document.addEventListener('click', (event) => {
+    const ratingButton = event.target.closest('[data-rating-value]');
+    if (ratingButton) {
+      const group = ratingButton.closest('[data-rating-group]');
+      if (group) setRating(group, Number(ratingButton.dataset.ratingValue));
+      return;
+    }
+
+    const submitButton = event.target.closest('[data-rating-submit]');
+    if (!submitButton) return;
+    const ratings = getCurrentRatings();
+    if (!ratings.overall || !ratings.staff) {
+      alert('Please select both ratings before submitting.');
+      return;
+    }
+    const taskId = submitButton.dataset.taskId;
+    const savedRatings = JSON.parse(localStorage.getItem('oneMenusTaskRatings') || '{}');
+    savedRatings[taskId] = { ...ratings, submittedAt: Date.now() };
+    localStorage.setItem('oneMenusTaskRatings', JSON.stringify(savedRatings));
+    alert('Thank you for your feedback.');
+    if (window.navigate) navigate('staff/task-detail', { id: taskId }, true);
+  });
 
   window.addEventListener('hashchange', () => {
     const path = (location.hash.slice(1) || '').split('?')[0];
@@ -222,6 +280,9 @@
     }
     if (path === 'staff/task-detail') {
       StaffActions.syncTaskDetailPage(taskId);
+    }
+    if (path === 'staff/task-rating') {
+      StaffActions.syncRatingPage(taskId);
     }
     if (path === 'staff/pass-request' || path === 'staff/reject-request' || path === 'staff/request-paused') {
       document.querySelectorAll('#page-staff-pass-request [data-param-id], #page-staff-request-paused [data-param-id], #page-staff-reject-request [data-param-id]').forEach((el) => {
