@@ -1875,6 +1875,9 @@ class api_class
 		$password = $this->optionalParametterValidate($_REQUEST['password'], 'password');
 		$deviceType = $this->optionalParametterValidate($_REQUEST['deviceType'], 'deviceType');
 		$deviceId = $this->optionalParametterValidate($_REQUEST['deviceId'], 'deviceId');
+		if ($userType == "EXECUTIVE") {
+			$userType = "STAFF";
+		}
 		if ($this->db->selectCount("select count(*) as count from staff where userId='" . $outletId . "' and username='" . $username . "' and password='" . $password . "'") == 0) {
 			$responseArray =  array('status' => 'false', 'value' => 'Invalid username or password');
 			$this->displayOutputJson($responseArray);
@@ -2263,14 +2266,14 @@ class api_class
 			'android_accent_color' => 'FF0000',
 			'data'            => ['title' => $title, 'message' => $message]
 		];
-
+		$notification_api_key = $this->config->notification_api_key ? $this->config->notification_api_key : '';
 		$ch = curl_init('https://api.onesignal.com/notifications');
 		curl_setopt_array($ch, [
 			CURLOPT_POST           => true,
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_HTTPHEADER     => [
 				'Content-Type: application/json',
-				'Authorization: os_v2_app_4ql5pnuxfvgdhh3qha4od6qx3ikkxnusbpju4bvvgljzyivjx6bmutc62u2svw7z7zcr7coaicairgn6qtelzoop3amg6mfkx4kbgba',
+				'Authorization:' . $notification_api_key,
 				'Cookie: __cf_bm=zwK4QnegG.pP4vMM82uIlcvTu5.2dcLzduBZC8RkxQo-1785251723.869693-1.0.1.1-6yhXwTP0dTOUAp1hL2JuQT4hssAYG6giJvACHnCaX5Z66peZvAwJvpf7C67vvCe5TwNn1HiQKpFxJcrbNNwJTFpMZ0RKgImWQ.iLYKxd7jkGIrrAPYlo8iO0oNUPtqXK'
 			],
 			CURLOPT_POSTFIELDS     => json_encode($content),
@@ -3612,8 +3615,10 @@ class api_class
 		$outletId = isset($_REQUEST['outletId']) ? (int)$_REQUEST['outletId'] : 0;
 		$staffId = isset($_REQUEST['staffId']) ? (int)$_REQUEST['staffId'] : 0;
 		$accessCheck = "";
-		if ($access == 'MGR') {
-			$accessCheck = " AND type like '%MGR'";
+		if ($access == 'FOMGR') {
+			$accessCheck = " AND type like 'FOMGR'";
+		} else if ($access == 'HKMGR') {
+			$accessCheck = " AND type like 'HKMGR'";
 		}
 		if ($outletId <= 0 || $staffId <= 0 || $access === '') {
 			$this->displayOutputJson(array('status' => 'false', 'value' => 'Outlet Id, Staff Id, and Access Key are required'));
@@ -3624,7 +3629,7 @@ class api_class
 		if ($hasAccess > 0)
 			return true;
 		else
-			$this->displayOutputJson(array('statud' => 'false', 'value' => 'You do not have access for this Operations'));
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'You do not have access for this Operations'));
 	}
 	public function services()
 	{
@@ -3640,6 +3645,7 @@ class api_class
 				break;
 			case 'update':
 				$this->updateService();
+				break;
 			case 'delete':
 				$this->deleteService();
 				break;
@@ -3649,17 +3655,32 @@ class api_class
 	}
 	public function getServices()
 	{
+		$staffId = isset($_REQUEST['staffId']) ? (int)$_REQUEST['staffId'] : 0;
+		$staffInfo = $this->db->selectSingleRowData('staff', $staffId);
+		$staffType = isset($staffInfo->type) ? $staffInfo->type : '';
+		$releventActionBy =  "";
+		if ($staffType === 'HKMGR') {
+			$releventActionBy = " AND s.actionBy IN ('HK', 'HKSU', 'HKMGR') ";
+		}
+		if ($staffType === 'FOMGR') {
+			$releventActionBy = " AND s.actionBy IN ('FO', 'FOSU', 'FOMGR') ";
+		}
 		$outletId = isset($_REQUEST['outletId']) ? (int)$_REQUEST['outletId'] : 0;
 		$id = isset($_REQUEST['key']) ? (int)$_REQUEST['key'] : 0;
 		if ($outletId <= 0) {
 			$this->displayOutputJson(array('status' => 'false', 'value' => 'Outlet Id is required'));
 		}
-		if ($this->isUserHasAccess('MGR')) {
+		if ($releventActionBy !=  "") {
+
 			$idSql = "";
 			if ($id != 0 && $id != "") {
 				$idSql = " AND s.id=" . $id . " ";
 			}
-			$sql = "SELECT s.*, b.title as category FROM room_service_my_service s LEFT JOIN room_service_my_category b ON s.boxId = b.id WHERE s.userId=" . $outletId . " $idSql ORDER BY s.sq ASC";
+			$sql = "SELECT s.*, b.title as category FROM room_service_my_service s LEFT JOIN room_service_my_category b ON s.boxId = b.id WHERE s.userId=" . $outletId . " $idSql ";
+			if ($releventActionBy != "") {
+				$sql .= $releventActionBy;
+			}
+			$sql .= " ORDER BY s.sq ASC";
 			$servicesList = $this->db->select($sql);
 			$this->displayOutputJson(array(
 				'status' => 'true',
@@ -3667,6 +3688,8 @@ class api_class
 				'count' => is_array($servicesList) ? count($servicesList) : 0,
 				'servicesList' => is_array($servicesList) ? $servicesList : array()
 			));
+		} else {
+			$this->displayOutputJson(array('status' => 'false', 'value' => 'You do not have access for this Operations'));
 		}
 	}
 	public function getServiceCategory()
@@ -4134,24 +4157,51 @@ class api_class
 				$messageDataArray = array(isset($staffInfo->name) ? $staffInfo->name : 'Staff', $roomNumber, $name, $reqCode, $requrl);
 				$mobile = $staffInfo->mobile ? trim((string)$staffInfo->mobile) : '';
 				$mobile = preg_match('/^91\d{10}$/', $mobile) ? $mobile : (preg_match('/^\d{10}$/', $mobile) ? '91' . $mobile : '');
-				$whatsAppResponse = $this->sendWhatsappMessage($mobile, 'new_room_service_request', $messageDataArray);
-				$returnArray['whatsAppNotification']['staff'] = array(
-					'sent' => $whatsAppResponse['sent'] ?? false,
-					'response' => $whatsAppResponse['response'] ?? null
-				);
+				// logic for check `WhatsApp message balance is greater than 0` and then send whatsApp message to staff
+				$whatsappBalance = $this->db->select("select whatsapp_balance from client_messages_service_balances where userId=" . $userId . " and status='ACTIVE' order by id DESC LIMIT 0,1");
+				$originalWhatsAppBalanceData = $whatsappBalance[0] ? $whatsappBalance[0] : ''; // Store the original balance for logging
+				$whatsappBalance = isset($whatsappBalance[0]->whatsapp_balance) ? (int)$whatsappBalance[0]->whatsapp_balance : 0;
 
-				// message to guest
-				if ($guestMobile !== '') {
-					$guestMessageDataArray = array($guestName, $roomNumber, $name, $reqCode, $requrl);
-					$guestMobileFormatted = preg_match('/^91\d{10}$/', $guestMobile) ? $guestMobile : (preg_match('/^\d{10}$/', $guestMobile) ? '91' . $guestMobile : '');
-					$guestWhatsAppResponse = $this->sendWhatsappMessage($guestMobileFormatted, 'new_room_service_request_guest', $guestMessageDataArray);
+				if ($whatsappBalance > 0) {
+					// update whatsApp Balance by decrementing 1
+					$this->db->update("update client_messages_service_balances set whatsapp_balance=whatsapp_balance-1, whatsapp_used=whatsapp_used+1, whatsapp_messages_sent=whatsapp_messages_sent+1 where userId=" . $userId . " and status='ACTIVE' order by id DESC LIMIT 1");
+					$whatsAppResponse = $this->sendWhatsappMessage($mobile, 'new_room_service_request', $messageDataArray);
+					$returnArray['whatsAppNotification']['staff'] = array(
+						'sent' => $whatsAppResponse['sent'] ?? false,
+						'response' => $whatsAppResponse['response'] ?? null
+					);
+					if ($whatsAppResponse['sent'] != true) {
+						$this->db->update("update client_messages_service_balances set whatsapp_balance=whatsapp_balance+1, whatsapp_used=whatsapp_used-1, whatsapp_messages_sent=whatsapp_messages_sent-1 where userId=" . $userId . " and status='ACTIVE' order by id DESC LIMIT 1");
+					}
+
+					// $whatsAppResponse = $this->sendWhatsappMessage($mobile, 'new_room_service_request', $messageDataArray);
+					// $returnArray['whatsAppNotification']['staff'] = array(
+					// 	'sent' => $whatsAppResponse['sent'] ?? false,
+					// 	'response' => $whatsAppResponse['response'] ?? null
+					// );
+
+					// message to guest
+					if ($guestMobile !== '') {
+						$guestMessageDataArray = array($guestName, $roomNumber, $name, $reqCode, $requrl);
+						$guestMobileFormatted = preg_match('/^91\d{10}$/', $guestMobile) ? $guestMobile : (preg_match('/^\d{10}$/', $guestMobile) ? '91' . $guestMobile : '');
+						$guestWhatsAppResponse = $this->sendWhatsappMessage($guestMobileFormatted, 'new_room_service_request_guest', $guestMessageDataArray);
+						$returnArray['whatsAppNotification']['guest'] = array(
+							'sent' => $guestWhatsAppResponse['sent'] ?? false,
+							'response' => $guestWhatsAppResponse['response'] ?? null
+						);
+					}
+				} else {
+					$returnArray['whatsAppNotification']['staff'] = array(
+						'sent' => false,
+						'response' => 'Insufficient WhatsApp message balance. Current balance: ' . $originalWhatsAppBalanceData->whatsapp_balance
+					);
 					$returnArray['whatsAppNotification']['guest'] = array(
-						'sent' => $guestWhatsAppResponse['sent'] ?? false,
-						'response' => $guestWhatsAppResponse['response'] ?? null
+						'sent' => false,
+						'response' => 'Insufficient WhatsApp message balance. Current balance: ' . $originalWhatsAppBalanceData->whatsapp_balance
 					);
 				}
+				$this->displayOutputJson($returnArray);
 			}
-			$this->displayOutputJson($returnArray);
 		}
 	}
 	public function getAllocationForRequest($profileId, $id, $roomId)
@@ -4330,15 +4380,15 @@ class api_class
 		$numbers = isset($_REQUEST['numbers']) ? $_REQUEST['numbers'] : (isset($_REQUEST['mobile']) ? $_REQUEST['mobile'] : '');
 		$template = isset($_REQUEST['template']) ? $_REQUEST['template'] : '';
 		$type = isset($_REQUEST['type']) ? strtolower(trim((string)$_REQUEST['type'])) : 'whatsapp';
-		$param = isset($_REQUEST['param']) ? isset($_REQUEST['param']) : '';
+		$param = isset($_REQUEST['paramArg']) ? $_REQUEST['paramArg'] : '';
+		$response = array('status' => false, 'value' => 'Invalid request parameters.');
 		$messageDataArray = array();
-		if ($type !== 'whatsapp') {
+		if ($type == 'whatsapp') {
 			if ($param !== '') {
 				$messageDataArray = explode(',', $param);
 			}
-			$this->displayOutputJson(array('status' => false, 'value' => 'type must be whatsapp.'));
+			$response = array('status' => false, 'value' => 'type must be whatsapp.');
 		}
-
 		$response = $this->sendWhatsappMessage($numbers, $template, $messageDataArray);
 		$this->displayOutputJson($response);
 	}
