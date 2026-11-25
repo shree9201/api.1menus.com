@@ -2647,6 +2647,34 @@ class api_class
 	}
 
 	// function for get room service request list for outlet
+	private function getRoomServiceRequestAudioUrl($audioPath)
+	{
+		return $audioPath;
+	}
+
+	private function getRoomServiceAudioExtension($mimeType)
+	{
+		$audioMimeExtensions = array(
+			'audio/aac' => 'aac',
+			'audio/amr' => 'amr',
+			'audio/mp4' => 'm4a',
+			'audio/x-m4a' => 'm4a',
+			'audio/mpeg' => 'mp3',
+			'audio/ogg' => 'ogg',
+			'audio/opus' => 'opus',
+			'audio/wav' => 'wav',
+			'audio/x-wav' => 'wav',
+			'audio/3gpp' => '3gp',
+			'audio/webm' => 'webm',
+			'application/ogg' => 'ogg',
+			'video/3gpp' => '3gp',
+			'video/mp4' => 'm4a',
+			'video/webm' => 'webm'
+		);
+		$mimeType = strtolower((string)$mimeType);
+		return isset($audioMimeExtensions[$mimeType]) ? $audioMimeExtensions[$mimeType] : null;
+	}
+
 	public function getRoomRequests()
 	{
 		$responseArray = array();
@@ -2695,6 +2723,11 @@ class api_class
 						$requestId = $request['id'];
 					} elseif (is_object($request) && isset($request->id)) {
 						$requestId = $request->id;
+					}
+					if (is_array($request) && isset($request['audio'])) {
+						$request['audio'] = $this->getRoomServiceRequestAudioUrl($request['audio']);
+					} elseif (is_object($request) && isset($request->audio)) {
+						$request->audio = $this->getRoomServiceRequestAudioUrl($request->audio);
 					}
 					if ($requestId !== null) {
 
@@ -2786,6 +2819,7 @@ class api_class
 		if (count($requestDetails) == 0) {
 			return array('status' => 'false', 'value' => 'No request found for this request id');
 		} else {
+			$requestDetails[0]->audio = $this->getRoomServiceRequestAudioUrl($requestDetails[0]->audio);
 			$activity = $this->db->select("select rsra.dateTime,rsra.status,rsra.comment,rsra.created_date,s.name as assignedTo,s.mobile as assignedMobile from room_service_request_activity rsra , staff s where rsra.assigned=s.id and rsra.reqId=" . $requestId . " and rsra.userId=" . $outletId . " order by rsra.id ASC");
 			// Get time tracking details for this request
 			$timeTrackingData = $this->db->select("select * from room_service_request_activity where reqId=" . $requestId . " and userId=" . $outletId . " order by id ASC");
@@ -3631,6 +3665,344 @@ class api_class
 		else
 			$this->displayOutputJson(array('status' => 'false', 'value' => 'You do not have access for this Operations'));
 	}
+	private function getAiRoomServiceCatalogueToolResult($toolName, array $arguments, array $catalogue)
+	{
+		if ($toolName === 'get_service_categories') {
+			$categories = array();
+			foreach ($catalogue as $service) {
+				$categoryId = isset($service->boxId) ? (string)$service->boxId : '';
+				$categoryName = isset($service->category) ? trim((string)$service->category) : '';
+				if ($categoryId !== '' && $categoryName !== '') {
+					$categories[$categoryId] = array('id' => $categoryId, 'name' => $categoryName);
+				}
+			}
+			return array_values($categories);
+		}
+
+		if ($toolName === 'get_services_by_category') {
+			if (!isset($arguments['category_id']) || !is_scalar($arguments['category_id']) || !ctype_digit((string)$arguments['category_id']) || (int)$arguments['category_id'] <= 0) {
+				return array('error' => 'category_id must be a positive integer.');
+			}
+			$categoryId = (string)$arguments['category_id'];
+			$matches = array();
+			foreach ($catalogue as $service) {
+				if (isset($service->boxId) && (string)$service->boxId === $categoryId) {
+					$matches[] = $service;
+				}
+			}
+			return $matches;
+		}
+
+		if ($toolName === 'check_service_configuration') {
+			if (!isset($arguments['service_id']) || !is_scalar($arguments['service_id']) || !ctype_digit((string)$arguments['service_id']) || (int)$arguments['service_id'] <= 0) {
+				return array('error' => 'service_id must be a positive integer.');
+			}
+			foreach ($catalogue as $service) {
+				if (isset($service->id) && (string)$service->id === (string)$arguments['service_id']) {
+					return $service;
+				}
+			}
+			return array('error' => 'That service is not currently available.');
+		}
+
+		if ($toolName === 'search_service_catalogue') {
+			$query = isset($arguments['query']) && is_string($arguments['query']) ? trim($arguments['query']) : '';
+			if ($query === '' || strlen($query) > 160) {
+				return array('error' => 'query must contain between 1 and 160 characters.');
+			}
+			$normalizedQuery = function_exists('mb_strtolower') ? mb_strtolower($query, 'UTF-8') : strtolower($query);
+			$queryWords = preg_split('/[^\p{L}\p{N}]+/u', $normalizedQuery, -1, PREG_SPLIT_NO_EMPTY);
+			if (!is_array($queryWords) || count($queryWords) === 0) {
+				return array('error' => 'query must contain searchable text.');
+			}
+			$scored = array();
+			foreach ($catalogue as $service) {
+				$searchText = function_exists('mb_strtolower') ? mb_strtolower(
+					(isset($service->title) ? $service->title : '') . ' ' .
+						(isset($service->category) ? $service->category : '') . ' ' .
+						(isset($service->information) ? $service->information : ''),
+					'UTF-8'
+				) : strtolower(
+					(isset($service->title) ? $service->title : '') . ' ' .
+						(isset($service->category) ? $service->category : '') . ' ' .
+						(isset($service->information) ? $service->information : '')
+				);
+				$score = 0;
+				foreach ($queryWords as $word) {
+					$wordPosition = function_exists('mb_strpos') ? mb_strpos($searchText, $word, 0, 'UTF-8') : strpos($searchText, $word);
+					if ($wordPosition !== false) {
+						$score++;
+					}
+				}
+				if ($score > 0) {
+					$scored[] = array('score' => $score, 'service' => $service);
+				}
+			}
+			usort($scored, function ($left, $right) {
+				return $right['score'] - $left['score'];
+			});
+			return array_map(function ($match) {
+				return $match['service'];
+			}, array_slice($scored, 0, 10));
+		}
+
+		return array('error' => 'Unsupported catalogue operation.');
+	}
+
+	private function callAiRoomServiceAgentApi(array $payload, $apiKey)
+	{
+		if (!function_exists('curl_init')) {
+			return array('error' => 'The PHP cURL extension is required for AI chat.');
+		}
+		$requestBody = json_encode($payload);
+		if ($requestBody === false) {
+			return array('error' => 'The AI request could not be encoded. Check that the message contains valid UTF-8 text.');
+		}
+
+		$curl = curl_init('https://api.openai.com/v1/responses');
+		if ($curl === false) {
+			return array('error' => 'The AI request could not be initialized.');
+		}
+		curl_setopt_array($curl, array(
+			CURLOPT_POST => true,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_CONNECTTIMEOUT => 10,
+			CURLOPT_TIMEOUT => 45,
+			CURLOPT_HTTPHEADER => array(
+				'Authorization: Bearer ' . $apiKey,
+				'Content-Type: application/json'
+			),
+			CURLOPT_POSTFIELDS => $requestBody
+		));
+		$responseBody = curl_exec($curl);
+		$curlError = curl_error($curl);
+		$httpStatus = (int)curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		//print_r($responseBody);
+		curl_close($curl);
+
+		if ($responseBody === false) {
+			error_log('aiRoomServiceAgent OpenAI transport failure: ' . $curlError);
+			return array('error' => 'The AI service could not be reached. Please try again.');
+		}
+
+		$response = json_decode($responseBody, true);
+		if (!is_array($response) || $httpStatus < 200 || $httpStatus >= 300) {
+			$errorMessage = isset($response['error']['message']) ? (string)$response['error']['message'] : 'Invalid response from AI provider.';
+			error_log('aiRoomServiceAgent OpenAI API failure (' . $httpStatus . '): ' . $errorMessage);
+			return array('error' => 'The AI service is temporarily unavailable. Please try again.');
+		}
+
+		return $response;
+	}
+
+	private function aiRoomServiceAgentLogic()
+	{
+		if (strtoupper(isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : '') !== 'POST') {
+			http_response_code(405);
+			$this->displayOutputJson(array('status' => false, 'value' => 'Use POST with a JSON request body.'));
+		}
+
+		$message = isset($_REQUEST['message']) && is_string($_REQUEST['message']) ? trim($_REQUEST['message']) : '';
+		$outletId = isset($_REQUEST['outletId']) ? $_REQUEST['outletId'] : '';
+		if ($message === '' || strlen($message) > 2000) {
+			http_response_code(400);
+			$this->displayOutputJson(array('status' => false, 'value' => 'message is required and must be 2000 characters or fewer.'));
+		}
+
+		$headers = function_exists('getallheaders') ? getallheaders() : array();
+		$headers = is_array($headers) ? array_change_key_case($headers, CASE_LOWER) : array();
+		if (!ctype_digit($outletId) || (int)$outletId <= 0) {
+			http_response_code(401);
+			$this->displayOutputJson(array('status' => false, 'value' => 'A valid hotel account Id header is required.'));
+		}
+
+
+		$apiKey = AI_AGENT_CHATBOOT_API_KEY;
+		if (!is_string($apiKey) || trim($apiKey) === '') {
+			error_log('aiRoomServiceAgent is unavailable because AI_AGENT_CHATBOOT_API_KEY is not configured.');
+			http_response_code(503);
+			$this->displayOutputJson(array('status' => false, 'value' => 'AI chat is not configured on the server.'));
+		}
+		$model = AI_AGENT_CHATBOOT_MODEL;
+		if (!is_string($model) || trim($model) === '') {
+			$model = 'gpt-4.1-mini';
+		}
+		$sql = "SELECT * FROM room_service_my_service WHERE userId=" . (int)$outletId . " AND status='YES' ORDER BY boxId, id";
+		$catalogue = $this->db->select($sql);
+		if (!is_array($catalogue)) {
+			error_log('aiRoomServiceAgent could not load the service catalogue for hotel account ' . (int)$outletId . '.');
+			http_response_code(500);
+			$this->displayOutputJson(array('status' => false, 'value' => 'Unable to load the service catalogue.'));
+		}
+
+		$history = array();
+		if (isset($_REQUEST['history'])) {
+			if (!is_array($_REQUEST['history'])) {
+				http_response_code(400);
+				$this->displayOutputJson(array('status' => false, 'value' => 'history must be an array of prior chat messages.'));
+			}
+			$history = $_REQUEST['history'];
+		}
+		if (count($history) > 12) {
+			http_response_code(400);
+			$this->displayOutputJson(array('status' => false, 'value' => 'history may contain no more than 12 messages.'));
+		}
+		$input = array();
+		foreach ($history as $turn) {
+			if (
+				!is_array($turn) || !isset($turn['role'], $turn['content']) ||
+				!in_array($turn['role'], array('user', 'assistant'), true) ||
+				!is_string($turn['content']) || strlen($turn['content']) > 2000
+			) {
+				http_response_code(400);
+				$this->displayOutputJson(array('status' => false, 'value' => 'Each history item must contain a user or assistant role and content of 2000 characters or fewer.'));
+			}
+			$input[] = array('role' => $turn['role'], 'content' => $turn['content']);
+		}
+		$input[] = array('role' => 'user', 'content' => $message);
+
+		$tools = array(
+			array(
+				'type' => 'function',
+				'name' => 'get_service_categories',
+				'description' => 'List categories that currently contain active room-service catalogue entries.',
+				'parameters' => array('type' => 'object', 'properties' => (object)array(), 'required' => array(), 'additionalProperties' => false),
+				'strict' => true
+			),
+			array(
+				'type' => 'function',
+				'name' => 'get_services_by_category',
+				'description' => 'List active services in a category. category_id is the catalogue boxId.',
+				'parameters' => array(
+					'type' => 'object',
+					'properties' => array('category_id' => array('type' => 'string')),
+					'required' => array('category_id'),
+					'additionalProperties' => false
+				),
+				'strict' => true
+			),
+			array(
+				'type' => 'function',
+				'name' => 'search_service_catalogue',
+				'description' => 'Find active catalogue services by guest wording, title, category, or service information.',
+				'parameters' => array(
+					'type' => 'object',
+					'properties' => array('query' => array('type' => 'string')),
+					'required' => array('query'),
+					'additionalProperties' => false
+				),
+				'strict' => true
+			),
+			array(
+				'type' => 'function',
+				'name' => 'check_service_configuration',
+				'description' => 'Get configuration for an active catalogue record. service_id is its catalogue id.',
+				'parameters' => array(
+					'type' => 'object',
+					'properties' => array('service_id' => array('type' => 'string')),
+					'required' => array('service_id'),
+					'additionalProperties' => false
+				),
+				'strict' => true
+			)
+		);
+		$instructions = 'You are a hotel room-service assistant. Use only the live catalogue returned by your tools to identify services. Do not invent services, prices, configuration, or availability. If there are multiple plausible matches, ask the guest to clarify. The catalogue record id is the request serviceId mapping, not its serviceId field. You cannot submit, cancel, or change requests in this endpoint. Never ask for or infer guest, room, hotel, or authorization identifiers. If asked to place a request, explain that request submission is not enabled in this chat yet.';
+		$payload = array(
+			'model' => $model,
+			'instructions' => $instructions,
+			'input' => $input,
+			'tools' => $tools
+		);
+
+		$toolCallCount = 0;
+		$toolResults = array();
+		$response = $this->callAiRoomServiceAgentApi($payload, trim($apiKey));
+		if (isset($response['error'])) {
+			http_response_code(502);
+			$this->displayOutputJson(array('status' => false, 'value' => $response['error']));
+		}
+
+		while (isset($response['output']) && is_array($response['output'])) {
+			$toolOutputs = array();
+			foreach ($response['output'] as $outputItem) {
+				if (!is_array($outputItem)) {
+					continue;
+				}
+				if (!isset($outputItem['type']) || $outputItem['type'] !== 'function_call') {
+					continue;
+				}
+				if (
+					++$toolCallCount > 8 || !isset($outputItem['name'], $outputItem['call_id'], $outputItem['arguments']) ||
+					!is_string($outputItem['name']) || !is_string($outputItem['call_id']) || !is_string($outputItem['arguments'])
+				) {
+					http_response_code(502);
+					$this->displayOutputJson(array('status' => false, 'value' => 'The AI requested an invalid or excessive number of catalogue operations.'));
+				}
+				$arguments = json_decode($outputItem['arguments'], true);
+				if (!is_array($arguments)) {
+					$toolResult = array('error' => 'The tool arguments were invalid.');
+				} else {
+					$toolResult = $this->getAiRoomServiceCatalogueToolResult($outputItem['name'], $arguments, $catalogue);
+				}
+				$toolResults[] = array('name' => $outputItem['name'], 'result' => $toolResult);
+				$toolOutputJson = json_encode($toolResult);
+				if ($toolOutputJson === false) {
+					error_log('aiRoomServiceAgent could not encode a catalogue tool result.');
+					$toolOutputJson = '{"error":"The catalogue result could not be encoded."}';
+				}
+				$toolOutputs[] = array(
+					'type' => 'function_call_output',
+					'call_id' => $outputItem['call_id'],
+					'output' => $toolOutputJson
+				);
+			}
+			if (count($toolOutputs) === 0) {
+				break;
+			}
+			if (!isset($response['id']) || !is_string($response['id'])) {
+				http_response_code(502);
+				$this->displayOutputJson(array('status' => false, 'value' => 'The AI response was missing its continuation identifier.'));
+			}
+			$payload['previous_response_id'] = $response['id'];
+			$payload['input'] = $toolOutputs;
+			$response = $this->callAiRoomServiceAgentApi($payload, trim($apiKey));
+			if (isset($response['error'])) {
+				http_response_code(502);
+				$this->displayOutputJson(array('status' => false, 'value' => $response['error']));
+			}
+		}
+
+		$reply = isset($response['output_text']) && is_string($response['output_text']) ? trim($response['output_text']) : '';
+		if ($reply === '' && isset($response['output']) && is_array($response['output'])) {
+			foreach ($response['output'] as $outputItem) {
+				if (!is_array($outputItem)) {
+					continue;
+				}
+				if (isset($outputItem['type'], $outputItem['content']) && $outputItem['type'] === 'message' && is_array($outputItem['content'])) {
+					foreach ($outputItem['content'] as $contentItem) {
+						if (isset($contentItem['type'], $contentItem['text']) && $contentItem['type'] === 'output_text') {
+							$reply .= $contentItem['text'];
+						}
+					}
+				}
+			}
+			$reply = trim($reply);
+		}
+		if ($reply === '') {
+			error_log('aiRoomServiceAgent received no assistant text from the AI provider.');
+			http_response_code(502);
+			$this->displayOutputJson(array('status' => false, 'value' => 'The AI assistant returned an empty response. Please try again.'));
+		}
+
+		$this->displayOutputJson(array(
+			'status' => true,
+			'value' => 'AI response generated successfully.',
+			'reply' => $reply,
+			'toolResults' => $toolResults,
+			'requestSubmissionEnabled' => true
+		));
+	}
+
 	public function services()
 	{
 		$operation = strtolower(isset($_REQUEST['data']) ? $_REQUEST['data'] : 'list');
@@ -4070,15 +4442,111 @@ class api_class
 		if ($guestId !== '') {
 			$guestRows = $this->db->select("SELECT id, title, mobile, code FROM room_service_guests WHERE id=" . (int)$guestId . " AND userId=" . $userId . " LIMIT 1");
 			if (!is_array($guestRows) || count($guestRows) === 0) {
-				$returnArray = array('status' => false, 'value' => 'The selected guest was not found for this outlet.');
+				$this->displayOutputJson(array('status' => false, 'value' => 'The selected guest was not found for this outlet.'));
 			}
 			$guestInfo = $guestRows[0];
 		}
 
 		$today = date('Y-m-d');
-		$existingRequest = $this->db->select("SELECT id FROM room_service_request WHERE userId=" . $userId . " AND roomId=" . $roomId . " AND serviceId=" . $serviceId . " AND date='" . $today . "' AND status IN ('NEW', 'OPEN', 'START') ORDER BY id DESC LIMIT 1");
+		$existingRequest = $this->db->select("SELECT id FROM room_service_request WHERE userId=" . $userId . " AND roomId=" . $roomId . " AND serviceId=" . $serviceId . " AND COALESCE(status, '') <> 'CLOSE' ORDER BY id DESC LIMIT 1");
 		if (is_array($existingRequest) && count($existingRequest) > 0) {
-			$returnArray = array('status' => false, 'value' => 'An active request already exists for this room and service.', 'id' => $existingRequest[0]->id, 'reqCode' => 'RSRQ-' . str_pad((string)$existingRequest[0]->id, 8, '0', STR_PAD_LEFT));
+			$returnArray = array('status' => false, 'value' => 'A request that is not closed already exists for this room and service.', 'id' => $existingRequest[0]->id, 'reqCode' => 'RSRQ-' . str_pad((string)$existingRequest[0]->id, 8, '0', STR_PAD_LEFT));
+		}
+
+		if (isset($returnArray) && isset($returnArray['status']) && $returnArray['status'] === false) {
+			$this->displayOutputJson($returnArray);
+		}
+
+		$audioPath = null;
+		$audioFilePath = null;
+		if (isset($_FILES['audio']) && isset($_FILES['audio']['error']) && (int)$_FILES['audio']['error'] !== UPLOAD_ERR_NO_FILE) {
+			$audioFile = $_FILES['audio'];
+			$uploadError = isset($audioFile['error']) ? (int)$audioFile['error'] : UPLOAD_ERR_NO_FILE;
+			if ($uploadError !== UPLOAD_ERR_OK || !isset($audioFile['tmp_name'], $audioFile['name']) || !is_string($audioFile['tmp_name']) || !is_string($audioFile['name']) || !is_uploaded_file($audioFile['tmp_name'])) {
+				$this->displayOutputJson(array('status' => false, 'value' => 'The audio upload failed.'));
+			}
+
+			$finfo = function_exists('finfo_open') ? finfo_open(FILEINFO_MIME_TYPE) : false;
+			$mimeType = $finfo ? finfo_file($finfo, $audioFile['tmp_name']) : false;
+			if ($finfo) {
+				finfo_close($finfo);
+			}
+			$extension = $this->getRoomServiceAudioExtension($mimeType);
+			if ($extension === null) {
+				$this->displayOutputJson(array('status' => false, 'value' => 'The uploaded file is not a supported audio file.'));
+			}
+
+			$uploadDirectory = 'request_audio_uploads/';
+			if (!is_dir($uploadDirectory) || !is_writable($uploadDirectory)) {
+				$this->displayOutputJson(array('status' => false, 'value' => 'The audio upload location is unavailable.'));
+			}
+			// file name should be outletId_roomId_serviceId_randomString_bin2hex(random_bytes(16)).extension
+			//$fileName = bin2hex(random_bytes(16)) . '.' . $extension;
+			$fileName = (string)$userId . '_' . (string)$roomId . '_' . (string)$serviceId . '_' . bin2hex(random_bytes(16)) . '.' . $extension;
+			$audioFilePath = $uploadDirectory . '/' . $fileName;
+			if (!move_uploaded_file($audioFile['tmp_name'], $audioFilePath)) {
+				$this->displayOutputJson(array('status' => false, 'value' => 'Unable to save the uploaded audio file.'));
+			}
+			$audioPath = SITE_URL . 'request_audio_uploads/' . $fileName;
+		} elseif (isset($_REQUEST['audio']) && is_string($_REQUEST['audio']) && trim($_REQUEST['audio']) !== '') {
+			$audioValue = trim($_REQUEST['audio'], "\r\n\t");
+			if (stripos(ltrim($audioValue), 'data:') === 0) {
+				$audioValue = trim($audioValue);
+			}
+			$declaredAudioExtension = null;
+			$base64Audio = $audioValue;
+			if (stripos($audioValue, 'data:') === 0) {
+				$audioDataParts = explode(',', $audioValue, 2);
+				if (count($audioDataParts) !== 2) {
+					$this->displayOutputJson(array('status' => false, 'value' => 'Audio data URI must include a base64 payload.'));
+				}
+
+				$headerParts = explode(';', $audioDataParts[0]);
+				$mimeHeader = array_shift($headerParts);
+				if (!preg_match('/^data:([a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+)$/i', $mimeHeader, $audioDataHeader) || strtolower((string)end($headerParts)) !== 'base64') {
+					$this->displayOutputJson(array('status' => false, 'value' => 'Audio must be a base64 audio data URI or an uploaded audio file.'));
+				}
+
+				$declaredMimeType = strtolower($audioDataHeader[1]);
+				if (strpos($declaredMimeType, 'audio/') !== 0 && !in_array($declaredMimeType, array('application/octet-stream', 'application/ogg', 'video/3gpp', 'video/mp4', 'video/webm'), true)) {
+					$this->displayOutputJson(array('status' => false, 'value' => 'The audio data URI type is not supported.'));
+				}
+				$declaredAudioExtension = $this->getRoomServiceAudioExtension($declaredMimeType);
+				$base64Audio = $audioDataParts[1];
+			}
+
+			$base64Audio = preg_replace('/[\r\n\t]+/', '', $base64Audio);
+			$base64Audio = str_replace(' ', '+', $base64Audio);
+			$base64Audio = strtr($base64Audio, '-_', '+/');
+			if (!is_string($base64Audio) || $base64Audio === '' || strlen($base64Audio) > 35000000) {
+				$this->displayOutputJson(array('status' => false, 'value' => 'The audio base64 data is empty or too large.'));
+			}
+			$audioContent = base64_decode($base64Audio, true);
+			if ($audioContent === false || $audioContent === '') {
+				$this->displayOutputJson(array('status' => false, 'value' => 'The audio value must contain valid base64 data.'));
+			}
+
+			$finfo = function_exists('finfo_open') ? finfo_open(FILEINFO_MIME_TYPE) : false;
+			$detectedMimeType = $finfo ? finfo_buffer($finfo, $audioContent) : false;
+			if ($finfo) {
+				finfo_close($finfo);
+			}
+			$extension = $this->getRoomServiceAudioExtension($detectedMimeType);
+			if ($extension === null || ($declaredAudioExtension !== null && $declaredAudioExtension !== $extension)) {
+				$this->displayOutputJson(array('status' => false, 'value' => 'The audio content is not a supported audio file or does not match its declared format.'));
+			}
+
+			$uploadDirectory = 'request_audio_uploads/';
+			if (!is_dir($uploadDirectory) || !is_writable($uploadDirectory)) {
+				$this->displayOutputJson(array('status' => false, 'value' => 'The audio upload location is unavailable.'));
+			}
+
+			$fileName = (string)$userId . '_' . (string)$roomId . '_' . (string)$serviceId . '_' . bin2hex(random_bytes(16)) . '.' . $extension;
+			$audioFilePath = $uploadDirectory . '/' . $fileName;
+			if (file_put_contents($audioFilePath, $audioContent, LOCK_EX) === false) {
+				$this->displayOutputJson(array('status' => false, 'value' => 'Unable to save the uploaded audio file.'));
+			}
+			$audioPath = SITE_URL . 'request_audio_uploads/' . $fileName;
 		}
 
 		$ip = isset($_SERVER['REMOTE_ADDR']) ? trim($_SERVER['REMOTE_ADDR']) : '';
@@ -4099,6 +4567,9 @@ class api_class
 			'additionalField' => $additionalField,
 			'status' => 'NEW'
 		);
+		if ($audioPath !== null) {
+			$insertData['audio'] = $audioPath;
+		}
 		if ($guestInfo !== null) {
 			$insertData['guestId'] = $guestInfo->id;
 			$insertData['guestName'] = isset($guestInfo->title) ? $guestInfo->title : '';
@@ -4108,7 +4579,10 @@ class api_class
 
 		$requestId = $this->db->insert($insertData, 'room_service_request');
 		if (!is_numeric($requestId) || (int)$requestId <= 0) {
-			$returnArray = array('status' => false, 'value' => 'Unable to create the room service request.');
+			if ($audioFilePath !== null && file_exists($audioFilePath)) {
+				unlink($audioFilePath);
+			}
+			$this->displayOutputJson(array('status' => false, 'value' => 'Unable to create the room service request.'));
 		}
 		$requestId = (int)$requestId;
 		$reqCode = 'RSRQ-' . str_pad((string)$requestId, 8, '0', STR_PAD_LEFT);
@@ -4134,6 +4608,7 @@ class api_class
 			'action' => 'roomServiceRequestSubmit',
 			'id' => $requestId,
 			'reqCode' => $reqCode,
+			'audio' => $this->getRoomServiceRequestAudioUrl($audioPath),
 			'msg' => $activityMessage,
 			'roomId' => $roomId,
 			'assignedStaffId' => null,
@@ -4203,6 +4678,7 @@ class api_class
 				$this->displayOutputJson($returnArray);
 			}
 		}
+		$this->displayOutputJson($returnArray);
 	}
 	public function getAllocationForRequest($profileId, $id, $roomId)
 	{
@@ -4391,5 +4867,14 @@ class api_class
 		}
 		$response = $this->sendWhatsappMessage($numbers, $template, $messageDataArray);
 		$this->displayOutputJson($response);
+	}
+	public function aiRoomServiceAgent()
+	{
+		$this->aiRoomServiceAgentLogic();
+	}
+
+	public function aiRoomServiceChat()
+	{
+		$this->aiRoomServiceAgentLogic();
 	}
 }
