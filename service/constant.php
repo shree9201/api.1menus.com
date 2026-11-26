@@ -65,8 +65,9 @@ define("SITE_URL", $siteUrl);
 define("CMS_URL", $siteUrl . "cms/");
 define("API_URL", $siteUrl . "service/api.php");
 define("JWT_SECRET_KEY", "8b9f3d23a5c74e1f923a4b6c7d8e9f01a2b3c4d5e6f7a");
-define("AI_AGENT_CHATBOOT_API_KEY", "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");
-define("AI_AGENT_CHATBOOT_MODEL", "gpt-6.1-terra");
+define("AI_AGENT_CHATBOOT_API_KEY", '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');
+//define("AI_AGENT_CHATBOOT_MODEL", "gpt-6.1-terra");
+define("AI_AGENT_CHATBOOT_MODEL", "openai/gpt-oss-120b");
 define("JWT_ALGORITHM", "HS256");
 define("JWT_EXPIRE_SECONDS", 3600);
 define("CMS_NAVIGATION_PROCESS_URL", $siteUrl);
@@ -107,10 +108,10 @@ function isLoggedIn()
 {
 	$sId = isset($_SESSION['customer']->id) ? $_SESSION['customer']->id : '';
 	if ($sId == "") { ?>
-		<script>
-			window.location = "login";
-		</script>
-	<?php } else {
+<script>
+window.location = "login";
+</script>
+<?php } else {
 		return true;
 	}
 }
@@ -142,25 +143,25 @@ function alertBloxB2c()
 
 
 
-	<div class="alertBlock">
-		<div class="alert alert-danger" role="alert">
-			<span class='msg'>XXX</span>
-		</div>
+<div class="alertBlock">
+    <div class="alert alert-danger" role="alert">
+        <span class='msg'>XXX</span>
+    </div>
 
-		<div class="alert alert-success" role="alert">
-			<span class='msg'>XXX</span>
-		</div>
+    <div class="alert alert-success" role="alert">
+        <span class='msg'>XXX</span>
+    </div>
 
-		<div class="frame-wrap alert alert-process">
-			<div class="border p-3">
-				<div class="d-flex justify-content-center">
-					<div class="spinner-grow" role="status">
-						<span class="sr-only">Loading...</span>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+    <div class="frame-wrap alert alert-process">
+        <div class="border p-3">
+            <div class="d-flex justify-content-center">
+                <div class="spinner-grow" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <?php }
 ?>
 <?php

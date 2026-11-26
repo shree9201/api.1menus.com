@@ -3754,12 +3754,33 @@ class api_class
 		if (!function_exists('curl_init')) {
 			return array('error' => 'The PHP cURL extension is required for AI chat.');
 		}
-		$requestBody = json_encode($payload);
+		$messages = array(
+			array('role' => 'system', 'content' => $payload['instructions'])
+		);
+		foreach ($payload['input'] as $message) {
+			$messages[] = $message;
+		}
+		$tools = array();
+		foreach ($payload['tools'] as $tool) {
+			$tools[] = array(
+				'type' => 'function',
+				'function' => array(
+					'name' => $tool['name'],
+					'description' => $tool['description'],
+					'parameters' => $tool['parameters']
+				)
+			);
+		}
+		$requestBody = json_encode(array(
+			'model' => $payload['model'],
+			'messages' => $messages,
+			'tools' => $tools,
+			'tool_choice' => 'auto'
+		));
 		if ($requestBody === false) {
 			return array('error' => 'The AI request could not be encoded. Check that the message contains valid UTF-8 text.');
 		}
-
-		$curl = curl_init('https://api.openai.com/v1/responses');
+		$curl = curl_init('https://api.groq.com/openai/v1/chat/completions');
 		if ($curl === false) {
 			return array('error' => 'The AI request could not be initialized.');
 		}
@@ -3777,22 +3798,53 @@ class api_class
 		$responseBody = curl_exec($curl);
 		$curlError = curl_error($curl);
 		$httpStatus = (int)curl_getinfo($curl, CURLINFO_HTTP_CODE);
-		//print_r($responseBody);
 		curl_close($curl);
 
 		if ($responseBody === false) {
-			error_log('aiRoomServiceAgent OpenAI transport failure: ' . $curlError);
+			error_log('aiRoomServiceAgent Groq transport failure: ' . $curlError);
 			return array('error' => 'The AI service could not be reached. Please try again.');
 		}
 
 		$response = json_decode($responseBody, true);
 		if (!is_array($response) || $httpStatus < 200 || $httpStatus >= 300) {
-			$errorMessage = isset($response['error']['message']) ? (string)$response['error']['message'] : 'Invalid response from AI provider.';
-			error_log('aiRoomServiceAgent OpenAI API failure (' . $httpStatus . '): ' . $errorMessage);
+			$errorMessage = isset($response['error']['message']) ? (string)$response['error']['message'] : 'Invalid response from Groq.';
+			error_log('aiRoomServiceAgent Groq API failure (' . $httpStatus . '): ' . $errorMessage);
 			return array('error' => 'The AI service is temporarily unavailable. Please try again.');
 		}
 
-		return $response;
+		if (!isset($response['choices'][0]['message']) || !is_array($response['choices'][0]['message'])) {
+			error_log('aiRoomServiceAgent Groq response did not contain a chat message.');
+			return array('error' => 'The AI service returned an invalid response. Please try again.');
+		}
+
+		$message = $response['choices'][0]['message'];
+		$normalizedResponse = array(
+			'id' => isset($response['id']) ? $response['id'] : '',
+			'output' => array()
+		);
+		if (isset($message['content']) && is_string($message['content'])) {
+			$normalizedResponse['output_text'] = $message['content'];
+		}
+		if (isset($message['tool_calls']) && is_array($message['tool_calls'])) {
+			foreach ($message['tool_calls'] as $toolCall) {
+				if (
+					!is_array($toolCall) ||
+					!isset($toolCall['id'], $toolCall['function']['name'], $toolCall['function']['arguments'])
+				) {
+					continue;
+				}
+				$normalizedResponse['output'][] = array(
+					'type' => 'function_call',
+					'name' => $toolCall['function']['name'],
+					'call_id' => $toolCall['id'],
+					'arguments' => $toolCall['function']['arguments']
+				);
+			}
+		}
+		$normalizedResponse['usage'] = isset($response['usage']) && is_array($response['usage']) ? $response['usage'] : array();
+		$normalizedResponse['model'] = isset($response['model']) ? (string)$response['model'] : '';
+		$normalizedResponse['responseBody'] = $responseBody;
+		return $normalizedResponse;
 	}
 
 	private function aiRoomServiceAgentLogic()
@@ -3818,14 +3870,14 @@ class api_class
 
 
 		$apiKey = AI_AGENT_CHATBOOT_API_KEY;
+		$model = AI_AGENT_CHATBOOT_MODEL;
 		if (!is_string($apiKey) || trim($apiKey) === '') {
 			error_log('aiRoomServiceAgent is unavailable because AI_AGENT_CHATBOOT_API_KEY is not configured.');
 			http_response_code(503);
 			$this->displayOutputJson(array('status' => false, 'value' => 'AI chat is not configured on the server.'));
 		}
-		$model = AI_AGENT_CHATBOOT_MODEL;
 		if (!is_string($model) || trim($model) === '') {
-			$model = 'gpt-4.1-mini';
+			$model = 'openai/gpt-oss-120b';
 		}
 		$sql = "SELECT * FROM room_service_my_service WHERE userId=" . (int)$outletId . " AND status='YES' ORDER BY boxId, id";
 		$catalogue = $this->db->select($sql);
@@ -3866,32 +3918,29 @@ class api_class
 				'type' => 'function',
 				'name' => 'get_service_categories',
 				'description' => 'List categories that currently contain active room-service catalogue entries.',
-				'parameters' => array('type' => 'object', 'properties' => (object)array(), 'required' => array(), 'additionalProperties' => false),
-				'strict' => true
+				'parameters' => array('type' => 'object', 'properties' => (object)array(), 'required' => array(), 'additionalProperties' => false)
 			),
 			array(
 				'type' => 'function',
 				'name' => 'get_services_by_category',
-				'description' => 'List active services in a category. category_id is the catalogue boxId.',
+				'description' => 'List active services in a category. category_id is the categories boxId.',
 				'parameters' => array(
 					'type' => 'object',
 					'properties' => array('category_id' => array('type' => 'string')),
 					'required' => array('category_id'),
 					'additionalProperties' => false
-				),
-				'strict' => true
+				)
 			),
 			array(
 				'type' => 'function',
 				'name' => 'search_service_catalogue',
-				'description' => 'Find active catalogue services by guest wording, title, category, or service information.',
+				'description' => 'Find active categories services by guest wording, title, category, or service information.',
 				'parameters' => array(
 					'type' => 'object',
 					'properties' => array('query' => array('type' => 'string')),
 					'required' => array('query'),
 					'additionalProperties' => false
-				),
-				'strict' => true
+				)
 			),
 			array(
 				'type' => 'function',
@@ -3902,11 +3951,10 @@ class api_class
 					'properties' => array('service_id' => array('type' => 'string')),
 					'required' => array('service_id'),
 					'additionalProperties' => false
-				),
-				'strict' => true
+				)
 			)
 		);
-		$instructions = 'You are a hotel room-service assistant. Use only the live catalogue returned by your tools to identify services. Do not invent services, prices, configuration, or availability. If there are multiple plausible matches, ask the guest to clarify. The catalogue record id is the request serviceId mapping, not its serviceId field. You cannot submit, cancel, or change requests in this endpoint. Never ask for or infer guest, room, hotel, or authorization identifiers. If asked to place a request, explain that request submission is not enabled in this chat yet.';
+		$instructions = 'You are a hotel room-service assistant. Use only the live categories returned by your tools to identify services. Do not invent services, prices, configuration, or availability. If there are multiple plausible matches, ask the guest to clarify. The catalogue record id is the request serviceId mapping, not its serviceId field. You cannot submit, cancel, or change requests in this endpoint. Never ask for or infer guest, room, hotel, or authorization identifiers. If asked to place a request, explain that request submission is not enabled in this chat yet.';
 		$payload = array(
 			'model' => $model,
 			'instructions' => $instructions,
@@ -3919,11 +3967,12 @@ class api_class
 		$response = $this->callAiRoomServiceAgentApi($payload, trim($apiKey));
 		if (isset($response['error'])) {
 			http_response_code(502);
-			$this->displayOutputJson(array('status' => false, 'value' => $response['error']));
+			$this->displayOutputJson(array('status' => false, 'value' => $response['error'], 'responseBody' => isset($response['responseBody']) ? $response['responseBody'] : ''));
 		}
 
 		while (isset($response['output']) && is_array($response['output'])) {
-			$toolOutputs = array();
+			$toolMessages = array();
+			$assistantToolCalls = array();
 			foreach ($response['output'] as $outputItem) {
 				if (!is_array($outputItem)) {
 					continue;
@@ -3936,7 +3985,7 @@ class api_class
 					!is_string($outputItem['name']) || !is_string($outputItem['call_id']) || !is_string($outputItem['arguments'])
 				) {
 					http_response_code(502);
-					$this->displayOutputJson(array('status' => false, 'value' => 'The AI requested an invalid or excessive number of catalogue operations.'));
+					$this->displayOutputJson(array('status' => false, 'value' => 'The AI requested an invalid or excessive number of catalogue operations.', 'responseBody' => isset($response['responseBody']) ? $response['responseBody'] : ''));
 				}
 				$arguments = json_decode($outputItem['arguments'], true);
 				if (!is_array($arguments)) {
@@ -3950,25 +3999,35 @@ class api_class
 					error_log('aiRoomServiceAgent could not encode a catalogue tool result.');
 					$toolOutputJson = '{"error":"The catalogue result could not be encoded."}';
 				}
-				$toolOutputs[] = array(
-					'type' => 'function_call_output',
-					'call_id' => $outputItem['call_id'],
-					'output' => $toolOutputJson
+				$assistantToolCalls[] = array(
+					'id' => $outputItem['call_id'],
+					'type' => 'function',
+					'function' => array(
+						'name' => $outputItem['name'],
+						'arguments' => $outputItem['arguments']
+					)
+				);
+				$toolMessages[] = array(
+					'role' => 'tool',
+					'tool_call_id' => $outputItem['call_id'],
+					'content' => $toolOutputJson
 				);
 			}
-			if (count($toolOutputs) === 0) {
+			if (count($assistantToolCalls) === 0) {
 				break;
 			}
-			if (!isset($response['id']) || !is_string($response['id'])) {
-				http_response_code(502);
-				$this->displayOutputJson(array('status' => false, 'value' => 'The AI response was missing its continuation identifier.'));
+			$payload['input'][] = array(
+				'role' => 'assistant',
+				'content' => null,
+				'tool_calls' => $assistantToolCalls
+			);
+			foreach ($toolMessages as $toolMessage) {
+				$payload['input'][] = $toolMessage;
 			}
-			$payload['previous_response_id'] = $response['id'];
-			$payload['input'] = $toolOutputs;
 			$response = $this->callAiRoomServiceAgentApi($payload, trim($apiKey));
 			if (isset($response['error'])) {
 				http_response_code(502);
-				$this->displayOutputJson(array('status' => false, 'value' => $response['error']));
+				$this->displayOutputJson(array('status' => false, 'value' => $response['error'], 'responseBody' => isset($response['responseBody']) ? $response['responseBody'] : ''));
 			}
 		}
 
@@ -3991,7 +4050,7 @@ class api_class
 		if ($reply === '') {
 			error_log('aiRoomServiceAgent received no assistant text from the AI provider.');
 			http_response_code(502);
-			$this->displayOutputJson(array('status' => false, 'value' => 'The AI assistant returned an empty response. Please try again.'));
+			$this->displayOutputJson(array('status' => false, 'value' => 'The AI assistant returned an empty response. Please try again.', 'responseBody' => isset($response['responseBody']) ? $response['responseBody'] : ''));
 		}
 
 		$this->displayOutputJson(array(
