@@ -14,6 +14,7 @@ $apiNamesArray =array(
 				'getRoomRequests'	=>'Get Room Request',
 				'getRequestDetails'=>'Get Request Details',
 				'roomServiceRequestSubmit'=>'Submit Room Service Request',
+				'foodOrderRequest'=>'Submit Food Order',
 				'aiRoomServiceAgent'=>'AI Room Service Agent',
 				'updateRequest'	=>'Update Request',
 				'staffAttendances'	=>'Staff Attendances',
