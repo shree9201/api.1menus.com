@@ -1350,11 +1350,9 @@ class api_class
 	}
 	public function getItems($categoryId = "")
 	{
-		$this->getBodyJsonData();
 
 
 		$id 		= isset($_REQUEST['id']) ? $_REQUEST['id'] : "";
-		$token 	= isset($_REQUEST['token']) ? $_REQUEST['token'] : "";
 		$limit 	= isset($_REQUEST['limit']) ? $_REQUEST['limit'] : "";
 		$cids 	= isset($_REQUEST['cids']) ? $_REQUEST['cids'] : "";
 		if ($limit != "") {
@@ -1362,7 +1360,6 @@ class api_class
 		}
 		$this->APIIsItemPresents('users', $id);
 		$images = $this->getImagesArray();
-		$this->APIIsValidToken($token, $id);
 		$sql = "select m.*,c.title as categoryName,c.subTitle as categorySubTitle from menu m , category c where m.cid=c.id and m.userId=" . $id . " ";
 		if ($categoryId != "") {
 			$sql .= " and c.id=" . $categoryId . " ";
@@ -1410,7 +1407,7 @@ class api_class
 		$getGalaryData = $this->db->select("select * from images where 1 order by id ASC");
 		$getGalaryDataArray = array();
 		for ($g = 0; $g < count($getGalaryData); $g++) {
-			$getGalaryDataArray[$getGalaryData[$g]->id]  = CMS_MEDIA_PATH . "" . $getGalaryData[$g]->photo;
+			$getGalaryDataArray[$getGalaryData[$g]->id]  = "https://dashboard.1menus.com/media/" . $getGalaryData[$g]->photo;
 		}
 		return $getGalaryDataArray;
 	}
@@ -4949,5 +4946,164 @@ class api_class
 	public function aiRoomServiceChat()
 	{
 		$this->aiRoomServiceAgentLogic();
+	}
+
+	// function for order food menu from room service platform
+	public function foodOrderRequest()
+	{
+		$this->getBodyJsonData();
+
+		$outletId = isset($_REQUEST['outletId']) && is_scalar($_REQUEST['outletId']) ? trim((string)$_REQUEST['outletId']) : '';
+		$username = isset($_REQUEST['username']) && is_scalar($_REQUEST['username']) ? trim((string)$_REQUEST['username']) : '';
+		$roomNumber = isset($_REQUEST['tableNo']) && is_scalar($_REQUEST['tableNo']) ? trim((string)$_REQUEST['tableNo']) : '';
+		$serviceId = isset($_REQUEST['serviceId']) && is_scalar($_REQUEST['serviceId']) ? trim((string)$_REQUEST['serviceId']) : '';
+		//add guestName & guestMobile request param in API endpoint foodOrderRequest
+		$guestName = isset($_REQUEST['guestName']) && is_scalar($_REQUEST['guestName']) ? trim((string)$_REQUEST['guestName']) : '';
+		$guestMobile = isset($_REQUEST['guestMobile']) && is_scalar($_REQUEST['guestMobile']) ? trim((string)$_REQUEST['guestMobile']) : '';
+		$items = isset($_REQUEST['items']) ? $_REQUEST['items'] : null;
+
+		if ((int)$outletId <= 0 || $username === '' || $roomNumber === '' || (int)$serviceId <= 0 || $guestName === '' || $guestMobile === '' || !is_array($items) || count($items) === 0) {
+			$this->displayOutputJson(array('status' => false, 'value' => 'outletId, username, tableNo, guestName, guestMobile, a valid serviceId, and at least one item are required.'));
+		}
+
+		$headers = function_exists('getallheaders') ? getallheaders() : array();
+		$headers = is_array($headers) ? array_change_key_case($headers, CASE_LOWER) : array();
+		$authenticatedOutletId = isset($headers['id']) ? trim((string)$headers['id']) : (isset($_SERVER['HTTP_ID']) ? trim((string)$_SERVER['HTTP_ID']) : '');
+
+		$escapedUsername = addslashes($username);
+		if ($this->db->selectCount("select count(*) as count from users where id=" . (int)$outletId . " and username='" . $escapedUsername . "'") == 0) {
+			$this->displayOutputJson(array('status' => false, 'value' => 'The username does not match the outlet.'));
+		}
+
+		$serviceRows = $this->db->select("SELECT id, title FROM room_service_my_service WHERE id=" . (int)$serviceId . " AND userId=" . (int)$outletId . " AND status='YES' LIMIT 1");
+		if (!is_array($serviceRows) || count($serviceRows) === 0) {
+			$this->displayOutputJson(array('status' => false, 'value' => 'The selected room service is not available for this outlet.'));
+		}
+
+		$normalizedRoomNumber = preg_replace('/^RM-/i', '', $roomNumber);
+		$prefixedRoomNumber = 'RM-' . $normalizedRoomNumber;
+		$escapedRoomNumber = addslashes($roomNumber);
+		$escapedNormalizedRoomNumber = addslashes($normalizedRoomNumber);
+		$escapedPrefixedRoomNumber = addslashes($prefixedRoomNumber);
+		$roomRows = $this->db->select(
+			"SELECT id, title FROM room_service_rooms WHERE userId=" . (int)$outletId . " AND status='YES' AND title IN ('" .
+				$escapedRoomNumber . "', '" . $escapedNormalizedRoomNumber . "', '" . $escapedPrefixedRoomNumber .
+				"') ORDER BY CASE WHEN title='" . $escapedRoomNumber . "' THEN 0 WHEN title='" . $escapedNormalizedRoomNumber .
+				"' THEN 1 ELSE 2 END LIMIT 1"
+		);
+		if (!is_array($roomRows) || count($roomRows) === 0) {
+			$this->displayOutputJson(array('status' => false, 'value' => 'The selected room is not available for this outlet.'));
+		}
+
+		$validatedItems = array();
+		foreach ($items as $item) {
+			if (!is_array($item) || !isset($item['id'], $item['quantity']) || !is_scalar($item['id']) || !is_scalar($item['quantity']) || (isset($item['notes']) && !is_scalar($item['notes'])) || !ctype_digit((string)$item['id']) || (int)$item['id'] <= 0 || !is_numeric($item['quantity']) || (int)$item['quantity'] <= 0 || (float)$item['quantity'] !== (float)(int)$item['quantity']) {
+				$this->displayOutputJson(array('status' => false, 'value' => 'Each item must have a valid menu id and positive whole-number quantity.'));
+			}
+
+			$menuId = (int)$item['id'];
+			$menuRows = $this->db->select("SELECT id, title FROM menu WHERE id=" . $menuId . " AND userId=" . (int)$outletId . " LIMIT 1");
+			if (!is_array($menuRows) || count($menuRows) === 0) {
+				$this->displayOutputJson(array('status' => false, 'value' => 'A requested menu item does not belong to this outlet.'));
+			}
+
+			$validatedItems[] = array(
+				'menuId' => $menuId,
+				'title' => isset($menuRows[0]->title) ? (string)$menuRows[0]->title : ('Menu item ' . $menuId),
+				'quantity' => (int)$item['quantity'],
+				'note' => isset($item['notes']) ? trim((string)$item['notes']) : ''
+			);
+		}
+
+		$tableName = stripos($roomNumber, 'RM-') === 0 ? $roomNumber : 'RM-' . $roomNumber;
+		$ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
+		$date = date('Y-m-d');
+		$dateTime = date('Y-m-d H:i:s');
+		$insertedIds = array();
+		$requestNote = "Food order details:\n";
+		foreach ($validatedItems as $item) {
+			$requestNote .= '- ' . $item['title'] . ' x ' . $item['quantity'];
+			if ($item['note'] !== '') {
+				$requestNote .= ' (Note: ' . $item['note'] . ')';
+			}
+			$requestNote .= "\n";
+
+			$insertId = $this->db->insert(array(
+				'userId' => (int)$outletId,
+				'tableNo' => $tableName,
+				'menuId' => $item['menuId'],
+				'qty' => $item['quantity'],
+				'ip' => $ip,
+				'type' => 'TB',
+				'note' => $item['note'],
+				'status' => 'NO',
+				'date' => $date,
+				'date_time' => $dateTime,
+				'created_date' => $dateTime,
+				'updated_date' => $dateTime
+			), 'food_order');
+
+			if (!is_numeric($insertId) || (int)$insertId <= 0) {
+				$this->displayOutputJson(array(
+					'status' => false,
+					'value' => 'Could not save all order items.',
+					'insertedIds' => $insertedIds
+				));
+			}
+			$insertedIds[] = (int)$insertId;
+		}
+
+		$roomId = (int)$roomRows[0]->id;
+		$assignedId = $this->getAllocationForRequest((int)$outletId, (int)$serviceId, $roomId);
+		$requestId = $this->db->insert(array(
+			'title' => 'Food Order',
+			'ip' => $ip,
+			'userId' => (int)$outletId,
+			'roomId' => $roomId,
+			'serviceId' => (int)$serviceId,
+			'assigned' => $assignedId,
+			'date' => $date,
+			'note' => trim($requestNote),
+			'status' => 'NEW',
+			'created_date' => $dateTime,
+			'updated_date' => $dateTime,
+			'guestName' => $guestName,
+			'guestMobile' => $guestMobile
+		), 'room_service_request');
+		if (!is_numeric($requestId) || (int)$requestId <= 0) {
+			$this->displayOutputJson(array(
+				'status' => false,
+				'value' => 'Food order was saved, but its room service request could not be created.',
+				'data' => $insertedIds
+			));
+		}
+
+		$requestId = (int)$requestId;
+		$reqCode = 'RSRQ-' . str_pad((string)$requestId, 8, '0', STR_PAD_LEFT);
+		$this->db->update("UPDATE room_service_request SET reqCode='" . $reqCode . "' WHERE id=" . $requestId . " AND userId=" . (int)$outletId);
+		$roomTitle = isset($roomRows[0]->title) ? (string)$roomRows[0]->title : $roomNumber;
+		$activityMessage = 'New food order request (Room-' . $roomTitle . ')';
+		$activityId = $this->db->insert(array(
+			'reqId' => $requestId,
+			'ip' => $ip,
+			'userId' => (int)$outletId,
+			'roomId' => $roomId,
+			'assigned' => $assignedId,
+			'dateTime' => $dateTime,
+			'comment' => $activityMessage,
+			'status' => 'NEW'
+		), 'room_service_request_activity');
+		$notifications = $this->sendPushNotification($assignedId, $activityMessage, 'New Room (' . $roomTitle . ') Food Order');
+
+		$this->displayOutputJson(array(
+			'status' => true,
+			'value' => 'Food order submitted successfully.',
+			'tableNo' => $tableName,
+			'data' => $insertedIds,
+			'roomRequestId' => $requestId,
+			'reqCode' => $reqCode,
+			'activityLogged' => is_numeric($activityId) && (int)$activityId > 0,
+			'notificationDetails' => $notifications
+		));
 	}
 }
