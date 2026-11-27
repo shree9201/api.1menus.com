@@ -65,6 +65,7 @@ class api_class
 	var $priority;
 	var $numbersSet;
 	var $numbersSetWith0;
+	var $apiKeys;
 
 	public function __construct()
 	{
@@ -97,6 +98,7 @@ class api_class
 		$this->numbersSet = array('1' => '1', '2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6', '7' => '7', '8' => '8', '9' => '9', '10' => '10', '11' => '11', '12' => '12', '13' => '13', '14' => '14', '15' => '15', '16' => '16', '17' => '17', '18' => '18', '19' => '19', '20' => '20');
 		$this->numbersSetWith0 = array('0' => '0', '1' => '1', '2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6', '7' => '7', '8' => '8', '9' => '9', '10' => '10', '11' => '11', '12' => '12', '13' => '13', '14' => '14', '15' => '15', '16' => '16', '17' => '17', '18' => '18', '19' => '19', '20' => '20');
 		// jwt_token authentication for API access validation can be implemented here if needed for all API calls
+		$this->apiKeys = $this->getAPIKeys('');
 		$this->getBodyJsonData();
 		//$this->loadFontAwasoneIcons();
 		if ($_REQUEST['action'] === 'test') { // skip token validation for getJwtToken API to allow clients to obtain token
@@ -119,7 +121,19 @@ class api_class
 			"OWNER" => "Owner"
 		);
 	}
-
+	public function getAPIKeys($code = '')
+	{
+		if ($code !== '' && isset($this->apiKeys[$code])) {
+			return $this->apiKeys[$code];
+		} else {
+			$apiKeys = array();
+			$keysObject = $this->db->select('select code, api_key from api_keys where status="YES"');
+			foreach ($keysObject as $key => $value) {
+				$apiKeys[$value->code] = $value->api_key;
+			}
+			return $apiKeys;
+		}
+	}
 	public function getBodyJsonData()
 	{
 		$json = file_get_contents('php://input');
@@ -280,7 +294,7 @@ class api_class
 	}
 	public function sendWhatsappMessage($numbers, $template, $dataArray)
 	{
-		$apiKey = 'sghwa_f89DtRASSgqNrexBtBbmLUtcnYRV2Z0BitlGUuGH';
+		$apiKey =  $this->getAPIKeys('SMS_GATEWAY_WHATSAPP_API'); // 'sghwa_f89DtRASSgqNrexBtBbmLUtcnYRV2Z0BitlGUuGH';
 		if ($apiKey === false || trim($apiKey) === '') {
 			return array('status' => false, 'value' => 'SMS Gateway Hub API key is not configured.', 'results' => array());
 		}
@@ -1295,14 +1309,13 @@ class api_class
 
 	public function getCategory($onlyIds = false)
 	{
-		$this->getBodyJsonData();
 		$onlyIdsArray = array();
 		$id 		= isset($_REQUEST['id']) ? $_REQUEST['id'] : "";
-		$token 	= isset($_REQUEST['token']) ? $_REQUEST['token'] : "";
-		$this->APIIsItemPresents('users', $id);
-		$this->APIIsValidToken($token, $id);
+		// $token 	= isset($_REQUEST['token']) ? $_REQUEST['token'] : "";
+		// $this->APIIsItemPresents('users', $id);
+		// $this->APIIsValidToken($token, $id);
+		//$this->APIIsValidToken($token, $id);
 		$images = $this->getImagesArray();
-		$this->APIIsValidToken($token, $id);
 		$sql = "select * from category where userId=" . $id . " order by sq ASC";
 		$categoryList = $this->db->select("select * from category where status='YES' and userId=" . $id . " order by sq ASC");
 		for ($c = 0; $c < count($categoryList); $c++) {
@@ -2266,7 +2279,11 @@ class api_class
 			'android_accent_color' => 'FF0000',
 			'data'            => ['title' => $title, 'message' => $message]
 		];
-		$notification_api_key = $this->config->notification_api_key ? $this->config->notification_api_key : '';
+		$notification_api_key =  $this->getAPIKeys('ONE_SIGNAL');
+		$notification_api_cookies = $this->getAPIKeys('ONE_SIGNAL_COOKIES');
+		if ($notification_api_key == '') {
+			return array(400, 'OneSignal API key is not configured.');
+		}
 		$ch = curl_init('https://api.onesignal.com/notifications');
 		curl_setopt_array($ch, [
 			CURLOPT_POST           => true,
@@ -2274,7 +2291,7 @@ class api_class
 			CURLOPT_HTTPHEADER     => [
 				'Content-Type: application/json',
 				'Authorization:' . $notification_api_key,
-				'Cookie: __cf_bm=zwK4QnegG.pP4vMM82uIlcvTu5.2dcLzduBZC8RkxQo-1785251723.869693-1.0.1.1-6yhXwTP0dTOUAp1hL2JuQT4hssAYG6giJvACHnCaX5Z66peZvAwJvpf7C67vvCe5TwNn1HiQKpFxJcrbNNwJTFpMZ0RKgImWQ.iLYKxd7jkGIrrAPYlo8iO0oNUPtqXK'
+				'Cookie: ' . $notification_api_cookies
 			],
 			CURLOPT_POSTFIELDS     => json_encode($content),
 		]);
@@ -3869,15 +3886,12 @@ class api_class
 		}
 
 
-		$apiKey = AI_AGENT_CHATBOOT_API_KEY;
-		$model = AI_AGENT_CHATBOOT_MODEL;
+		$apiKey = $this->getAPIKeys('AI_AGENT_CHATBOOT_API_KEY');
+		$model = $this->getAPIKeys('AI_AGENT_CHATBOOT_MODEL');
 		if (!is_string($apiKey) || trim($apiKey) === '') {
 			error_log('aiRoomServiceAgent is unavailable because AI_AGENT_CHATBOOT_API_KEY is not configured.');
 			http_response_code(503);
 			$this->displayOutputJson(array('status' => false, 'value' => 'AI chat is not configured on the server.'));
-		}
-		if (!is_string($model) || trim($model) === '') {
-			$model = 'openai/gpt-oss-120b';
 		}
 		$sql = "SELECT * FROM room_service_my_service WHERE userId=" . (int)$outletId . " AND status='YES' ORDER BY boxId, id";
 		$catalogue = $this->db->select($sql);
