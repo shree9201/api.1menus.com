@@ -1373,7 +1373,7 @@ class api_class
 		$menuList = $this->db->select($sql);
 		for ($m = 0; $m < count($menuList); $m++) {
 			if ($menuList[$m]->img != "") {
-				$menuList[$m]->img = $images[$menuList[$m]->img];
+				$menuList[$m]->img = isset($images[$menuList[$m]->img]) ? $images[$menuList[$m]->img] : "";
 			}
 		}
 		if ($categoryId != "")
@@ -1393,7 +1393,7 @@ class api_class
 		$categoryList = $this->db->select("select id,title,subTitle,img,vegType from category where status='YES' and userId=" . $id . " order by sq ASC");
 		for ($c = 0; $c < count($categoryList); $c++) {
 			if ($categoryList[$c]->img != "") {
-				$categoryList[$c]->img = $images[$categoryList[$c]->img];
+				$categoryList[$c]->img = isset($images[$categoryList[$c]->img]) ? $images[$categoryList[$c]->img] : "";
 				$categoryList[$c]->items = $this->getItems($categoryList[$c]->id);
 			}
 		}

@@ -86,6 +86,7 @@ define("API_THEME_PATH", $siteUrl . "theme/api/");
 define("WEB_THEME_PATH_LANDING", $siteUrl . "theme/b2c/landingPage/");
 define("WEB_COMP_PATH", $siteUrl . "app/b2c/view/components/");
 define("CM_API_BASE", 'http://api.bookinghotel.co.in/api/');
+define("DASHBOARD_MEDIA", 'http://dashboard.1menus.com/media/');
 define("IS_SMS_NOTIFICATION", 'NO');
 define("PLACEHOLDERIMAGE", $siteUrl . 'app/b2c/assets/img/placeholder-loading.gif');
 function isUserLogin()
